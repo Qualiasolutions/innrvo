@@ -18,34 +18,67 @@ export interface TemplateCategory {
 
 export const TEMPLATE_CATEGORIES: TemplateCategory[] = [
   {
-    id: 'manifesting',
-    name: 'Manifesting',
-    description: 'Attract abundance, success, and your deepest desires',
+    id: 'meditation',
+    name: 'Meditation',
+    description: 'Guided meditations for transformation and inner peace',
     icon: 'sparkle',
-    templates: [
+    subgroups: [
       {
-        id: 'abundance',
-        title: 'Abundance Flow',
-        description: 'Open yourself to unlimited wealth and prosperity.',
-        prompt: 'Create a powerful 5-minute manifesting meditation for attracting financial abundance. Use visualization of golden light flowing through the body, affirmations of worthiness, and imagery of money flowing effortlessly. Include gratitude for current blessings and certainty that more is coming.'
+        id: 'happiness',
+        name: 'Happiness',
+        description: 'Cultivate joy, gratitude, and inner peace',
+        templates: [
+          {
+            id: 'self-love',
+            title: 'Self-Love & Confidence',
+            description: 'Manifest unshakeable confidence and deep self-worth.',
+            prompt: 'Create a transformative self-love meditation that helps the listener see themselves through eyes of unconditional love. Include mirror visualization, healing inner child work, and powerful affirmations of worthiness. End with feeling radiantly confident and magnetically attractive.'
+          },
+          {
+            id: 'gratitude',
+            title: 'Gratitude Flow',
+            description: 'Open your heart to appreciation and abundance.',
+            prompt: 'Write a heartfelt gratitude meditation. Guide the listener to reflect on blessings in their life - relationships, health, simple pleasures. Include visualization of gratitude as warm golden light filling the heart. End with feeling deeply thankful and at peace.'
+          }
+        ]
       },
       {
-        id: 'dream-life',
-        title: 'Dream Life Vision',
-        description: 'Visualize and attract your ideal life in vivid detail.',
-        prompt: 'Write an immersive manifesting meditation where the listener walks through their perfect day in their dream life. Include waking up in their ideal home, doing work they love, surrounded by loving relationships, feeling complete health and vitality. Make it sensory-rich and emotionally powerful.'
+        id: 'money',
+        name: 'Money & Abundance',
+        description: 'Attract wealth, prosperity, and financial freedom',
+        templates: [
+          {
+            id: 'abundance',
+            title: 'Abundance Flow',
+            description: 'Open yourself to unlimited wealth and prosperity.',
+            prompt: 'Create a powerful 5-minute manifesting meditation for attracting financial abundance. Use visualization of golden light flowing through the body, affirmations of worthiness, and imagery of money flowing effortlessly. Include gratitude for current blessings and certainty that more is coming.'
+          },
+          {
+            id: 'success-mindset',
+            title: 'Success Mindset',
+            description: 'Reprogram your mind for unstoppable success.',
+            prompt: 'Write a powerful success manifesting meditation. Include visualization of achieving major goals, standing ovations, celebrating wins, and feeling deeply fulfilled. Use anchoring techniques to lock in the feeling of success. Include affirmations about being destined for greatness.'
+          }
+        ]
       },
       {
-        id: 'self-love',
-        title: 'Self-Love & Confidence',
-        description: 'Manifest unshakeable confidence and deep self-worth.',
-        prompt: 'Create a transformative self-love meditation that helps the listener see themselves through eyes of unconditional love. Include mirror visualization, healing inner child work, and powerful affirmations of worthiness. End with feeling radiantly confident and magnetically attractive.'
-      },
-      {
-        id: 'success-mindset',
-        title: 'Success Mindset',
-        description: 'Reprogram your mind for unstoppable success.',
-        prompt: 'Write a powerful success manifesting meditation. Include visualization of achieving major goals, standing ovations, celebrating wins, and feeling deeply fulfilled. Use anchoring techniques to lock in the feeling of success. Include affirmations about being destined for greatness.'
+        id: 'health',
+        name: 'Health & Vitality',
+        description: 'Heal your body and cultivate radiant wellness',
+        templates: [
+          {
+            id: 'healing-light',
+            title: 'Healing Light',
+            description: 'Channel healing energy throughout your body.',
+            prompt: 'Create a healing meditation where warm, golden healing light enters through the crown and flows through every cell of the body. Focus on releasing tension, pain, and illness. Include visualization of cells regenerating and the body returning to perfect health. End feeling vibrant and whole.'
+          },
+          {
+            id: 'dream-life',
+            title: 'Dream Life Vision',
+            description: 'Visualize your ideal life in vivid detail.',
+            prompt: 'Write an immersive manifesting meditation where the listener walks through their perfect day in their dream life. Include waking up in their ideal home, doing work they love, surrounded by loving relationships, feeling complete health and vitality. Make it sensory-rich and emotionally powerful.'
+          }
+        ]
       }
     ]
   },
