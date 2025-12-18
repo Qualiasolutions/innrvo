@@ -28,6 +28,13 @@ const App: React.FC = () => {
   const [showMusicModal, setShowMusicModal] = useState(false);
   const [selectedBackgroundTrack, setSelectedBackgroundTrack] = useState<BackgroundTrack>(BACKGROUND_TRACKS[0]);
 
+  // Burger menu states
+  const [showBurgerMenu, setShowBurgerMenu] = useState(false);
+  const [showHowItWorks, setShowHowItWorks] = useState(false);
+  const [showLibrary, setShowLibrary] = useState(false);
+  const [showPricing, setShowPricing] = useState(false);
+  const [showAboutUs, setShowAboutUs] = useState(false);
+
   // Voice profile creation
   const [newProfileName, setNewProfileName] = useState('');
   const [recordedAudio, setRecordedAudio] = useState<string | null>(null); // Base64 audio for voice clone
@@ -443,11 +450,23 @@ const App: React.FC = () => {
 
         {/* Simple Navigation - Mobile Optimized */}
         <nav className="fixed top-0 left-0 right-0 z-50 p-3 md:p-6 flex justify-between items-center bg-gradient-to-b from-[#020617]/80 to-transparent">
-          <div
-            className="flex items-center gap-2 cursor-pointer group opacity-80 hover:opacity-100 transition-opacity flex-shrink-0"
-            onClick={() => setCurrentView(View.HOME)}
-          >
-            <ICONS.Logo className="h-5 md:h-7 text-white" />
+          <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">
+            {/* Burger Menu Button */}
+            <button
+              onClick={() => setShowBurgerMenu(true)}
+              className="p-2 md:p-2.5 min-w-[40px] min-h-[40px] md:min-w-[44px] md:min-h-[44px] rounded-lg md:rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all flex items-center justify-center"
+              title="Menu"
+            >
+              <ICONS.Menu className="w-4 h-4 md:w-5 md:h-5" />
+            </button>
+
+            {/* Logo */}
+            <div
+              className="flex items-center gap-2 cursor-pointer group opacity-80 hover:opacity-100 transition-opacity"
+              onClick={() => setCurrentView(View.HOME)}
+            >
+              <ICONS.Logo className="h-5 md:h-7 text-white" />
+            </div>
           </div>
 
           {/* Voice selector and user menu - compact on mobile */}
@@ -1180,6 +1199,449 @@ const App: React.FC = () => {
           }}
           currentVoiceId={selectedVoice.id}
         />
+
+        {/* Burger Menu Drawer */}
+        {showBurgerMenu && (
+          <>
+            {/* Backdrop */}
+            <div
+              className="fixed inset-0 z-[90] bg-black/60 backdrop-blur-sm animate-in fade-in duration-300"
+              onClick={() => setShowBurgerMenu(false)}
+            />
+            {/* Drawer */}
+            <div className="fixed top-0 left-0 bottom-0 z-[95] w-[280px] md:w-[320px] bg-[#0a0f1a]/95 backdrop-blur-xl border-r border-white/10 animate-in slide-in-from-left duration-300 flex flex-col">
+              {/* Header */}
+              <div className="p-6 border-b border-white/5 flex items-center justify-between">
+                <ICONS.Logo className="h-6 text-white" />
+                <button
+                  onClick={() => setShowBurgerMenu(false)}
+                  className="p-2 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-all"
+                >
+                  <ICONS.Close className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Menu Items */}
+              <nav className="flex-1 p-4 space-y-2">
+                <button
+                  onClick={() => {
+                    setShowBurgerMenu(false);
+                    setShowHowItWorks(true);
+                  }}
+                  className="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl hover:bg-white/5 text-slate-300 hover:text-white transition-all group"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <svg className="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
+                    </svg>
+                  </div>
+                  <div className="text-left">
+                    <div className="font-semibold">How INrVO Works</div>
+                    <div className="text-xs text-slate-500">Learn how to use the platform</div>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setShowBurgerMenu(false);
+                    setShowLibrary(true);
+                  }}
+                  className="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl hover:bg-white/5 text-slate-300 hover:text-white transition-all group"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
+                    </svg>
+                  </div>
+                  <div className="text-left">
+                    <div className="font-semibold">My Library</div>
+                    <div className="text-xs text-slate-500">Your saved meditations</div>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setShowBurgerMenu(false);
+                    setShowPricing(true);
+                  }}
+                  className="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl hover:bg-white/5 text-slate-300 hover:text-white transition-all group"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <svg className="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
+                    </svg>
+                  </div>
+                  <div className="text-left">
+                    <div className="font-semibold">Pricing</div>
+                    <div className="text-xs text-slate-500">Plans and features</div>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setShowBurgerMenu(false);
+                    setShowAboutUs(true);
+                  }}
+                  className="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl hover:bg-white/5 text-slate-300 hover:text-white transition-all group"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500/20 to-rose-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <svg className="w-5 h-5 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+                    </svg>
+                  </div>
+                  <div className="text-left">
+                    <div className="font-semibold">About Us</div>
+                    <div className="text-xs text-slate-500">Our story and mission</div>
+                  </div>
+                </button>
+              </nav>
+
+              {/* Footer */}
+              <div className="p-4 border-t border-white/5">
+                <div className="text-[10px] text-slate-600 text-center uppercase tracking-widest">
+                  Digital Zen Wellness
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* MODAL: How It Works */}
+        {showHowItWorks && (
+          <div className="fixed inset-0 z-[80] bg-[#020617]/95 backdrop-blur-3xl flex flex-col p-6 animate-in fade-in zoom-in duration-500 overflow-y-auto">
+            <Starfield />
+
+            <button
+              onClick={() => setShowHowItWorks(false)}
+              className="fixed top-6 left-6 md:top-8 md:left-8 text-slate-600 hover:text-white transition-all flex items-center gap-3 group btn-press focus-ring rounded-full z-10"
+            >
+              <div className="w-12 h-12 min-w-[44px] min-h-[44px] rounded-full border border-white/5 flex items-center justify-center group-hover:bg-white/10 group-hover:scale-110 transition-all">
+                <ICONS.ArrowBack className="w-5 h-5" />
+              </div>
+              <span className="hidden md:inline text-[11px] font-bold uppercase tracking-[0.3em]">Back</span>
+            </button>
+
+            <div className="flex-1 flex flex-col items-center justify-center pt-16 md:pt-0 relative z-10 max-w-4xl mx-auto">
+              <div className="inline-block px-4 py-1 rounded-full bg-indigo-500/10 text-indigo-400 text-[10px] font-bold uppercase tracking-[0.4em] mb-6">Guide</div>
+              <h2 className="text-3xl md:text-5xl font-extralight text-center mb-4 tracking-tight">
+                <span className="bg-gradient-to-r from-indigo-300 via-purple-200 to-pink-300 bg-clip-text text-transparent">How INrVO Works</span>
+              </h2>
+              <p className="text-slate-500 text-center mb-12 max-w-lg">Create personalized meditations in seconds with AI</p>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
+                <GlassCard className="!p-6 !rounded-2xl text-center">
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center mx-auto mb-4">
+                    <span className="text-2xl font-bold text-indigo-400">1</span>
+                  </div>
+                  <h3 className="text-lg font-bold text-white mb-2">Write Your Intention</h3>
+                  <p className="text-sm text-slate-400">Type a short phrase like "calm my anxiety" or "help me sleep" - or use voice input</p>
+                </GlassCard>
+
+                <GlassCard className="!p-6 !rounded-2xl text-center">
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center mx-auto mb-4">
+                    <span className="text-2xl font-bold text-purple-400">2</span>
+                  </div>
+                  <h3 className="text-lg font-bold text-white mb-2">Customize</h3>
+                  <p className="text-sm text-slate-400">Choose a voice, select background music, or browse templates for inspiration</p>
+                </GlassCard>
+
+                <GlassCard className="!p-6 !rounded-2xl text-center">
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-pink-500/20 to-rose-500/20 flex items-center justify-center mx-auto mb-4">
+                    <span className="text-2xl font-bold text-pink-400">3</span>
+                  </div>
+                  <h3 className="text-lg font-bold text-white mb-2">Listen & Relax</h3>
+                  <p className="text-sm text-slate-400">AI generates a full meditation script and reads it aloud with your chosen voice</p>
+                </GlassCard>
+              </div>
+
+              <div className="mt-12 text-center">
+                <h4 className="text-lg font-semibold text-white mb-4">Pro Tips</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+                  <div className="flex items-start gap-3 p-4 rounded-xl bg-white/5">
+                    <ICONS.Sparkle className="w-5 h-5 text-purple-400 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-slate-400"><span className="text-white font-medium">Be specific:</span> "5-minute morning energy boost" works better than just "energy"</p>
+                  </div>
+                  <div className="flex items-start gap-3 p-4 rounded-xl bg-white/5">
+                    <ICONS.Microphone className="w-5 h-5 text-indigo-400 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-slate-400"><span className="text-white font-medium">Clone your voice:</span> Record yourself to hear meditations in your own voice</p>
+                  </div>
+                  <div className="flex items-start gap-3 p-4 rounded-xl bg-white/5">
+                    <ICONS.Music className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-slate-400"><span className="text-white font-medium">Add emotion:</span> Include feelings like "warm", "peaceful", or "empowering"</p>
+                  </div>
+                  <div className="flex items-start gap-3 p-4 rounded-xl bg-white/5">
+                    <ICONS.Book className="w-5 h-5 text-pink-400 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-slate-400"><span className="text-white font-medium">Use templates:</span> Browse pre-made prompts for quick inspiration</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL: Library */}
+        {showLibrary && (
+          <div className="fixed inset-0 z-[80] bg-[#020617]/95 backdrop-blur-3xl flex flex-col p-6 animate-in fade-in zoom-in duration-500 overflow-y-auto">
+            <Starfield />
+
+            <button
+              onClick={() => setShowLibrary(false)}
+              className="fixed top-6 left-6 md:top-8 md:left-8 text-slate-600 hover:text-white transition-all flex items-center gap-3 group btn-press focus-ring rounded-full z-10"
+            >
+              <div className="w-12 h-12 min-w-[44px] min-h-[44px] rounded-full border border-white/5 flex items-center justify-center group-hover:bg-white/10 group-hover:scale-110 transition-all">
+                <ICONS.ArrowBack className="w-5 h-5" />
+              </div>
+              <span className="hidden md:inline text-[11px] font-bold uppercase tracking-[0.3em]">Back</span>
+            </button>
+
+            <div className="flex-1 flex flex-col items-center justify-center pt-16 md:pt-0 relative z-10 max-w-4xl mx-auto">
+              <div className="inline-block px-4 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-bold uppercase tracking-[0.4em] mb-6">Library</div>
+              <h2 className="text-3xl md:text-5xl font-extralight text-center mb-4 tracking-tight">
+                <span className="bg-gradient-to-r from-emerald-300 via-cyan-200 to-teal-300 bg-clip-text text-transparent">My Library</span>
+              </h2>
+              <p className="text-slate-500 text-center mb-12 max-w-lg">Your saved meditations and audio generations</p>
+
+              {user ? (
+                <div className="w-full">
+                  <GlassCard className="!p-8 !rounded-2xl text-center">
+                    <div className="w-20 h-20 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto mb-6">
+                      <svg className="w-10 h-10 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-xl font-bold text-white mb-2">Your library is empty</h3>
+                    <p className="text-slate-400 mb-6">Create your first meditation to start building your library</p>
+                    <button
+                      onClick={() => {
+                        setShowLibrary(false);
+                        setCurrentView(View.HOME);
+                      }}
+                      className="px-6 py-3 rounded-full bg-gradient-to-r from-emerald-600 to-cyan-600 text-white font-bold text-sm hover:scale-105 active:scale-95 transition-all"
+                    >
+                      Create Meditation
+                    </button>
+                  </GlassCard>
+                </div>
+              ) : (
+                <GlassCard className="!p-8 !rounded-2xl text-center max-w-md">
+                  <div className="w-20 h-20 rounded-full bg-indigo-500/10 flex items-center justify-center mx-auto mb-6">
+                    <svg className="w-10 h-10 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-bold text-white mb-2">Sign in to access your library</h3>
+                  <p className="text-slate-400 mb-6">Create an account to save and revisit your meditations</p>
+                  <button
+                    onClick={() => {
+                      setShowLibrary(false);
+                      setShowAuthModal(true);
+                    }}
+                    className="px-6 py-3 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold text-sm hover:scale-105 active:scale-95 transition-all"
+                  >
+                    Sign In
+                  </button>
+                </GlassCard>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* MODAL: Pricing */}
+        {showPricing && (
+          <div className="fixed inset-0 z-[80] bg-[#020617]/95 backdrop-blur-3xl flex flex-col p-6 animate-in fade-in zoom-in duration-500 overflow-y-auto">
+            <Starfield />
+
+            <button
+              onClick={() => setShowPricing(false)}
+              className="fixed top-6 left-6 md:top-8 md:left-8 text-slate-600 hover:text-white transition-all flex items-center gap-3 group btn-press focus-ring rounded-full z-10"
+            >
+              <div className="w-12 h-12 min-w-[44px] min-h-[44px] rounded-full border border-white/5 flex items-center justify-center group-hover:bg-white/10 group-hover:scale-110 transition-all">
+                <ICONS.ArrowBack className="w-5 h-5" />
+              </div>
+              <span className="hidden md:inline text-[11px] font-bold uppercase tracking-[0.3em]">Back</span>
+            </button>
+
+            <div className="flex-1 flex flex-col items-center justify-center pt-16 md:pt-0 relative z-10 max-w-5xl mx-auto">
+              <div className="inline-block px-4 py-1 rounded-full bg-amber-500/10 text-amber-400 text-[10px] font-bold uppercase tracking-[0.4em] mb-6">Pricing</div>
+              <h2 className="text-3xl md:text-5xl font-extralight text-center mb-4 tracking-tight">
+                <span className="bg-gradient-to-r from-amber-300 via-orange-200 to-yellow-300 bg-clip-text text-transparent">Simple Pricing</span>
+              </h2>
+              <p className="text-slate-500 text-center mb-12 max-w-lg">Choose the plan that works for you</p>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
+                {/* Free Tier */}
+                <GlassCard className="!p-6 !rounded-2xl">
+                  <div className="text-center mb-6">
+                    <h3 className="text-lg font-bold text-white mb-1">Free</h3>
+                    <div className="text-3xl font-bold text-white">$0</div>
+                    <div className="text-sm text-slate-500">Forever free</div>
+                  </div>
+                  <ul className="space-y-3 mb-6">
+                    <li className="flex items-center gap-2 text-sm text-slate-300">
+                      <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                      5 meditations per day
+                    </li>
+                    <li className="flex items-center gap-2 text-sm text-slate-300">
+                      <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                      4 AI voices
+                    </li>
+                    <li className="flex items-center gap-2 text-sm text-slate-300">
+                      <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                      Basic templates
+                    </li>
+                  </ul>
+                  <button className="w-full py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold text-sm transition-all">
+                    Current Plan
+                  </button>
+                </GlassCard>
+
+                {/* Pro Tier */}
+                <GlassCard className="!p-6 !rounded-2xl border-2 border-amber-500/30 relative">
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[10px] font-bold uppercase tracking-wider">
+                    Most Popular
+                  </div>
+                  <div className="text-center mb-6">
+                    <h3 className="text-lg font-bold text-white mb-1">Pro</h3>
+                    <div className="text-3xl font-bold text-white">$9.99</div>
+                    <div className="text-sm text-slate-500">per month</div>
+                  </div>
+                  <ul className="space-y-3 mb-6">
+                    <li className="flex items-center gap-2 text-sm text-slate-300">
+                      <svg className="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                      Unlimited meditations
+                    </li>
+                    <li className="flex items-center gap-2 text-sm text-slate-300">
+                      <svg className="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                      Voice cloning
+                    </li>
+                    <li className="flex items-center gap-2 text-sm text-slate-300">
+                      <svg className="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                      All background music
+                    </li>
+                    <li className="flex items-center gap-2 text-sm text-slate-300">
+                      <svg className="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                      Download audio files
+                    </li>
+                  </ul>
+                  <button className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-sm hover:scale-105 active:scale-95 transition-all">
+                    Upgrade to Pro
+                  </button>
+                </GlassCard>
+
+                {/* Team Tier */}
+                <GlassCard className="!p-6 !rounded-2xl">
+                  <div className="text-center mb-6">
+                    <h3 className="text-lg font-bold text-white mb-1">Team</h3>
+                    <div className="text-3xl font-bold text-white">$29.99</div>
+                    <div className="text-sm text-slate-500">per month</div>
+                  </div>
+                  <ul className="space-y-3 mb-6">
+                    <li className="flex items-center gap-2 text-sm text-slate-300">
+                      <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                      Everything in Pro
+                    </li>
+                    <li className="flex items-center gap-2 text-sm text-slate-300">
+                      <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                      5 team members
+                    </li>
+                    <li className="flex items-center gap-2 text-sm text-slate-300">
+                      <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                      Shared library
+                    </li>
+                    <li className="flex items-center gap-2 text-sm text-slate-300">
+                      <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                      Priority support
+                    </li>
+                  </ul>
+                  <button className="w-full py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold text-sm transition-all">
+                    Contact Sales
+                  </button>
+                </GlassCard>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL: About Us */}
+        {showAboutUs && (
+          <div className="fixed inset-0 z-[80] bg-[#020617]/95 backdrop-blur-3xl flex flex-col p-6 animate-in fade-in zoom-in duration-500 overflow-y-auto">
+            <Starfield />
+
+            <button
+              onClick={() => setShowAboutUs(false)}
+              className="fixed top-6 left-6 md:top-8 md:left-8 text-slate-600 hover:text-white transition-all flex items-center gap-3 group btn-press focus-ring rounded-full z-10"
+            >
+              <div className="w-12 h-12 min-w-[44px] min-h-[44px] rounded-full border border-white/5 flex items-center justify-center group-hover:bg-white/10 group-hover:scale-110 transition-all">
+                <ICONS.ArrowBack className="w-5 h-5" />
+              </div>
+              <span className="hidden md:inline text-[11px] font-bold uppercase tracking-[0.3em]">Back</span>
+            </button>
+
+            <div className="flex-1 flex flex-col items-center justify-center pt-16 md:pt-0 relative z-10 max-w-3xl mx-auto">
+              <div className="inline-block px-4 py-1 rounded-full bg-pink-500/10 text-pink-400 text-[10px] font-bold uppercase tracking-[0.4em] mb-6">About</div>
+              <h2 className="text-3xl md:text-5xl font-extralight text-center mb-4 tracking-tight">
+                <span className="bg-gradient-to-r from-pink-300 via-rose-200 to-purple-300 bg-clip-text text-transparent">About INrVO</span>
+              </h2>
+
+              <div className="w-full space-y-8 mt-8">
+                <GlassCard className="!p-8 !rounded-2xl">
+                  <h3 className="text-xl font-bold text-white mb-4">Our Mission</h3>
+                  <p className="text-slate-400 leading-relaxed">
+                    INrVO was born from a simple belief: everyone deserves access to personalized wellness tools.
+                    We're combining the ancient wisdom of meditation with cutting-edge AI to create experiences
+                    that are uniquely tailored to you.
+                  </p>
+                </GlassCard>
+
+                <GlassCard className="!p-8 !rounded-2xl">
+                  <h3 className="text-xl font-bold text-white mb-4">What Makes Us Different</h3>
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-4">
+                      <div className="w-10 h-10 rounded-xl bg-indigo-500/20 flex items-center justify-center flex-shrink-0">
+                        <ICONS.Sparkle className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-white">AI-Powered Personalization</h4>
+                        <p className="text-sm text-slate-400">Every meditation is generated uniquely for you based on your intentions and preferences.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-4">
+                      <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center flex-shrink-0">
+                        <ICONS.Microphone className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-white">Voice Cloning Technology</h4>
+                        <p className="text-sm text-slate-400">Hear meditations in your own voice or choose from our selection of calming AI voices.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-4">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                        <ICONS.Neural className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-white">Instant Generation</h4>
+                        <p className="text-sm text-slate-400">No waiting for pre-recorded content. Get a fresh meditation in seconds, whenever you need it.</p>
+                      </div>
+                    </div>
+                  </div>
+                </GlassCard>
+
+                <div className="text-center pt-4">
+                  <p className="text-slate-500 text-sm">
+                    Built with love for wellness seekers everywhere.
+                  </p>
+                  <div className="flex items-center justify-center gap-4 mt-4">
+                    <a href="#" className="text-slate-400 hover:text-white transition-colors text-sm">Twitter</a>
+                    <span className="text-slate-700">•</span>
+                    <a href="#" className="text-slate-400 hover:text-white transition-colors text-sm">Instagram</a>
+                    <span className="text-slate-700">•</span>
+                    <a href="#" className="text-slate-400 hover:text-white transition-colors text-sm">Contact</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
       </div>
     </>
