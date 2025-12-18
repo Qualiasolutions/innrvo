@@ -87,37 +87,72 @@ export const TEMPLATE_CATEGORIES: TemplateCategory[] = [
     name: 'Stories',
     description: 'Immersive narrative journeys for relaxation and escape',
     icon: 'story',
-    templates: [
+    subgroups: [
       {
-        id: 'enchanted-forest',
-        title: 'The Enchanted Forest',
-        description: 'Wander through a magical woodland filled with wonder.',
-        prompt: 'Write an immersive bedtime story about discovering a hidden enchanted forest. Include glowing mushrooms, friendly woodland creatures, a wise ancient oak tree that shares life wisdom, and a peaceful clearing where the listener can rest. Make it dreamy, slow-paced, and deeply calming.'
+        id: 'bedtime',
+        name: 'Bedtime',
+        description: 'Drift into peaceful sleep with calming tales',
+        templates: [
+          {
+            id: 'enchanted-forest',
+            title: 'The Enchanted Forest',
+            description: 'Wander through a magical woodland filled with wonder.',
+            prompt: 'Write an immersive bedtime story about discovering a hidden enchanted forest. Include glowing mushrooms, friendly woodland creatures, a wise ancient oak tree that shares life wisdom, and a peaceful clearing where the listener can rest. Make it dreamy, slow-paced, and deeply calming.'
+          },
+          {
+            id: 'ocean-voyage',
+            title: 'Midnight Ocean Voyage',
+            description: 'Sail across calm seas under a blanket of stars.',
+            prompt: 'Create a sleep story about a peaceful nighttime boat journey across a calm, moonlit ocean. Include the gentle rocking of the boat, the sound of waves, bioluminescent creatures glowing in the water, and constellations telling ancient stories overhead. End with drifting into peaceful sleep.'
+          }
+        ]
       },
       {
-        id: 'ocean-voyage',
-        title: 'Midnight Ocean Voyage',
-        description: 'Sail across calm seas under a blanket of stars.',
-        prompt: 'Create a sleep story about a peaceful nighttime boat journey across a calm, moonlit ocean. Include the gentle rocking of the boat, the sound of waves, bioluminescent creatures glowing in the water, and constellations telling ancient stories overhead. End with drifting into peaceful sleep.'
+        id: 'afternoon',
+        name: 'Afternoon',
+        description: 'Relaxing escapes for daytime unwinding',
+        templates: [
+          {
+            id: 'mountain-retreat',
+            title: 'Mountain Sanctuary',
+            description: 'Find peace in a cozy cabin high in the misty mountains.',
+            prompt: 'Write a relaxing story about discovering a hidden cabin in the mountains. Include the journey up through misty forests, arriving at a warm cabin with a crackling fireplace, hot tea, soft blankets, and snow gently falling outside. Describe the deep silence and peace of being far from the world.'
+          },
+          {
+            id: 'garden-meditation',
+            title: 'Secret Garden',
+            description: 'Discover a hidden garden of tranquility.',
+            prompt: 'Create a peaceful story about finding a secret walled garden. Include wandering through fragrant flowers, sitting by a gentle fountain, watching butterflies dance, and feeling the warm sun on your skin. Make it sensory-rich and deeply calming for afternoon relaxation.'
+          }
+        ]
       },
       {
-        id: 'mountain-retreat',
-        title: 'Mountain Sanctuary',
-        description: 'Find peace in a cozy cabin high in the misty mountains.',
-        prompt: 'Write a relaxing story about discovering a hidden cabin in the mountains. Include the journey up through misty forests, arriving at a warm cabin with a crackling fireplace, hot tea, soft blankets, and snow gently falling outside. Describe the deep silence and peace of being far from the world.'
-      },
-      {
-        id: 'space-journey',
-        title: 'Journey Through the Stars',
-        description: 'Float weightlessly through the cosmos on a peaceful voyage.',
-        prompt: 'Create a sleep story about floating peacefully through space. Include passing colorful nebulas, watching distant galaxies spin, feeling completely weightless and free, and being held safely by the universe. Make it awe-inspiring yet deeply calming, emphasizing the vastness and peace of space.'
+        id: 'morning',
+        name: 'Morning',
+        description: 'Energizing stories to start your day with intention',
+        templates: [
+          {
+            id: 'space-journey',
+            title: 'Journey Through the Stars',
+            description: 'Float weightlessly through the cosmos.',
+            prompt: 'Create a story about floating peacefully through space. Include passing colorful nebulas, watching distant galaxies spin, feeling completely weightless and free, and being held safely by the universe. Make it awe-inspiring yet grounding, perfect for starting the day with wonder.'
+          },
+          {
+            id: 'sunrise-beach',
+            title: 'Sunrise Beach Walk',
+            description: 'Greet the day on a peaceful shoreline.',
+            prompt: 'Write an uplifting morning story about walking along a beautiful beach at sunrise. Include the soft sand beneath your feet, gentle waves, seabirds calling, and the golden sun rising over the horizon. Fill the listener with hope, energy, and gratitude for the new day.'
+          }
+        ]
       }
     ]
   }
 ];
 
 // Flattened templates for backwards compatibility
-export const TEMPLATES: ScriptTemplate[] = TEMPLATE_CATEGORIES.flatMap(cat => cat.templates);
+export const TEMPLATES: ScriptTemplate[] = TEMPLATE_CATEGORIES.flatMap(cat =>
+  cat.subgroups.flatMap(subgroup => subgroup.templates)
+);
 
 export const VOICE_PROFILES: VoiceProfile[] = [
   { id: 'v1', name: 'Zephyr', provider: 'Gemini', voiceName: 'Zephyr', description: 'Deep, resonant, and incredibly calming.' },
