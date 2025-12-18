@@ -161,6 +161,25 @@ export const VOICE_PROFILES: VoiceProfile[] = [
   { id: 'v4', name: 'Fenrir', provider: 'Gemini', voiceName: 'Fenrir', description: 'Steady, grounding, and ancient.' }
 ];
 
+export interface BackgroundTrack {
+  id: string;
+  name: string;
+  description: string;
+  category: 'ambient' | 'nature' | 'binaural' | 'instrumental';
+  previewUrl?: string; // For future use
+}
+
+export const BACKGROUND_TRACKS: BackgroundTrack[] = [
+  { id: 'none', name: 'No Music', description: 'Voice only, no background', category: 'ambient' },
+  { id: 'rain', name: 'Gentle Rain', description: 'Soft rainfall for deep relaxation', category: 'nature' },
+  { id: 'ocean', name: 'Ocean Waves', description: 'Rhythmic waves on a peaceful shore', category: 'nature' },
+  { id: 'forest', name: 'Forest Ambience', description: 'Birds and rustling leaves', category: 'nature' },
+  { id: 'space', name: 'Cosmic Drift', description: 'Deep space ambient tones', category: 'ambient' },
+  { id: 'piano', name: 'Soft Piano', description: 'Gentle piano melodies', category: 'instrumental' },
+  { id: 'binaural-alpha', name: 'Alpha Waves', description: '10Hz for relaxation and creativity', category: 'binaural' },
+  { id: 'binaural-theta', name: 'Theta Waves', description: '6Hz for deep meditation', category: 'binaural' },
+];
+
 export const ICONS = {
   Logo: ({ className = "h-8" }: { className?: string }) => (
     <svg viewBox="0 0 160 50" fill="none" xmlns="http://www.w3.org/2000/svg" className={`${className} transition-all duration-300 hover:drop-shadow-[0_0_10px_rgba(99,102,241,0.5)]`}>
