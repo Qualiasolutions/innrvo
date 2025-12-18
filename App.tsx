@@ -878,49 +878,132 @@ const App: React.FC = () => {
               <span className="hidden md:inline text-[11px] font-bold uppercase tracking-[0.3em]">Back</span>
             </button>
 
-            <div className="w-full max-w-5xl mx-auto space-y-12 relative py-16 md:py-20">
+            <div className="w-full max-w-5xl mx-auto space-y-8 relative py-16 md:py-20">
               <div className="text-center space-y-4">
                 <div className="inline-block px-4 py-1 rounded-full bg-purple-500/10 text-purple-400 text-[10px] font-bold uppercase tracking-[0.4em]">Templates</div>
-                <h3 className="text-3xl md:text-4xl font-serif font-bold text-white tracking-tight">Choose a Template</h3>
-                <p className="text-slate-500 text-sm md:text-base max-w-lg mx-auto">Select from manifesting meditations or immersive sleep stories.</p>
+                <h3 className="text-3xl md:text-4xl font-serif font-bold text-white tracking-tight">
+                  {selectedSubgroup
+                    ? TEMPLATE_CATEGORIES.find(c => c.id === selectedCategory)?.subgroups.find(s => s.id === selectedSubgroup)?.name
+                    : selectedCategory
+                      ? TEMPLATE_CATEGORIES.find(c => c.id === selectedCategory)?.name
+                      : 'Choose a Category'}
+                </h3>
+                <p className="text-slate-500 text-sm md:text-base max-w-lg mx-auto">
+                  {selectedSubgroup
+                    ? TEMPLATE_CATEGORIES.find(c => c.id === selectedCategory)?.subgroups.find(s => s.id === selectedSubgroup)?.description
+                    : selectedCategory
+                      ? TEMPLATE_CATEGORIES.find(c => c.id === selectedCategory)?.description
+                      : 'Select from meditation or immersive stories.'}
+                </p>
               </div>
 
-              {/* Template Categories */}
-              {TEMPLATE_CATEGORIES.map(category => (
-                <div key={category.id} className="space-y-6">
-                  {/* Category Header */}
-                  <div className="flex items-center gap-4">
-                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${category.id === 'manifesting' ? 'bg-gradient-to-br from-indigo-500/20 to-purple-500/20' : 'bg-gradient-to-br from-pink-500/20 to-purple-500/20'}`}>
-                      {category.icon === 'sparkle' ? (
-                        <ICONS.Sparkle className="w-6 h-6" />
-                      ) : (
-                        <ICONS.Book className="w-6 h-6" />
-                      )}
-                    </div>
-                    <div>
-                      <h4 className="text-xl md:text-2xl font-bold text-white">{category.name}</h4>
-                      <p className="text-sm text-slate-500">{category.description}</p>
-                    </div>
-                  </div>
+              {/* Breadcrumb Navigation */}
+              {(selectedCategory || selectedSubgroup) && (
+                <div className="flex items-center gap-2 text-sm">
+                  <button
+                    onClick={() => { setSelectedCategory(null); setSelectedSubgroup(null); }}
+                    className="text-slate-400 hover:text-white transition-colors"
+                  >
+                    All
+                  </button>
+                  {selectedCategory && (
+                    <>
+                      <span className="text-slate-600">/</span>
+                      <button
+                        onClick={() => setSelectedSubgroup(null)}
+                        className={`transition-colors ${selectedSubgroup ? 'text-slate-400 hover:text-white' : 'text-white'}`}
+                      >
+                        {TEMPLATE_CATEGORIES.find(c => c.id === selectedCategory)?.name}
+                      </button>
+                    </>
+                  )}
+                  {selectedSubgroup && (
+                    <>
+                      <span className="text-slate-600">/</span>
+                      <span className="text-white">
+                        {TEMPLATE_CATEGORIES.find(c => c.id === selectedCategory)?.subgroups.find(s => s.id === selectedSubgroup)?.name}
+                      </span>
+                    </>
+                  )}
+                </div>
+              )}
 
-                  {/* Category Templates */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
-                    {category.templates.map(template => (
+              {/* Level 1: Categories */}
+              {!selectedCategory && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {TEMPLATE_CATEGORIES.map(category => (
+                    <GlassCard
+                      key={category.id}
+                      onClick={() => setSelectedCategory(category.id)}
+                      className={`!p-8 !rounded-3xl cursor-pointer border border-transparent transition-all hover:scale-[1.02] ${
+                        category.id === 'meditation'
+                          ? 'hover:border-indigo-500/30 hover:shadow-[0_0_30px_rgba(99,102,241,0.1)]'
+                          : 'hover:border-pink-500/30 hover:shadow-[0_0_30px_rgba(236,72,153,0.1)]'
+                      }`}
+                    >
+                      <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-4 ${
+                        category.id === 'meditation'
+                          ? 'bg-gradient-to-br from-indigo-500/20 to-purple-500/20'
+                          : 'bg-gradient-to-br from-pink-500/20 to-purple-500/20'
+                      }`}>
+                        {category.icon === 'sparkle' ? <ICONS.Sparkle className="w-8 h-8" /> : <ICONS.Book className="w-8 h-8" />}
+                      </div>
+                      <h4 className="text-2xl font-bold text-white mb-2">{category.name}</h4>
+                      <p className="text-slate-400 mb-4">{category.description}</p>
+                      <div className="text-xs text-slate-500">{category.subgroups.length} subcategories</div>
+                    </GlassCard>
+                  ))}
+                </div>
+              )}
+
+              {/* Level 2: Subgroups */}
+              {selectedCategory && !selectedSubgroup && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {TEMPLATE_CATEGORIES.find(c => c.id === selectedCategory)?.subgroups.map(subgroup => (
+                    <GlassCard
+                      key={subgroup.id}
+                      onClick={() => setSelectedSubgroup(subgroup.id)}
+                      className={`!p-6 !rounded-2xl cursor-pointer border border-transparent transition-all hover:scale-[1.02] ${
+                        selectedCategory === 'meditation'
+                          ? 'hover:border-indigo-500/30'
+                          : 'hover:border-pink-500/30'
+                      }`}
+                    >
+                      <h5 className="text-lg font-bold text-white mb-1">{subgroup.name}</h5>
+                      <p className="text-sm text-slate-400 mb-3">{subgroup.description}</p>
+                      <div className="text-xs text-slate-500">{subgroup.templates.length} templates</div>
+                    </GlassCard>
+                  ))}
+                </div>
+              )}
+
+              {/* Level 3: Templates */}
+              {selectedSubgroup && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {TEMPLATE_CATEGORIES
+                    .find(c => c.id === selectedCategory)
+                    ?.subgroups.find(s => s.id === selectedSubgroup)
+                    ?.templates.map(template => (
                       <GlassCard
                         key={template.id}
                         onClick={() => handleSelectTemplate(template.prompt)}
-                        className={`!p-5 md:!p-6 !rounded-2xl cursor-pointer border border-transparent transition-all ${category.id === 'manifesting' ? 'hover:border-indigo-500/30' : 'hover:border-pink-500/30'}`}
+                        className={`!p-5 !rounded-2xl cursor-pointer border border-transparent transition-all ${
+                          selectedCategory === 'meditation'
+                            ? 'hover:border-indigo-500/30'
+                            : 'hover:border-pink-500/30'
+                        }`}
                       >
-                        <h5 className="text-base md:text-lg font-bold text-white mb-1.5">{template.title}</h5>
+                        <h5 className="text-base font-bold text-white mb-1.5">{template.title}</h5>
                         <p className="text-sm text-slate-400 leading-relaxed">{template.description}</p>
-                        <div className={`mt-3 text-[10px] font-bold uppercase tracking-widest ${category.id === 'manifesting' ? 'text-indigo-400' : 'text-pink-400'}`}>
+                        <div className={`mt-3 text-[10px] font-bold uppercase tracking-widest ${
+                          selectedCategory === 'meditation' ? 'text-indigo-400' : 'text-pink-400'
+                        }`}>
                           Use Template →
                         </div>
                       </GlassCard>
                     ))}
-                  </div>
                 </div>
-              ))}
+              )}
             </div>
           </div>
         )}
