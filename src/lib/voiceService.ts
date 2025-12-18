@@ -92,6 +92,5 @@ export const voiceService = {
   },
 };
 
-// Export the existing geminiService for backward compatibility
-export { geminiService } from './geminiService';
-export { elevenlabsService } from './elevenlabs';
+// Export the existing services for backward compatibility
+// These are already imported at the top of the file
