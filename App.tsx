@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { View, VoiceProfile } from './types';
-import { TEMPLATE_CATEGORIES, VOICE_PROFILES, ICONS } from './constants';
+import { TEMPLATE_CATEGORIES, VOICE_PROFILES, ICONS, BACKGROUND_TRACKS, BackgroundTrack } from './constants';
 import GlassCard from './components/GlassCard';
 import Visualizer from './components/Visualizer';
 import Starfield from './components/Starfield';
@@ -23,6 +23,8 @@ const App: React.FC = () => {
   // Modal states
   const [showCloneModal, setShowCloneModal] = useState(false);
   const [showTemplatesModal, setShowTemplatesModal] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedSubgroup, setSelectedSubgroup] = useState<string | null>(null);
 
   // Voice profile creation
   const [newProfileName, setNewProfileName] = useState('');
