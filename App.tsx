@@ -720,7 +720,7 @@ const App: React.FC = () => {
                   setIsRecordingClone(false);
                 }
               }}
-              className="absolute top-6 left-6 md:top-8 md:left-8 text-slate-600 hover:text-white transition-all flex items-center gap-3 group btn-press focus-ring rounded-full z-10"
+              className="absolute top-6 left-6 md:top-8 md:left-8 text-slate-600 hover:text-white transition-all flex items-center gap-3 group btn-press focus-ring rounded-full z-[100]"
             >
               <div className="w-12 h-12 min-w-[44px] min-h-[44px] rounded-full border border-white/5 flex items-center justify-center group-hover:bg-white/10 group-hover:scale-110 transition-all">
                 <ICONS.ArrowBack className="w-5 h-5" />
@@ -905,7 +905,7 @@ const App: React.FC = () => {
                 setSelectedCategory(null);
                 setSelectedSubgroup(null);
               }}
-              className="fixed top-6 left-6 md:top-8 md:left-8 text-slate-600 hover:text-white transition-all flex items-center gap-3 group btn-press focus-ring rounded-full z-10"
+              className="fixed top-6 left-6 md:top-8 md:left-8 text-slate-600 hover:text-white transition-all flex items-center gap-3 group btn-press focus-ring rounded-full z-[100]"
             >
               <div className="w-12 h-12 min-w-[44px] min-h-[44px] rounded-full border border-white/5 flex items-center justify-center group-hover:bg-white/10 group-hover:scale-110 transition-all">
                 <ICONS.ArrowBack className="w-5 h-5" />
@@ -1051,7 +1051,7 @@ const App: React.FC = () => {
             {/* Back Button */}
             <button
               onClick={() => setShowMusicModal(false)}
-              className="fixed top-6 left-6 md:top-8 md:left-8 text-slate-600 hover:text-white transition-all flex items-center gap-3 group btn-press focus-ring rounded-full z-10"
+              className="fixed top-6 left-6 md:top-8 md:left-8 text-slate-600 hover:text-white transition-all flex items-center gap-3 group btn-press focus-ring rounded-full z-[100]"
             >
               <div className="w-12 h-12 min-w-[44px] min-h-[44px] rounded-full border border-white/5 flex items-center justify-center group-hover:bg-white/10 group-hover:scale-110 transition-all">
                 <ICONS.ArrowBack className="w-5 h-5" />
@@ -1298,9 +1298,14 @@ const App: React.FC = () => {
 
               {/* Footer */}
               <div className="p-4 border-t border-white/5">
-                <div className="text-[10px] text-slate-600 text-center uppercase tracking-widest">
-                  Digital Zen Wellness
-                </div>
+                <a
+                  href="https://qualiasolutions.net"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[10px] text-slate-600 hover:text-slate-400 text-center uppercase tracking-widest block transition-colors"
+                >
+                  Powered by Qualia Solutions
+                </a>
               </div>
             </div>
           </>
@@ -1313,7 +1318,7 @@ const App: React.FC = () => {
 
             <button
               onClick={() => setShowHowItWorks(false)}
-              className="fixed top-6 left-6 md:top-8 md:left-8 text-slate-600 hover:text-white transition-all flex items-center gap-3 group btn-press focus-ring rounded-full z-10"
+              className="fixed top-6 left-6 md:top-8 md:left-8 text-slate-600 hover:text-white transition-all flex items-center gap-3 group btn-press focus-ring rounded-full z-[100]"
             >
               <div className="w-12 h-12 min-w-[44px] min-h-[44px] rounded-full border border-white/5 flex items-center justify-center group-hover:bg-white/10 group-hover:scale-110 transition-all">
                 <ICONS.ArrowBack className="w-5 h-5" />
@@ -1386,7 +1391,7 @@ const App: React.FC = () => {
 
             <button
               onClick={() => setShowLibrary(false)}
-              className="fixed top-6 left-6 md:top-8 md:left-8 text-slate-600 hover:text-white transition-all flex items-center gap-3 group btn-press focus-ring rounded-full z-10"
+              className="fixed top-6 left-6 md:top-8 md:left-8 text-slate-600 hover:text-white transition-all flex items-center gap-3 group btn-press focus-ring rounded-full z-[100]"
             >
               <div className="w-12 h-12 min-w-[44px] min-h-[44px] rounded-full border border-white/5 flex items-center justify-center group-hover:bg-white/10 group-hover:scale-110 transition-all">
                 <ICONS.ArrowBack className="w-5 h-5" />
@@ -1453,7 +1458,7 @@ const App: React.FC = () => {
 
             <button
               onClick={() => setShowPricing(false)}
-              className="fixed top-6 left-6 md:top-8 md:left-8 text-slate-600 hover:text-white transition-all flex items-center gap-3 group btn-press focus-ring rounded-full z-10"
+              className="fixed top-6 left-6 md:top-8 md:left-8 text-slate-600 hover:text-white transition-all flex items-center gap-3 group btn-press focus-ring rounded-full z-[100]"
             >
               <div className="w-12 h-12 min-w-[44px] min-h-[44px] rounded-full border border-white/5 flex items-center justify-center group-hover:bg-white/10 group-hover:scale-110 transition-all">
                 <ICONS.ArrowBack className="w-5 h-5" />
@@ -1569,7 +1574,7 @@ const App: React.FC = () => {
 
             <button
               onClick={() => setShowAboutUs(false)}
-              className="fixed top-6 left-6 md:top-8 md:left-8 text-slate-600 hover:text-white transition-all flex items-center gap-3 group btn-press focus-ring rounded-full z-10"
+              className="fixed top-6 left-6 md:top-8 md:left-8 text-slate-600 hover:text-white transition-all flex items-center gap-3 group btn-press focus-ring rounded-full z-[100]"
             >
               <div className="w-12 h-12 min-w-[44px] min-h-[44px] rounded-full border border-white/5 flex items-center justify-center group-hover:bg-white/10 group-hover:scale-110 transition-all">
                 <ICONS.ArrowBack className="w-5 h-5" />

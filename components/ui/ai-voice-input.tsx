@@ -131,19 +131,24 @@ export function AIVoiceInput({
           className={cn(
             "group relative w-20 h-20 rounded-full flex items-center justify-center transition-all",
             isRecording
-              ? "bg-none"
+              ? "bg-rose-500/20 border-2 border-rose-500/50 hover:bg-rose-500/30 active:scale-95"
               : "bg-white/5 border-2 border-white/30 hover:border-white/50 hover:bg-white/10 hover:scale-105 active:scale-95"
           )}
           type="button"
           onClick={handleClick}
         >
           {isRecording ? (
-            <div
-              className="w-6 h-6 rounded-sm animate-spin bg-white cursor-pointer pointer-events-auto"
-              style={{ animationDuration: "3s" }}
-            />
+            <div className="flex flex-col items-center gap-1">
+              <div
+                className="w-6 h-6 rounded-sm bg-white cursor-pointer pointer-events-auto"
+              />
+              <span className="text-[10px] text-white/80 font-bold uppercase tracking-wider">Stop</span>
+            </div>
           ) : (
             <Mic className="w-6 h-6 text-white/70" />
+          )}
+          {isRecording && (
+            <div className="absolute inset-0 rounded-full border-2 border-rose-500/50 animate-pulse" />
           )}
           {!isRecording && (
             <div className="absolute inset-0 rounded-full border-2 border-white/20 animate-pulse" />
