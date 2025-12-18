@@ -25,6 +25,8 @@ const App: React.FC = () => {
   const [showTemplatesModal, setShowTemplatesModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedSubgroup, setSelectedSubgroup] = useState<string | null>(null);
+  const [showMusicModal, setShowMusicModal] = useState(false);
+  const [selectedBackgroundTrack, setSelectedBackgroundTrack] = useState<BackgroundTrack>(BACKGROUND_TRACKS[0]);
 
   // Voice profile creation
   const [newProfileName, setNewProfileName] = useState('');
