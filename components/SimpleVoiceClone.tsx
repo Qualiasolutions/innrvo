@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { GlassCard } from './GlassCard';
+import GlassCard from './GlassCard';
 import { VoiceProfile } from '../types';
 import { AIVoiceInput } from './ui/ai-voice-input';
 import { supabase, createVoiceProfile, getCurrentUser } from '../lib/supabase';
