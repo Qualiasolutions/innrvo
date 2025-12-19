@@ -591,7 +591,7 @@ const App: React.FC = () => {
     <>
       {isLoading && <LoadingScreen onComplete={() => setIsLoading(false)} />}
 
-      <div className={`relative min-h-[100dvh] w-full flex flex-col overflow-hidden transition-opacity duration-700 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
+      <div className={`relative h-[100dvh] w-full flex flex-col overflow-hidden transition-opacity duration-700 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
         {/* Background Images */}
         <Background />
         <Starfield />
@@ -683,7 +683,7 @@ const App: React.FC = () => {
               </div>
 
               {/* Prompt Box - Responsive positioning */}
-              <div className="w-full max-w-4xl mx-auto px-2 md:px-6 pt-[600px] md:pt-[600px] z-40 self-start">
+              <div className="w-full max-w-4xl mx-auto px-2 md:px-6 pt-[550px] md:pt-[600px] z-40 self-start">
                 {micError && (
                   <div className="mb-4 text-center">
                     <span className="px-4 py-1.5 rounded-full bg-rose-500/10 text-rose-400 text-[10px] font-bold uppercase tracking-widest border border-rose-500/20">
