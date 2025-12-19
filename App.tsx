@@ -722,11 +722,11 @@ const App: React.FC = () => {
           </div>
         </nav>
 
-        <main className="flex-1 flex flex-col items-center justify-center p-4 md:p-6 w-full relative">
+        <main className="flex-1 flex flex-col items-center justify-between p-4 md:p-6 w-full relative">
 
           {/* VIEW: HOME */}
           {currentView === View.HOME && (
-            <div className="w-full flex flex-col items-center justify-center animate-in fade-in duration-1000">
+            <div className="w-full flex flex-col items-center justify-between animate-in fade-in duration-1000 h-full">
               {/* Tagline at top - responsive positioning */}
               <div className="fixed top-14 md:top-24 left-0 right-0 text-center px-4 z-40">
                 <p className="text-base md:text-2xl font-light tracking-wide text-white/70">
@@ -735,8 +735,8 @@ const App: React.FC = () => {
                 <p className="text-xs md:text-base text-slate-500 mt-1 md:mt-2 hidden sm:block">Write a short idea, generate a meditation, and listen with your chosen voice</p>
               </div>
 
-              {/* Prompt Box - ABSOLUTE BOTTOM on mobile */}
-              <div className="w-full max-w-4xl fixed left-0 right-0 bottom-0 mx-auto px-2 md:px-6 pb-0 md:pb-6 z-50">
+              {/* Prompt Box - Positioned at bottom */}
+              <div className="w-full max-w-4xl mx-auto px-2 md:px-6 pb-0 md:pb-6 z-50 self-end">
                 {micError && (
                   <div className="mb-4 text-center">
                     <span className="px-4 py-1.5 rounded-full bg-rose-500/10 text-rose-400 text-[10px] font-bold uppercase tracking-widest border border-rose-500/20">
