@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { signIn, signUp } from '../lib/supabase';
 import { ICONS } from '../constants';
 import GlassCard from './GlassCard';
+import Starfield from './Starfield';
+import Background from './Background';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -50,7 +52,10 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess }) => 
 
   return (
     <div className="fixed inset-0 z-[90] bg-[#020617]/95 backdrop-blur-3xl flex flex-col items-center justify-center p-4 md:p-6 animate-in fade-in zoom-in duration-500 overflow-y-auto">
-      {/* Back Button */}
+      <Background />
+      <Starfield />
+      <div className="relative z-10 w-full">
+        {/* Back Button */}
       <button
         onClick={() => {
           onClose();
@@ -186,6 +191,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess }) => 
             </p>
           </div>
         </GlassCard>
+      </div>
       </div>
     </div>
   );

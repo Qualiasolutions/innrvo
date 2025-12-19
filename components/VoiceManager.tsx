@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { getUserVoiceProfiles, deleteVoiceProfile, updateVoiceProfile, VoiceProfile } from '../lib/supabase';
 import { ICONS } from '../constants';
 import GlassCard from './GlassCard';
+import Starfield from './Starfield';
+import Background from './Background';
 
 interface VoiceManagerProps {
   isOpen: boolean;
@@ -77,7 +79,10 @@ const VoiceManager: React.FC<VoiceManagerProps> = ({
 
   return (
     <div className="fixed inset-0 z-[80] bg-[#020617]/95 backdrop-blur-3xl flex flex-col p-6 animate-in fade-in zoom-in duration-500 overflow-y-auto">
-      {/* Back Button */}
+      <Background />
+      <Starfield />
+      <div className="relative z-10">
+        {/* Back Button */}
       <button
         onClick={onClose}
         className="fixed top-6 left-6 md:top-8 md:left-8 text-slate-600 hover:text-white transition-all flex items-center gap-3 group btn-press focus-ring rounded-full z-10"
@@ -215,6 +220,7 @@ const VoiceManager: React.FC<VoiceManagerProps> = ({
             ))}
           </div>
         )}
+      </div>
       </div>
     </div>
   );

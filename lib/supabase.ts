@@ -1,13 +1,16 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://placeholder.supabase.co';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'placeholder-key';
 
-if (!supabaseUrl || !supabaseAnonKey) {
+if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
   console.warn('Supabase credentials not found. Voice persistence will be disabled.');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Only create client if we have real credentials
+export const supabase = import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY 
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : null;
 
 // Database types matching the existing schema
 export type UserRole = 'USER' | 'ADMIN' | 'ENTERPRISE';
@@ -78,6 +81,7 @@ export interface AudioGeneration {
 
 // Auth helpers
 export const signUp = async (email: string, password: string, firstName?: string, lastName?: string) => {
+  if (!supabase) throw new Error('Supabase not configured');
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
@@ -94,6 +98,7 @@ export const signUp = async (email: string, password: string, firstName?: string
 };
 
 export const signIn = async (email: string, password: string) => {
+  if (!supabase) throw new Error('Supabase not configured');
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
@@ -102,7 +107,7 @@ export const signIn = async (email: string, password: string) => {
   if (error) throw error;
 
   // Update last login
-  if (data.user) {
+  if (data.user && supabase) {
     await supabase
       .from('users')
       .update({ last_login_at: new Date().toISOString() })
@@ -113,18 +118,20 @@ export const signIn = async (email: string, password: string) => {
 };
 
 export const signOut = async () => {
+  if (!supabase) return;
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
 };
 
 export const getCurrentUser = async () => {
+  if (!supabase) return null;
   const { data: { user } } = await supabase.auth.getUser();
   return user;
 };
 
 export const getCurrentUserProfile = async (): Promise<User | null> => {
   const user = await getCurrentUser();
-  if (!user) return null;
+  if (!user || !supabase) return null;
 
   const { data, error } = await supabase
     .from('users')
@@ -148,7 +155,7 @@ export const createVoiceProfile = async (
   elevenlabsVoiceId?: string // ElevenLabs voice ID (for cloned voices)
 ): Promise<VoiceProfile | null> => {
   const user = await getCurrentUser();
-  if (!user) throw new Error('User not authenticated');
+  if (!user || !supabase) throw new Error('User not authenticated or Supabase not configured');
 
   const profileData: any = {
     user_id: user.id,
@@ -197,7 +204,7 @@ export const createVoiceProfile = async (
 
 export const getUserVoiceProfiles = async (): Promise<VoiceProfile[]> => {
   const user = await getCurrentUser();
-  if (!user) return [];
+  if (!user || !supabase) return [];
 
   const { data, error } = await supabase
     .from('voice_profiles')
@@ -214,7 +221,7 @@ export const updateVoiceProfile = async (
   updates: Partial<VoiceProfile>
 ): Promise<VoiceProfile | null> => {
   const user = await getCurrentUser();
-  if (!user) throw new Error('User not authenticated');
+  if (!user || !supabase) throw new Error('User not authenticated or Supabase not configured');
 
   const { data, error } = await supabase
     .from('voice_profiles')
@@ -230,7 +237,7 @@ export const updateVoiceProfile = async (
 
 export const deleteVoiceProfile = async (id: string): Promise<void> => {
   const user = await getCurrentUser();
-  if (!user) throw new Error('User not authenticated');
+  if (!user || !supabase) throw new Error('User not authenticated or Supabase not configured');
 
   const { error } = await supabase
     .from('voice_profiles')
@@ -250,7 +257,7 @@ export const saveAudioGeneration = async (
   duration?: number
 ): Promise<AudioGeneration | null> => {
   const user = await getCurrentUser();
-  if (!user) throw new Error('User not authenticated');
+  if (!user || !supabase) throw new Error('User not authenticated or Supabase not configured');
 
   const { data, error } = await supabase
     .from('audio_generations')
@@ -273,7 +280,7 @@ export const saveAudioGeneration = async (
 
 export const getUserAudioGenerations = async (limit = 20): Promise<AudioGeneration[]> => {
   const user = await getCurrentUser();
-  if (!user) return [];
+  if (!user || !supabase) return [];
 
   const { data, error } = await supabase
     .from('audio_generations')
@@ -307,7 +314,7 @@ export const createVoiceClone = async (
   voiceCharacteristics?: Record<string, any>
 ): Promise<VoiceClone | null> => {
   const user = await getCurrentUser();
-  if (!user) throw new Error('User not authenticated');
+  if (!user || !supabase) throw new Error('User not authenticated or Supabase not configured');
 
   // Check if audio data is too large (Supabase text field limit is ~1GB, but let's be safe)
   // Base64 encoding increases size by ~33%, so limit to ~10MB raw audio
@@ -359,7 +366,7 @@ export const createVoiceClone = async (
 
 export const getUserVoiceClones = async (): Promise<VoiceClone[]> => {
   const user = await getCurrentUser();
-  if (!user) return [];
+  if (!user || !supabase) return [];
 
   const { data, error } = await supabase
     .from('voice_clones')
@@ -374,6 +381,7 @@ export const getUserVoiceClones = async (): Promise<VoiceClone[]> => {
 
 // Auth state listener
 export const onAuthStateChange = (callback: (user: any) => void) => {
+  if (!supabase) return { data: { subscription: null } };
   return supabase.auth.onAuthStateChange((event, session) => {
     callback(session?.user || null);
   });
