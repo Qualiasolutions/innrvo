@@ -188,12 +188,15 @@ const Starfield: React.FC = () => {
         />
       ))}
 
-      {/* Gradient overlays */}
-      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-slate-950/20 pointer-events-none" />
+      {/* Dark overlay for the background image */}
+      <div className="absolute inset-0 bg-slate-950/60 pointer-events-none" />
+      
+      {/* Gradient overlays - reduced opacity to show background image */}
+      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/40 via-transparent to-slate-950/10 pointer-events-none" />
       <div
-        className="absolute inset-0 pointer-events-none opacity-40"
+        className="absolute inset-0 pointer-events-none opacity-20"
         style={{
-          background: 'radial-gradient(circle at 50% 50%, rgba(99, 102, 241, 0.08) 0%, transparent 60%)'
+          background: 'radial-gradient(circle at 50% 50%, rgba(99, 102, 241, 0.04) 0%, transparent 60%)'
         }}
       />
     </div>
