@@ -9,6 +9,7 @@ import Background from './components/Background';
 import LoadingScreen from './components/LoadingScreen';
 import AuthModal from './components/AuthModal';
 import VoiceManager from './components/VoiceManager';
+import { SimpleVoiceClone } from './components/SimpleVoiceClone';
 import { AIVoiceInput } from './components/ui/ai-voice-input';
 import { geminiService, decodeAudioBuffer, blobToBase64 } from './geminiService';
 import { voiceService } from './src/lib/voiceService';
@@ -40,15 +41,6 @@ const App: React.FC = () => {
   const [showAboutUs, setShowAboutUs] = useState(false);
 
   // Voice profile creation
-  const [newProfileName, setNewProfileName] = useState('');
-  const [recordedAudio, setRecordedAudio] = useState<string | null>(null); // Base64 audio for voice clone
-  const [isRecordingClone, setIsRecordingClone] = useState(false);
-  const [recordingProgressClone, setRecordingProgressClone] = useState(0);
-  const [isSavingVoice, setIsSavingVoice] = useState(false);
-  const [voiceSaved, setVoiceSaved] = useState(false);
-  const [savedVoiceId, setSavedVoiceId] = useState<string | null>(null);
-  const [nameError, setNameError] = useState<string | null>(null);
-  const [isCheckingName, setIsCheckingName] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false); // Prevents double-clicks
 
   const [isRecording, setIsRecording] = useState(false);
@@ -57,8 +49,6 @@ const App: React.FC = () => {
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
-  const cloneMediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const cloneChunksRef = useRef<Blob[]>([]);
   const recordingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -125,49 +115,6 @@ const App: React.FC = () => {
     setSelectedVoice(VOICE_PROFILES[1]);
   };
 
-  // Validate profile name in real-time
-  const validateProfileName = async (name: string) => {
-    if (!name.trim()) {
-      setNameError(null);
-      return;
-    }
-
-    setIsCheckingName(true);
-    setNameError(null);
-
-    try {
-      const existingProfiles = await getUserVoiceProfiles();
-      const existingNames = existingProfiles.map(p => p.name.toLowerCase());
-
-      if (existingNames.includes(name.trim().toLowerCase())) {
-        setNameError('A voice profile with this name already exists');
-      } else {
-        setNameError(null);
-      }
-    } catch (error) {
-      console.error('Error checking profile name:', error);
-    } finally {
-      setIsCheckingName(false);
-    }
-  };
-
-  // Debounced version of validateProfileName
-  const validateProfileNameTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setNewProfileName(value);
-
-    // Clear previous timeout
-    if (validateProfileNameTimeoutRef.current) {
-      clearTimeout(validateProfileNameTimeoutRef.current);
-    }
-
-    // Set new timeout for debounced validation (reduced from 500 to 300ms for better UX)
-    validateProfileNameTimeoutRef.current = setTimeout(() => {
-      validateProfileName(value);
-    }, 300);
-  };
 
   // Home Transcription Logic
   const startRecording = async () => {
@@ -728,15 +675,15 @@ const App: React.FC = () => {
           {currentView === View.HOME && (
             <div className="w-full flex flex-col items-center justify-between animate-in fade-in duration-1000 h-full">
               {/* Tagline at top - responsive positioning */}
-              <div className="fixed top-2 md:top-4 left-0 right-0 text-center px-4 z-40">
-                <p className="text-base md:text-2xl font-light tracking-wide text-white/70">
+              <div className="fixed top-[100px] md:top-[100px] left-0 right-0 text-center px-4 z-40">
+                <p className="text-2xl md:text-4xl font-light tracking-wide text-white/70">
                   Instant meditation, <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-indigo-500 font-semibold">personalized voice</span>
                 </p>
-                <p className="text-xs md:text-base text-slate-500 mt-1 md:mt-2 hidden sm:block">Write a short idea, generate a meditation, and listen with your chosen voice</p>
+                <p className="text-base md:text-2xl text-slate-500 mt-1 md:mt-2 hidden sm:block">Write a short idea, generate a meditation, and listen with your chosen voice</p>
               </div>
 
-              {/* Prompt Box - Positioned very high at top */}
-              <div className="w-full max-w-4xl mx-auto px-2 md:px-6 pt-2 md:pt-8 z-40 self-start">
+              {/* Prompt Box - Responsive positioning */}
+              <div className="w-full max-w-4xl mx-auto px-2 md:px-6 pt-[100px] md:pt-[600px] z-40 self-start">
                 {micError && (
                   <div className="mb-4 text-center">
                     <span className="px-4 py-1.5 rounded-full bg-rose-500/10 text-rose-400 text-[10px] font-bold uppercase tracking-widest border border-rose-500/20">
@@ -766,7 +713,6 @@ const App: React.FC = () => {
                         <button
                           onClick={() => {
                             setShowCloneModal(true);
-                            setRecordingProgress(0);
                             setMicError(null);
                           }}
                           className="p-2.5 md:p-4 min-h-[40px] min-w-[40px] md:min-h-[44px] md:min-w-[44px] rounded-xl md:rounded-2xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-indigo-400 transition-all btn-press focus-ring flex items-center justify-center"
@@ -898,237 +844,15 @@ const App: React.FC = () => {
 
         {/* MODAL: Voice Clone */}
         {showCloneModal && (
-          <div className="fixed inset-0 z-[80] bg-[#020617]/95 backdrop-blur-3xl flex flex-col items-center justify-center p-6 text-center animate-in fade-in zoom-in duration-500">
-            <Background />
-            <Starfield />
-
-            {/* Back Button */}
-            <button
-              onClick={() => {
-                setShowCloneModal(false);
-                setIsRecording(false);
-                setRecordingProgress(0);
-                setIsRecordingClone(false);
-                setRecordingProgressClone(0);
-                setRecordedAudio(null);
-                setVoiceSaved(false);
-                setSavedVoiceId(null);
-                setIsSavingVoice(false);
-                setIsProcessing(false);
-                setNewProfileName('');
-                setNameError(null);
-                setIsCheckingName(false);
-                if (validateProfileNameTimeoutRef.current) {
-                  clearTimeout(validateProfileNameTimeoutRef.current);
-                  validateProfileNameTimeoutRef.current = null;
-                }
-                if (recordingIntervalRef.current) {
-                  clearInterval(recordingIntervalRef.current);
-                  recordingIntervalRef.current = null;
-                }
-                if (cloneMediaRecorderRef.current && isRecordingClone) {
-                  cloneMediaRecorderRef.current.stop();
-                  setIsRecordingClone(false);
-                }
-              }}
-              className="absolute top-6 left-6 md:top-8 md:left-8 text-slate-600 hover:text-white transition-all flex items-center gap-3 group btn-press focus-ring rounded-full z-[100]"
-            >
-              <div className="w-12 h-12 min-w-[44px] min-h-[44px] rounded-full border border-white/5 flex items-center justify-center group-hover:bg-white/10 group-hover:scale-110 transition-all">
-                <ICONS.ArrowBack className="w-5 h-5" />
-              </div>
-              <span className="hidden md:inline text-[11px] font-bold uppercase tracking-[0.3em]">Back</span>
-            </button>
-
-            <div className="w-full max-w-md space-y-8 md:space-y-10 relative">
-
-              <div className="space-y-4">
-                <div className="inline-block px-4 py-1 rounded-full bg-indigo-500/10 text-indigo-400 text-[10px] font-bold uppercase tracking-[0.4em] mb-4">Voice Profile</div>
-                <h3 className="text-3xl md:text-5xl font-serif font-bold text-white tracking-tight">Clone Your Voice</h3>
-                <p className="text-slate-500 text-sm md:text-base px-4 md:px-16 leading-relaxed font-light">
-                  Record your voice to create a personalized voice profile for meditations.
-                </p>
-              </div>
-
-              {micError && (
-                <div className="text-rose-400 text-sm font-bold bg-rose-500/10 border border-rose-500/20 px-6 py-3 rounded-2xl">
-                  {micError}
-                </div>
-              )}
-
-              <div className="space-y-6 bg-white/5 backdrop-blur-xl rounded-3xl p-6 md:p-8 border border-white/10">
-                {/* Profile Name Input */}
-                <div className="space-y-2">
-                  <label className="block text-[10px] md:text-xs font-bold uppercase tracking-widest text-slate-400">
-                    Profile Name
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={newProfileName}
-                      onChange={handleNameChange}
-                      placeholder="e.g., Morning Meditation Voice"
-                      className={`w-full px-4 py-3 rounded-xl bg-white/5 border text-white text-sm placeholder:text-slate-600 focus:outline-none focus:bg-white/10 transition-all ${
-                        nameError ? 'border-rose-500/50 focus:border-rose-500' : 'border-white/10 focus:border-indigo-500'
-                      }`}
-                      disabled={isGenerating || isRecordingClone}
-                    />
-                    {isCheckingName && (
-                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-slate-500/30 border-t-slate-500"></div>
-                      </div>
-                    )}
-                  </div>
-                  {nameError && (
-                    <p className="text-[10px] text-rose-400 font-medium flex items-center gap-1">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      {nameError}
-                    </p>
-                  )}
-                  <p className="text-[9px] text-slate-600">
-                    Leave empty to auto-generate a unique name, or create your own
-                  </p>
-                </div>
-
-                {/* Voice Cloning Section */}
-                <div className="space-y-3">
-                  <label className="block text-[10px] md:text-xs font-bold uppercase tracking-widest text-slate-400">
-                    Clone Your Voice
-                  </label>
-                  <div className="space-y-3">
-                    {!recordedAudio && !voiceSaved ? (
-                      <div className="flex flex-col items-center gap-4 p-6 rounded-xl bg-white/5 border border-white/10">
-                        <p className="text-sm text-slate-400 text-center mb-2">
-                          Record your voice to create a personalized voice profile
-                        </p>
-                        <div className="w-full">
-                          <AIVoiceInput
-                            isRecording={isRecordingClone}
-                            onToggle={async (recording) => {
-                              if (recording) {
-                                await startRecordingClone();
-                              } else {
-                                stopRecordingClone();
-                              }
-                            }}
-                            onStart={() => {
-                              // Recording started
-                            }}
-                            onStop={(duration) => {
-                              // Recording stopped, audio is captured in stopRecordingClone
-                            }}
-                            visualizerBars={48}
-                            className="[&_button]:!bg-transparent [&_button]:!hover:bg-white/10"
-                          />
-                        </div>
-                        <p className="text-[10px] text-slate-600 text-center">
-                          Record for up to 30 seconds. Speak clearly and naturally.
-                        </p>
-                      </div>
-                    ) : isSavingVoice ? (
-                      <div className="p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center gap-3">
-                        <div className="animate-spin rounded-full h-5 w-5 border-2 border-indigo-500/20 border-t-indigo-500"></div>
-                        <div>
-                          <p className="text-sm font-bold text-indigo-400">Saving your voice...</p>
-                          <p className="text-xs text-slate-500">Please wait</p>
-                        </div>
-                      </div>
-                    ) : voiceSaved ? (
-                      <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                            <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                          </div>
-                          <div>
-                            <p className="text-sm font-bold text-emerald-400">Saved!</p>
-                            <p className="text-xs text-slate-500">Your voice is ready to use</p>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => {
-                            setRecordedAudio(null);
-                            setRecordingProgressClone(0);
-                            setVoiceSaved(false);
-                            setSavedVoiceId(null);
-                            setNewProfileName('');
-                            setNameError(null);
-                          }}
-                          className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-slate-400 text-xs font-bold uppercase tracking-widest transition-all"
-                        >
-                          Record New
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                            <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                          </div>
-                          <div>
-                            <p className="text-sm font-bold text-emerald-400">Voice recorded</p>
-                            <p className="text-xs text-slate-500">Ready to save</p>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => {
-                            setRecordedAudio(null);
-                            setRecordingProgressClone(0);
-                            setVoiceSaved(false);
-                            setSavedVoiceId(null);
-                            setNameError(null);
-                          }}
-                          className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-slate-400 text-xs font-bold uppercase tracking-widest transition-all"
-                        >
-                          Re-record
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-4">
-                {voiceSaved ? (
-                  <button
-                    onClick={handleCreateVoiceProfile}
-                    className="group px-12 py-4 rounded-full bg-emerald-500 text-white font-bold text-base hover:scale-105 active:scale-95 transition-all shadow-[0_20px_60px_-15px_rgba(16,185,129,0.3)] flex items-center justify-center gap-3 mx-auto"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    Done
-                  </button>
-                ) : isSavingVoice || isProcessing ? (
-                  <div className="flex flex-col items-center gap-4 py-4">
-                    <div className="animate-spin rounded-full h-10 w-10 border-4 border-indigo-500/20 border-t-indigo-500"></div>
-                    <span className="text-[12px] font-bold uppercase tracking-[0.5em] text-indigo-400">
-                      {isSavingVoice ? 'Saving...' : 'Processing...'}
-                    </span>
-                  </div>
-                ) : (
-                  <button
-                    onClick={handleCreateVoiceProfile}
-                    disabled={!recordedAudio || isCheckingName}
-                    className="group px-12 py-4 rounded-full bg-white text-slate-950 font-bold text-base hover:scale-105 active:scale-95 transition-all shadow-[0_20px_60px_-15px_rgba(255,255,255,0.3)] flex items-center justify-center gap-3 mx-auto disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                  >
-                    <span className="w-2 h-2 rounded-full bg-indigo-500 group-hover:animate-ping"></span>
-                    {recordedAudio ? 'Save Voice' : 'Record First'}
-                  </button>
-                )}
-              </div>
-
-              {!user && (
-                <p className="text-xs text-slate-600 text-center">
-                  You'll need to sign in to save voice profiles.
-                </p>
-              )}
-            </div>
-          </div>
+          <SimpleVoiceClone
+            onClose={() => setShowCloneModal(false)}
+            onVoiceCreated={(voice) => {
+              setAvailableVoices(prev => [...prev, voice]);
+              setSelectedVoice(voice);
+              setShowCloneModal(false);
+            }}
+            currentUserId={user?.id}
+          />
         )}
 
         {/* MODAL: Templates */}
