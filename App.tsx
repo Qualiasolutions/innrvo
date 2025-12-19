@@ -735,8 +735,8 @@ const App: React.FC = () => {
                 <p className="text-xs md:text-base text-slate-500 mt-1 md:mt-2 hidden sm:block">Write a short idea, generate a meditation, and listen with your chosen voice</p>
               </div>
 
-              {/* Prompt Box - Positioned at bottom */}
-              <div className="w-full max-w-4xl mx-auto px-2 md:px-6 pb-0 md:pb-6 z-50 self-end">
+              {/* Prompt Box - Positioned at top */}
+              <div className="w-full max-w-4xl mx-auto px-2 md:px-6 pt-14 md:pt-24 z-50 self-start">
                 {micError && (
                   <div className="mb-4 text-center">
                     <span className="px-4 py-1.5 rounded-full bg-rose-500/10 text-rose-400 text-[10px] font-bold uppercase tracking-widest border border-rose-500/20">
@@ -745,7 +745,7 @@ const App: React.FC = () => {
                   </div>
                 )}
 
-                <div className="glass glass-prompt rounded-t-2xl rounded-b-none md:rounded-[40px] p-1 md:p-3 flex flex-col shadow-2xl shadow-indigo-900/20 border border-white/10 border-b-0 md:border-b">
+                <div className="glass glass-prompt rounded-b-2xl rounded-t-none md:rounded-[40px] p-1 md:p-3 flex flex-col shadow-2xl shadow-indigo-900/20 border border-white/10 border-t-0 md:border-t">
                   <div className="relative">
                     <textarea
                       placeholder="e.g., 'calm my anxiety', 'help me sleep'..."
