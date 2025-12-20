@@ -20,12 +20,12 @@ import { supabase, getCurrentUser, signOut, createVoiceProfile, getUserVoiceProf
 const TAGLINES = [
   { main: 'Meditation,', highlight: 'made for you', sub: 'Just describe how you feel.' },
   { main: 'Your calm,', highlight: 'on demand', sub: 'Tell us what you need.' },
-  { main: 'Wellness,', highlight: 'personalized', sub: 'Say what you're feeling.' },
-  { main: 'Your moment of', highlight: 'calm', sub: 'Describe it. We'll create it.' },
+  { main: 'Wellness,', highlight: 'personalized', sub: 'Say what you are feeling.' },
+  { main: 'Your moment of', highlight: 'calm', sub: 'Describe it. We create it.' },
   { main: 'Rest,', highlight: 'reimagined', sub: 'Just tell us what you need.' },
   { main: 'Designed', highlight: 'around you', sub: 'Describe your state of mind.' },
-  { main: 'Your personal', highlight: 'sanctuary', sub: 'Just say how you're feeling.' },
-  { main: 'Peace,', highlight: 'on your terms', sub: 'Tell us what you're looking for.' },
+  { main: 'Your personal', highlight: 'sanctuary', sub: 'Say how you are feeling.' },
+  { main: 'Peace,', highlight: 'on your terms', sub: 'Tell us what you seek.' },
 ];
 
 const App: React.FC = () => {
@@ -941,24 +941,10 @@ const App: React.FC = () => {
                     </div>
                   )}
 
-                  <div className="glass glass-prompt rounded-2xl md:rounded-[40px] p-1 md:p-3 flex flex-col shadow-2xl shadow-indigo-900/20 border border-white/10">
-                    <div className="relative">
-                      <textarea
-                        placeholder="e.g., 'calm my anxiety', 'help me sleep'..."
-                        className="w-full bg-transparent p-3 md:p-4 text-sm md:text-base text-slate-200 placeholder:text-slate-600 resize-none outline-none min-h-[48px] md:min-h-[64px] max-h-[100px] md:max-h-[140px] leading-relaxed"
-                        value={script}
-                        onChange={(e) => setScript(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && !e.shiftKey) {
-                            e.preventDefault();
-                            handleGenerateAndPlay();
-                          }
-                        }}
-                      />
-
-                      <div className="flex items-center justify-between px-2 md:px-6 pb-2 md:pb-4">
-                        {/* Plus Menu Button */}
-                        <div className="relative">
+                  <div className="glass glass-prompt rounded-2xl md:rounded-[32px] p-1.5 md:p-2 shadow-2xl shadow-indigo-900/20 border border-white/10">
+                    <div className="flex items-center gap-2 md:gap-3 px-1 md:px-2">
+                      {/* Plus Menu Button */}
+                      <div className="relative flex-shrink-0">
                           <button
                             onClick={() => setShowPromptMenu(!showPromptMenu)}
                             className={`p-2.5 md:p-3 min-h-[40px] min-w-[40px] md:min-h-[44px] md:min-w-[44px] rounded-xl md:rounded-2xl transition-all btn-press focus-ring flex items-center justify-center ${
@@ -1074,23 +1060,38 @@ const App: React.FC = () => {
                               </div>
                             </>
                           )}
-                        </div>
-
-                        <button
-                          onClick={handleGenerateAndPlay}
-                          disabled={isGenerating || !script.trim()}
-                          className={`
-                            p-2.5 md:p-3 rounded-xl md:rounded-2xl transition-all min-h-[40px] min-w-[40px] md:min-h-[44px] md:min-w-[44px] flex items-center justify-center
-                            ${isGenerating ? 'bg-indigo-600/50 cursor-not-allowed' : script.trim() ? 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:shadow-2xl hover:shadow-indigo-500/30 active:scale-95 text-white' : 'bg-white/10 text-slate-500'}
-                          `}
-                        >
-                          {isGenerating ? (
-                            <div className="animate-spin rounded-full h-4 w-4 md:h-5 md:w-5 border-2 border-white/30 border-t-white"></div>
-                          ) : (
-                            <ICONS.Send className="w-4 h-4 md:w-5 md:h-5" />
-                          )}
-                        </button>
                       </div>
+
+                      {/* Input Field */}
+                      <input
+                        type="text"
+                        placeholder="e.g., 'calm my anxiety', 'help me sleep'..."
+                        className="flex-1 bg-transparent py-2.5 md:py-3 text-sm md:text-base text-slate-200 placeholder:text-slate-500 outline-none min-w-0"
+                        value={script}
+                        onChange={(e) => setScript(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleGenerateAndPlay();
+                          }
+                        }}
+                      />
+
+                      {/* Send Button */}
+                      <button
+                        onClick={handleGenerateAndPlay}
+                        disabled={isGenerating || !script.trim()}
+                        className={`
+                          flex-shrink-0 p-2.5 md:p-3 rounded-xl md:rounded-2xl transition-all min-h-[40px] min-w-[40px] md:min-h-[44px] md:min-w-[44px] flex items-center justify-center
+                          ${isGenerating ? 'bg-indigo-600/50 cursor-not-allowed' : script.trim() ? 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:shadow-2xl hover:shadow-indigo-500/30 active:scale-95 text-white' : 'bg-white/10 text-slate-500'}
+                        `}
+                      >
+                        {isGenerating ? (
+                          <div className="animate-spin rounded-full h-4 w-4 md:h-5 md:w-5 border-2 border-white/30 border-t-white"></div>
+                        ) : (
+                          <ICONS.Send className="w-4 h-4 md:w-5 md:h-5" />
+                        )}
+                      </button>
                     </div>
 
                     {/* Status bar */}
