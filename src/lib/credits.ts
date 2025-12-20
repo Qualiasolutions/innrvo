@@ -157,14 +157,23 @@ export const creditService = {
   },
 
   /**
+   * Get the first day of the current month in YYYY-MM-DD format
+   */
+  getMonthStart(): string {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+  },
+
+  /**
    * Get monthly usage limits
    */
   async getMonthlyUsageLimits(userId: string): Promise<UsageLimits> {
+    const monthStart = this.getMonthStart();
     const { data, error } = await supabase
       .from('voice_usage_limits')
       .select('*')
       .eq('user_id', userId)
-      .eq('month_start', new Date().toISOString().slice(0, 7)) // YYYY-MM format
+      .eq('month_start', monthStart)
       .single();
 
     if (error && error.code === 'PGRST116') {
@@ -175,7 +184,7 @@ export const creditService = {
         credits_limit: COST_CONFIG.FREE_MONTHLY_CREDITS,
         clones_created: 0,
         clones_limit: COST_CONFIG.FREE_MONTHLY_CLONES,
-        month_start: new Date().toISOString().slice(0, 7),
+        month_start: monthStart,
       };
     }
 
@@ -191,7 +200,7 @@ export const creditService = {
       .from('voice_usage_limits')
       .upsert({
         user_id: userId,
-        month_start: new Date().toISOString().slice(0, 7),
+        month_start: this.getMonthStart(),
         credits_used: 0,
         credits_limit: COST_CONFIG.FREE_MONTHLY_CREDITS,
         clones_created: 0,

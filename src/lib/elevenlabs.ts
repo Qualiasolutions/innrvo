@@ -1,8 +1,15 @@
 // ElevenLabs API service for voice cloning and TTS
-// Uses the correct /v1/voices/add endpoint for instant voice cloning
+// Now uses Edge Functions for secure API key handling
+// API keys are stored server-side, never exposed to browser
 
+import { elevenLabsTTS, elevenLabsCloneVoice, isEdgeFunctionAvailable } from './edgeFunctions';
+
+// Legacy direct API access (deprecated - only used as fallback)
 const ELEVENLABS_API_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY;
 const ELEVENLABS_BASE_URL = 'https://api.elevenlabs.io';
+
+// Feature flag: Use Edge Functions for all API calls
+const USE_EDGE_FUNCTIONS = true;
 
 export interface VoiceCloningOptions {
   name: string;
@@ -26,91 +33,87 @@ export interface VoiceCloningResult {
 }
 
 /**
- * Check if ElevenLabs API key is configured
+ * Check if ElevenLabs is configured
+ * With Edge Functions, we just need to be authenticated
  */
 export function isElevenLabsConfigured(): boolean {
-  return !!ELEVENLABS_API_KEY;
+  // Edge Functions handle API keys server-side
+  // We just need Supabase to be configured for auth
+  return USE_EDGE_FUNCTIONS || !!ELEVENLABS_API_KEY;
 }
 
 export const elevenlabsService = {
   /**
-   * Creates an instant voice clone from audio sample using the correct /v1/voices/add endpoint
+   * Creates an instant voice clone from audio sample
+   * Uses Edge Functions for secure API key handling
    * @param audioBlob - Audio blob (recommended 30+ seconds for best quality)
    * @param options - Voice cloning options
-   * @returns Promise<VoiceCloningResult> - Voice ID and name
+   * @returns Promise<string> - Voice ID
    */
   async cloneVoice(audioBlob: Blob, options: VoiceCloningOptions): Promise<string> {
-    if (!ELEVENLABS_API_KEY) {
-      throw new Error('ElevenLabs API key not configured. Please add VITE_ELEVENLABS_API_KEY to your .env.local file.');
-    }
-
-    // Get audio duration for validation/warning (not blocking)
+    // Validate audio duration first
     let duration = 0;
     try {
       duration = await getAudioDuration(audioBlob);
       console.log(`Audio duration: ${duration.toFixed(1)}s`);
 
-      // Warn if less than recommended duration but don't block
       if (duration < 10) {
         throw new Error(`Audio is too short (${duration.toFixed(1)}s). Please record at least 10 seconds for basic quality, 30+ seconds recommended.`);
       }
     } catch (e: any) {
-      // If duration check fails, log warning but continue
       if (e.message?.includes('too short')) {
         throw e;
       }
       console.warn('Could not determine audio duration, proceeding anyway:', e.message);
     }
 
-    // Convert WebM to WAV for better compatibility with ElevenLabs
+    // Convert WebM to WAV for better compatibility
     let audioFile: Blob;
-    let fileName: string;
 
     if (audioBlob.type === 'audio/webm' || audioBlob.type.includes('webm')) {
       try {
         console.log('Converting WebM to WAV for better compatibility...');
         audioFile = await convertToWav(audioBlob);
-        fileName = 'voice_sample.wav';
         console.log(`Converted to WAV: ${(audioFile.size / 1024).toFixed(1)} KB`);
       } catch (conversionError) {
-        console.warn('WAV conversion failed, using original WebM:', conversionError);
+        console.warn('WAV conversion failed, using original:', conversionError);
         audioFile = audioBlob;
-        fileName = 'voice_sample.webm';
       }
-    } else if (audioBlob.type === 'audio/mpeg' || audioBlob.type === 'audio/mp3') {
-      audioFile = audioBlob;
-      fileName = 'voice_sample.mp3';
-    } else if (audioBlob.type === 'audio/wav' || audioBlob.type === 'audio/wave') {
-      audioFile = audioBlob;
-      fileName = 'voice_sample.wav';
     } else {
-      // Default to original blob with webm extension
       audioFile = audioBlob;
-      fileName = 'voice_sample.webm';
     }
 
-    // Create multipart form data for the /v1/voices/add endpoint
+    // Use Edge Functions (secure, API key server-side)
+    if (USE_EDGE_FUNCTIONS) {
+      console.log('Uploading voice via Edge Function...');
+      const voiceId = await elevenLabsCloneVoice(audioFile, options.name, options.description);
+      console.log(`Voice cloned successfully! Voice ID: ${voiceId}`);
+      return voiceId;
+    }
+
+    // Legacy fallback (deprecated - exposes API key)
+    if (!ELEVENLABS_API_KEY) {
+      throw new Error('ElevenLabs not configured. Please sign in to use voice cloning.');
+    }
+
     const formData = new FormData();
     formData.append('name', options.name);
-    formData.append('files', audioFile, fileName);
+    formData.append('files', audioFile, 'voice_sample.wav');
 
     if (options.description) {
       formData.append('description', options.description);
     }
 
-    // Add labels if provided (must be JSON string)
     if (options.labels) {
       formData.append('labels', JSON.stringify(options.labels));
     }
 
-    console.log('Uploading voice to ElevenLabs /v1/voices/add...');
+    console.log('Uploading voice to ElevenLabs (legacy)...');
 
-    // Single request to /v1/voices/add - this is the correct endpoint for instant voice cloning
     const response = await fetch(`${ELEVENLABS_BASE_URL}/v1/voices/add`, {
       method: 'POST',
       headers: {
         'xi-api-key': ELEVENLABS_API_KEY,
-        // DO NOT set Content-Type header - let browser set multipart boundary automatically
       },
       body: formData,
     });
@@ -121,9 +124,8 @@ export const elevenlabsService = {
         const errorData = await response.json();
         errorMessage = errorData.detail?.message || errorData.detail || errorData.message || `HTTP ${response.status}`;
 
-        // Provide helpful error messages for common issues
         if (response.status === 401) {
-          errorMessage = 'Invalid ElevenLabs API key. Please check your VITE_ELEVENLABS_API_KEY.';
+          errorMessage = 'Invalid ElevenLabs API key.';
         } else if (response.status === 422) {
           errorMessage = `Invalid request: ${errorMessage}. Make sure your audio is clear and at least 10 seconds long.`;
         } else if (response.status === 429) {
@@ -147,6 +149,7 @@ export const elevenlabsService = {
 
   /**
    * Generates speech using a cloned voice
+   * Uses Edge Functions for secure API key handling
    * @param text - Text to synthesize
    * @param voiceId - Voice ID from cloning
    * @param options - TTS options
@@ -157,12 +160,23 @@ export const elevenlabsService = {
     voiceId: string,
     options: TTSOptions = {}
   ): Promise<string> {
-    if (!ELEVENLABS_API_KEY) {
-      throw new Error('ElevenLabs API key not configured');
-    }
-
     if (!text || text.trim() === '') {
       throw new Error('Text is required for speech generation');
+    }
+
+    // Use Edge Functions (secure, API key server-side)
+    if (USE_EDGE_FUNCTIONS) {
+      return elevenLabsTTS(voiceId, text, {
+        stability: options.voice_settings?.stability ?? 0.5,
+        similarity_boost: options.voice_settings?.similarity_boost ?? 0.75,
+        style: options.voice_settings?.style ?? 0.0,
+        use_speaker_boost: options.voice_settings?.use_speaker_boost ?? true,
+      });
+    }
+
+    // Legacy fallback (deprecated - exposes API key)
+    if (!ELEVENLABS_API_KEY) {
+      throw new Error('ElevenLabs not configured. Please sign in to use TTS.');
     }
 
     const requestData = {
@@ -213,7 +227,6 @@ export const elevenlabsService = {
       const reader = new FileReader();
       reader.onloadend = () => {
         if (typeof reader.result === 'string') {
-          // Remove data URL prefix to get pure base64
           const base64 = reader.result.split(',')[1];
           resolve(base64);
         } else {

@@ -1,24 +1,33 @@
 
 import { GoogleGenAI, Type, Modality } from "@google/genai";
+import { geminiTTS, geminiGenerateScript, isEdgeFunctionAvailable } from './src/lib/edgeFunctions';
 
-// Fix: Strictly follow initialization guidelines: Always use new GoogleGenAI({apiKey: process.env.API_KEY});
+// Feature flag: Use Edge Functions for all API calls (secure, API key server-side)
+const USE_EDGE_FUNCTIONS = true;
+
+// Legacy direct API access (deprecated - only used as fallback for unauthenticated users)
 const getAI = () => new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
 
 export const geminiService = {
   /**
-   * Fast script generation using gemini-2.0-flash (no thinking mode).
-   * Generates concise 100-150 word meditations for quick playback.
+   * Fast script generation using gemini-2.0-flash
+   * Uses Edge Functions for secure API key handling
    * @param thought - The user's meditation idea/prompt
    * @param audioTags - Optional array of audio tag labels to incorporate
    */
   async enhanceScript(thought: string, audioTags?: string[]): Promise<string> {
     try {
-      const ai = getAI();
-      if (!import.meta.env.VITE_GEMINI_API_KEY) {
-        throw new Error('API key not found. Please set VITE_GEMINI_API_KEY in your environment variables.');
+      // Use Edge Functions if available (secure, API key server-side)
+      if (USE_EDGE_FUNCTIONS && await isEdgeFunctionAvailable()) {
+        return geminiGenerateScript(thought, audioTags);
       }
 
-      // Build audio tags instruction if tags are provided
+      // Legacy fallback for unauthenticated users
+      const ai = getAI();
+      if (!import.meta.env.VITE_GEMINI_API_KEY) {
+        throw new Error('Please sign in to generate meditation scripts.');
+      }
+
       let audioTagsInstruction = '';
       if (audioTags && audioTags.length > 0) {
         audioTagsInstruction = `
@@ -48,7 +57,7 @@ Output only the meditation script, no titles or labels.`,
       return text;
     } catch (error: any) {
       console.error('Error in enhanceScript:', error);
-      throw new Error(error?.message || 'Failed to generate meditation script. Please check your API key and try again.');
+      throw new Error(error?.message || 'Failed to generate meditation script. Please try again.');
     }
   },
 
@@ -66,19 +75,26 @@ Output only the meditation script, no titles or labels.`,
 
   /**
    * TTS Generation using gemini-2.5-flash-preview-tts.
+   * Uses Edge Functions for secure API key handling
    * Returns base64 encoded PCM audio data.
    */
   async generateSpeech(text: string, voiceName: string = 'Zephyr'): Promise<string> {
     try {
-      const ai = getAI();
-      if (!import.meta.env.VITE_GEMINI_API_KEY) {
-        throw new Error('API key not found. Please set VITE_GEMINI_API_KEY in your environment variables.');
-      }
-      
       if (!text || text.trim() === '') {
         throw new Error('Text is required for speech generation.');
       }
-      
+
+      // Use Edge Functions if available (secure, API key server-side)
+      if (USE_EDGE_FUNCTIONS && await isEdgeFunctionAvailable()) {
+        return geminiTTS(text, voiceName);
+      }
+
+      // Legacy fallback for unauthenticated users
+      const ai = getAI();
+      if (!import.meta.env.VITE_GEMINI_API_KEY) {
+        throw new Error('Please sign in to generate speech.');
+      }
+
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash-preview-tts",
         contents: [{ parts: [{ text }] }],
@@ -91,16 +107,16 @@ Output only the meditation script, no titles or labels.`,
           },
         },
       });
-      
+
       const audioData = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
       if (!audioData || audioData.trim() === '') {
         throw new Error('Empty audio response from API. Please try again.');
       }
-      
+
       return audioData;
     } catch (error: any) {
       console.error('Error in generateSpeech:', error);
-      throw new Error(error?.message || 'Failed to generate speech. Please check your API key and try again.');
+      throw new Error(error?.message || 'Failed to generate speech. Please try again.');
     }
   },
 
