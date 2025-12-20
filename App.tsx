@@ -947,14 +947,14 @@ const App: React.FC = () => {
                       <div className="relative flex-shrink-0">
                           <button
                             onClick={() => setShowPromptMenu(!showPromptMenu)}
-                            className={`p-2.5 md:p-3 min-h-[40px] min-w-[40px] md:min-h-[44px] md:min-w-[44px] rounded-xl md:rounded-2xl transition-all btn-press focus-ring flex items-center justify-center ${
+                            className={`p-2 rounded-full transition-all flex items-center justify-center ${
                               showPromptMenu
                                 ? 'bg-indigo-500/20 text-indigo-400'
-                                : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white'
+                                : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
                             }`}
                             title="Open menu"
                           >
-                            <ICONS.Plus className={`w-4 h-4 md:w-5 md:h-5 transition-transform duration-200 ${showPromptMenu ? 'rotate-45' : ''}`} />
+                            <ICONS.Plus className={`w-5 h-5 transition-transform duration-200 ${showPromptMenu ? 'rotate-45' : ''}`} />
                           </button>
 
                           {/* Popup Menu */}
@@ -1082,14 +1082,14 @@ const App: React.FC = () => {
                         onClick={handleGenerateAndPlay}
                         disabled={isGenerating || !script.trim()}
                         className={`
-                          flex-shrink-0 p-2.5 md:p-3 rounded-xl md:rounded-2xl transition-all min-h-[40px] min-w-[40px] md:min-h-[44px] md:min-w-[44px] flex items-center justify-center
-                          ${isGenerating ? 'bg-indigo-600/50 cursor-not-allowed' : script.trim() ? 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:shadow-2xl hover:shadow-indigo-500/30 active:scale-95 text-white' : 'bg-white/10 text-slate-500'}
+                          flex-shrink-0 p-2 rounded-full transition-all flex items-center justify-center
+                          ${isGenerating ? 'bg-indigo-500/50 cursor-not-allowed text-white/70' : script.trim() ? 'bg-indigo-500 hover:bg-indigo-400 active:scale-95 text-white' : 'text-slate-600'}
                         `}
                       >
                         {isGenerating ? (
-                          <div className="animate-spin rounded-full h-4 w-4 md:h-5 md:w-5 border-2 border-white/30 border-t-white"></div>
+                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white"></div>
                         ) : (
-                          <ICONS.Send className="w-4 h-4 md:w-5 md:h-5" />
+                          <ICONS.Send className="w-4 h-4" />
                         )}
                       </button>
                     </div>
