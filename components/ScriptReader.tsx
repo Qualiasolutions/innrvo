@@ -70,7 +70,7 @@ const ScriptReader: React.FC<ScriptReaderProps> = memo(({
       <div className="fixed top-[60px] md:top-[80px] left-0 right-0 h-16 bg-gradient-to-b from-[#020617] via-[#020617]/80 to-transparent pointer-events-none z-10" />
 
       {/* Script content */}
-      <div className="max-w-3xl mx-auto space-y-6 md:space-y-8 pb-[calc(180px+env(safe-area-inset-bottom,0px))] md:pb-[calc(200px+env(safe-area-inset-bottom,0px))] pt-8">
+      <div className="max-w-3xl mx-auto space-y-6 md:space-y-8 pb-[calc(180px+env(safe-area-inset-bottom,0px))] md:pb-[calc(200px+env(safe-area-inset-bottom,0px))] pt-20 md:pt-24">
         {paragraphs.map((paragraph, pIndex) => {
           // Split into tokens (words and audio tags)
           const tokens = paragraph.split(/(\s+|\[.+?\])/).filter(t => t.trim());
