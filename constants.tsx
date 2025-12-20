@@ -205,6 +205,52 @@ export const BACKGROUND_TRACKS: BackgroundTrack[] = [
   { id: 'classical-nocturne', name: 'Nocturne', description: 'Chopin-style piano nocturnes', category: 'classical', audioUrl: '/audio/nocturne.mp3' },
 ];
 
+export const AUDIO_TAG_CATEGORIES: { id: string; name: string; color: string; bgColor: string; tags: { id: string; label: string; description: string }[] }[] = [
+  {
+    id: 'pauses',
+    name: 'Pauses',
+    color: 'text-cyan-400',
+    bgColor: 'bg-cyan-500/10',
+    tags: [
+      { id: 'short_pause', label: '[short pause]', description: 'A brief 1-2 second pause' },
+      { id: 'long_pause', label: '[long pause]', description: 'A longer 3-5 second pause' },
+      { id: 'silence', label: '[silence]', description: 'A moment of complete silence' },
+    ]
+  },
+  {
+    id: 'breathing',
+    name: 'Breathing',
+    color: 'text-emerald-400',
+    bgColor: 'bg-emerald-500/10',
+    tags: [
+      { id: 'inhale', label: '[inhale]', description: 'Sound of breathing in deeply' },
+      { id: 'exhale', label: '[exhale]', description: 'Sound of breathing out slowly' },
+      { id: 'deep_breath', label: '[deep breath]', description: 'A full deep breath cycle' },
+    ]
+  },
+  {
+    id: 'voice',
+    name: 'Voice Style',
+    color: 'text-violet-400',
+    bgColor: 'bg-violet-500/10',
+    tags: [
+      { id: 'whisper', label: '[whisper]', description: 'Speak in a soft whisper' },
+      { id: 'soft_voice', label: '[soft voice]', description: 'Speak very gently' },
+    ]
+  },
+  {
+    id: 'sounds',
+    name: 'Sounds',
+    color: 'text-rose-400',
+    bgColor: 'bg-rose-500/10',
+    tags: [
+      { id: 'gentle_giggle', label: '[gentle giggle]', description: 'A soft, warm laugh' },
+      { id: 'sigh', label: '[sigh]', description: 'A relaxing sigh' },
+      { id: 'hum', label: '[hum]', description: 'A gentle humming sound' },
+    ]
+  },
+];
+
 export const ICONS = {
   Logo: ({ className = "h-8" }: { className?: string }) => (
     <svg viewBox="0 0 160 50" fill="none" xmlns="http://www.w3.org/2000/svg" className={`${className} transition-all duration-300 hover:drop-shadow-[0_0_10px_rgba(99,102,241,0.5)]`}>
@@ -382,6 +428,21 @@ export const ICONS = {
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
       <line x1="12" y1="5" x2="12" y2="19" />
       <line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  ),
+
+  // Tags icon for audio tags
+  Tags: ({ className = "w-6 h-6" }: { className?: string }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className={`${className} icon-glow`}>
+      <defs>
+        <linearGradient id="tagsGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#8b5cf6" />
+          <stop offset="100%" stopColor="#c084fc" />
+        </linearGradient>
+      </defs>
+      <path fill="url(#tagsGrad)" d="M9 5H2v7l6.29 6.29c.94.94 2.48.94 3.42 0l3.58-3.58c.94-.94.94-2.48 0-3.42L9 5Z"/>
+      <circle fill="url(#tagsGrad)" cx="6" cy="9" r="1"/>
+      <path fill="url(#tagsGrad)" opacity="0.5" d="m15 5 6.3 6.3a2.4 2.4 0 0 1 0 3.4L17 19"/>
     </svg>
   )
 };

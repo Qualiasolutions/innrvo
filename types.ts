@@ -41,3 +41,18 @@ export interface BackgroundMusic {
   category: 'ambient' | 'nature' | 'binaural' | 'instrumental';
   duration: number; // in seconds, 0 for looping
 }
+
+export interface AudioTag {
+  id: string;
+  label: string;        // Display label like "[long pause]"
+  description: string;  // Tooltip description
+  category: 'pauses' | 'breathing' | 'voice' | 'sounds';
+}
+
+export interface AudioTagCategory {
+  id: string;
+  name: string;
+  color: string;
+  bgColor: string;
+  tags: AudioTag[];
+}
