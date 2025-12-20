@@ -1443,7 +1443,7 @@ const App: React.FC = () => {
                       )}
 
                   <div className="glass glass-prompt rounded-2xl md:rounded-[32px] p-1.5 md:p-2 shadow-2xl shadow-indigo-900/20 border border-white/30">
-                    <div className="flex items-center gap-2 md:gap-3 px-1 md:px-2">
+                    <div className="flex items-center gap-2 md:gap-3 px-1 md:px-2 overflow-visible">
                       {/* Plus Menu Button */}
                       <div className="relative flex-shrink-0">
                           <button
@@ -1547,7 +1547,7 @@ const App: React.FC = () => {
                       <input
                         type="text"
                         placeholder="e.g., 'calm my anxiety', 'help me sleep'..."
-                        className="flex-1 bg-transparent py-2.5 md:py-3 text-sm md:text-base text-slate-200 placeholder:text-slate-500 outline-none min-w-0"
+                        className="flex-1 bg-transparent py-2.5 md:py-3 text-sm md:text-base text-slate-200 placeholder:text-slate-500 outline-none min-w-0 w-0"
                         value={script}
                         onChange={(e) => setScript(e.target.value)}
                         onKeyDown={(e) => {
