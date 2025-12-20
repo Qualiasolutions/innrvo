@@ -18,6 +18,8 @@ const getCorsHeaders = (origin: string | null) => ({
 interface GeminiScriptRequest {
   thought: string;
   audioTags?: string[];
+  operation?: 'generate' | 'extend';
+  existingScript?: string;
 }
 
 interface GeminiScriptResponse {
@@ -58,14 +60,23 @@ serve(async (req) => {
     }
 
     // Parse request body
-    const { thought, audioTags }: GeminiScriptRequest = await req.json();
+    const { thought, audioTags, operation = 'generate', existingScript }: GeminiScriptRequest = await req.json();
 
-    // Validate input
-    if (!thought || thought.trim() === '') {
-      return new Response(
-        JSON.stringify({ error: 'Thought/prompt is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    // Validate input based on operation
+    if (operation === 'extend') {
+      if (!existingScript || existingScript.trim() === '') {
+        return new Response(
+          JSON.stringify({ error: 'Existing script is required for extend operation' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    } else {
+      if (!thought || thought.trim() === '') {
+        return new Response(
+          JSON.stringify({ error: 'Thought/prompt is required' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     // Get Gemini API key from environment
@@ -77,24 +88,82 @@ serve(async (req) => {
       );
     }
 
-    // Build the prompt
-    let audioTagsInstruction = '';
-    if (audioTags && audioTags.length > 0) {
-      audioTagsInstruction = `
-Include these audio cues naturally: ${audioTags.join(', ')}.
-Place them inline where they should occur (e.g., "Take a breath in... [pause] ...and release.").`;
+    // Build the prompt based on operation
+    let prompt: string;
+
+    if (operation === 'extend') {
+      // Extend operation: intelligently expand existing script
+      prompt = `You are expanding a guided meditation script into a longer, more immersive version.
+
+EXISTING SCRIPT:
+"${existingScript}"
+
+TASK: Expand this meditation into a longer version (250-350 words) while preserving its essence, tone, and flow.
+
+EXPANSION GUIDELINES:
+- Keep the original opening and adapt it naturally into the expanded version
+- Add deeper visualizations with richer sensory details
+- Include additional breathing exercises or body awareness moments
+- Expand the core meditation experience with more guided imagery
+- Add gentle transitions between sections
+- Maintain the same peaceful, professional tone throughout
+- Keep the closing sentiment but make it feel like a natural conclusion to the longer journey
+- Preserve any existing audio tags like [pause], [deep breath], etc. and add more where appropriate
+
+OUTPUT: The complete expanded meditation script only, no explanations or labels.`;
+    } else {
+      // Generate operation: create new script from thought with intelligent intent detection
+      let audioTagsInstruction = '';
+      if (audioTags && audioTags.length > 0) {
+        audioTagsInstruction = `
+AUDIO CUES TO INCORPORATE: ${audioTags.join(', ')}
+Weave these naturally into the script where they enhance the experience.`;
+      }
+
+      prompt = `You are an expert wellness content creator. Create personalized content that PRECISELY matches the user's request.
+
+USER'S REQUEST: "${thought}"
+
+STEP 1 - DETECT CONTENT TYPE (do not output this, just use it internally):
+- GUIDED MEDITATION: breathing, relaxation, mindfulness, visualization, chakras, grounding
+- SLEEP STORY: sleep, bedtime, drifting off, rest, dreams, nighttime
+- CALMING NARRATIVE: specific scene, journey, adventure, escape to a place
+- AFFIRMATIONS: positive statements, mantras, self-love, confidence
+- BREATHING EXERCISE: breath work, box breathing, counting breaths
+- BODY SCAN: body awareness, tension release, progressive relaxation
+
+STEP 2 - EXTRACT KEY ELEMENTS from the request:
+- Specific setting mentioned (beach, forest, mountain, space, etc.)
+- Specific goal (anxiety relief, focus, sleep, energy, healing)
+- Specific emotions they want to feel
+- Time of day context (morning, evening, night)
+- Any specific techniques mentioned
+
+STEP 3 - ADAPT YOUR RESPONSE:
+Structure:
+- Meditation: Opening breath → Core practice → Gentle close
+- Sleep story: Scene setting → Slow journey → Fade to rest
+- Affirmations: Grounding → Affirmation series → Empowerment
+- Breathing: Setup → Rhythm → Guided cycles → Return
+
+Tone:
+- Sleep: Extra slow, dreamy, hypnotic, trailing sentences...
+- Morning/Energy: Uplifting, awakening, vibrant yet calm
+- Anxiety: Grounding, reassuring, present-moment
+- Healing: Compassionate, nurturing, gentle
+${audioTagsInstruction}
+
+STEP 4 - WRITE THE SCRIPT (100-180 words):
+- Use "you" for intimacy
+- Rich sensory details (see, hear, feel, smell)
+- Present tense
+- Natural pauses via ellipses...
+- Fresh, evocative language (avoid clichés)
+
+OUTPUT: Only the script. No titles, headers, or explanations. Start immediately with the experience.
+
+CRITICAL: Match EXACTLY what the user asked for. If they want a beach visualization, give them a beach. If they want sleep help, make it sleep-focused. Accuracy to their request is paramount.`;
     }
-
-    const prompt = `Create a short, soothing guided meditation (100-150 words) from this idea: "${thought}"
-
-Requirements:
-- Brief calming introduction (1-2 sentences)
-- Core visualization or breathing exercise (main body)
-- Gentle closing (1 sentence)
-- Professional, peaceful tone
-- Evocative sensory language${audioTagsInstruction ? '\n' + audioTagsInstruction : ''}
-
-Output only the meditation script, no titles or labels.`;
 
     // Call Gemini API
     const response = await fetch(
@@ -110,7 +179,7 @@ Output only the meditation script, no titles or labels.`;
           }],
           generationConfig: {
             temperature: 0.7,
-            maxOutputTokens: 500,
+            maxOutputTokens: operation === 'extend' ? 1000 : 500,
           }
         }),
       }

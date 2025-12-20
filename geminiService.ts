@@ -1,6 +1,6 @@
 // Lazy import for GoogleGenAI - only load when needed (fallback for unauthenticated users)
 // This reduces initial bundle size by ~250KB
-import { geminiTTS, geminiGenerateScript, isEdgeFunctionAvailable } from './src/lib/edgeFunctions';
+import { geminiTTS, geminiGenerateScript, geminiExtendScript, isEdgeFunctionAvailable } from './src/lib/edgeFunctions';
 
 // Feature flag: Use Edge Functions for all API calls (secure, API key server-side)
 const USE_EDGE_FUNCTIONS = true;
@@ -42,22 +42,55 @@ export const geminiService = {
       let audioTagsInstruction = '';
       if (audioTags && audioTags.length > 0) {
         audioTagsInstruction = `
-Include these audio cues naturally: ${audioTags.join(', ')}.
-Place them inline where they should occur (e.g., "Take a breath in... [pause] ...and release.").`;
+AUDIO CUES TO INCORPORATE: ${audioTags.join(', ')}
+Weave these naturally into the script where they enhance the experience.`;
       }
 
       const response = await ai.models.generateContent({
         model: 'gemini-2.0-flash',
-        contents: `Create a short, soothing guided meditation (100-150 words) from this idea: "${thought}"
+        contents: `You are an expert wellness content creator. Create personalized content that PRECISELY matches the user's request.
 
-Requirements:
-- Brief calming introduction (1-2 sentences)
-- Core visualization or breathing exercise (main body)
-- Gentle closing (1 sentence)
-- Professional, peaceful tone
-- Evocative sensory language${audioTagsInstruction ? '\n' + audioTagsInstruction : ''}
+USER'S REQUEST: "${thought}"
 
-Output only the meditation script, no titles or labels.`,
+STEP 1 - DETECT CONTENT TYPE (do not output this, just use it internally):
+- GUIDED MEDITATION: breathing, relaxation, mindfulness, visualization, chakras, grounding
+- SLEEP STORY: sleep, bedtime, drifting off, rest, dreams, nighttime
+- CALMING NARRATIVE: specific scene, journey, adventure, escape to a place
+- AFFIRMATIONS: positive statements, mantras, self-love, confidence
+- BREATHING EXERCISE: breath work, box breathing, counting breaths
+- BODY SCAN: body awareness, tension release, progressive relaxation
+
+STEP 2 - EXTRACT KEY ELEMENTS from the request:
+- Specific setting mentioned (beach, forest, mountain, space, etc.)
+- Specific goal (anxiety relief, focus, sleep, energy, healing)
+- Specific emotions they want to feel
+- Time of day context (morning, evening, night)
+- Any specific techniques mentioned
+
+STEP 3 - ADAPT YOUR RESPONSE:
+Structure:
+- Meditation: Opening breath → Core practice → Gentle close
+- Sleep story: Scene setting → Slow journey → Fade to rest
+- Affirmations: Grounding → Affirmation series → Empowerment
+- Breathing: Setup → Rhythm → Guided cycles → Return
+
+Tone:
+- Sleep: Extra slow, dreamy, hypnotic, trailing sentences...
+- Morning/Energy: Uplifting, awakening, vibrant yet calm
+- Anxiety: Grounding, reassuring, present-moment
+- Healing: Compassionate, nurturing, gentle
+${audioTagsInstruction}
+
+STEP 4 - WRITE THE SCRIPT (100-180 words):
+- Use "you" for intimacy
+- Rich sensory details (see, hear, feel, smell)
+- Present tense
+- Natural pauses via ellipses...
+- Fresh, evocative language (avoid clichés)
+
+OUTPUT: Only the script. No titles, headers, or explanations. Start immediately with the experience.
+
+CRITICAL: Match EXACTLY what the user asked for. If they want a beach visualization, give them a beach. If they want sleep help, make it sleep-focused. Accuracy to their request is paramount.`,
       });
 
       const text = response.text;
@@ -82,6 +115,61 @@ Output only the meditation script, no titles or labels.`,
       contents: `Instruction: ${instruction}\n\nContent: ${text}`,
     });
     return response.text || text;
+  },
+
+  /**
+   * Extend an existing meditation script into a longer, more immersive version
+   * Uses Edge Functions for secure API key handling
+   * @param existingScript - The current meditation script to expand
+   */
+  async extendScript(existingScript: string): Promise<string> {
+    try {
+      // Use Edge Functions if available (secure, API key server-side)
+      if (USE_EDGE_FUNCTIONS && await isEdgeFunctionAvailable()) {
+        return geminiExtendScript(existingScript);
+      }
+
+      // Legacy fallback for unauthenticated users (dynamically loads 250KB SDK)
+      if (!import.meta.env.VITE_GEMINI_API_KEY) {
+        throw new Error('Please sign in to extend meditation scripts.');
+      }
+
+      const ai = await getAI();
+
+      const prompt = `You are expanding a guided meditation script into a longer, more immersive version.
+
+EXISTING SCRIPT:
+"${existingScript}"
+
+TASK: Expand this meditation into a longer version (250-350 words) while preserving its essence, tone, and flow.
+
+EXPANSION GUIDELINES:
+- Keep the original opening and adapt it naturally into the expanded version
+- Add deeper visualizations with richer sensory details
+- Include additional breathing exercises or body awareness moments
+- Expand the core meditation experience with more guided imagery
+- Add gentle transitions between sections
+- Maintain the same peaceful, professional tone throughout
+- Keep the closing sentiment but make it feel like a natural conclusion to the longer journey
+- Preserve any existing audio tags like [pause], [deep breath], etc. and add more where appropriate
+
+OUTPUT: The complete expanded meditation script only, no explanations or labels.`;
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.0-flash',
+        contents: prompt,
+      });
+
+      const text = response.text;
+      if (!text || text.trim() === '') {
+        throw new Error('Empty response from API. Please try again.');
+      }
+
+      return text;
+    } catch (error: any) {
+      console.error('Error in extendScript:', error);
+      throw new Error(error?.message || 'Failed to extend meditation script. Please try again.');
+    }
   },
 
   /**

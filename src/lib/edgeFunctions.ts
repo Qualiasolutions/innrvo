@@ -214,6 +214,23 @@ export async function geminiGenerateScript(
   const response = await callEdgeFunction<GeminiScriptResponse>('gemini-script', {
     thought,
     audioTags,
+    operation: 'generate',
+  });
+
+  return response.script;
+}
+
+/**
+ * Extend an existing meditation script into a longer version using Gemini via Edge Function
+ * API key is stored server-side
+ */
+export async function geminiExtendScript(
+  existingScript: string
+): Promise<string> {
+  const response = await callEdgeFunction<GeminiScriptResponse>('gemini-script', {
+    thought: '', // Not used for extend operation
+    existingScript,
+    operation: 'extend',
   });
 
   return response.script;
