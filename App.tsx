@@ -210,6 +210,10 @@ const App: React.FC = () => {
   // Check auth state on mount
   useEffect(() => {
     checkUser();
+
+    // Only set up auth listener if supabase is available
+    if (!supabase) return;
+
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
       if (session?.user) {
