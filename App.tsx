@@ -1632,25 +1632,27 @@ const App: React.FC = () => {
                         }}
                       />
 
-                      {/* Microphone Button */}
-                      <button
-                        onClick={() => {
-                          if (isRecording) {
-                            stopRecording();
-                          } else {
-                            startRecording();
-                          }
-                        }}
-                        className={`
-                          flex-shrink-0 p-1.5 md:p-2 rounded-full transition-all flex items-center justify-center
-                          ${isRecording
-                            ? 'bg-rose-500/90 text-white animate-pulse'
-                            : 'text-slate-400/60 hover:text-slate-300 hover:bg-white/5'}
-                        `}
-                        title={isRecording ? 'Stop recording' : 'Voice input'}
-                      >
-                        <ICONS.Microphone className="w-4 h-4 md:w-5 md:h-5" />
-                      </button>
+                      {/* Voice Input Button - only show when input is empty */}
+                      {!script.trim() && (
+                        <button
+                          onClick={() => {
+                            if (isRecording) {
+                              stopRecording();
+                            } else {
+                              startRecording();
+                            }
+                          }}
+                          className={`
+                            flex-shrink-0 p-1.5 md:p-2 rounded-full transition-all flex items-center justify-center
+                            ${isRecording
+                              ? 'bg-rose-500/90 text-white animate-pulse'
+                              : 'text-slate-400/60 hover:text-slate-300 hover:bg-white/5'}
+                          `}
+                          title={isRecording ? 'Stop recording' : 'Voice input'}
+                        >
+                          <ICONS.Waveform className="w-4 h-4 md:w-5 md:h-5" />
+                        </button>
+                      )}
 
                       {/* Send Button */}
                       <button
