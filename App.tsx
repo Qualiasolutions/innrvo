@@ -1,6 +1,6 @@
 
-import React, { useState, useRef, useEffect } from 'react';
-import { View, VoiceProfile } from './types';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { View, VoiceProfile, ScriptTimingMap } from './types';
 import { TEMPLATE_CATEGORIES, VOICE_PROFILES, ICONS, BACKGROUND_TRACKS, BackgroundTrack, AUDIO_TAG_CATEGORIES } from './constants';
 import GlassCard from './components/GlassCard';
 import Visualizer from './components/Visualizer';
@@ -10,6 +10,9 @@ import AuthModal from './components/AuthModal';
 import VoiceManager from './components/VoiceManager';
 import { SimpleVoiceClone } from './components/SimpleVoiceClone';
 import { AIVoiceInput } from './components/ui/ai-voice-input';
+import InlinePlayer from './components/InlinePlayer';
+import ScriptReader from './components/ScriptReader';
+import { buildTimingMap, getCurrentWordIndex } from './src/lib/textSync';
 import { geminiService, decodeAudioBuffer, blobToBase64 } from './geminiService';
 import { voiceService } from './src/lib/voiceService';
 import { elevenlabsService, base64ToBlob } from './src/lib/elevenlabs';
@@ -146,7 +149,19 @@ const App: React.FC = () => {
 
   const audioContextRef = useRef<AudioContext | null>(null);
   const audioSourceRef = useRef<AudioBufferSourceNode | null>(null);
+  const audioBufferRef = useRef<AudioBuffer | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+
+  // Inline player state
+  const [isInlineMode, setIsInlineMode] = useState(false);
+  const [enhancedScript, setEnhancedScript] = useState('');
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [currentWordIndex, setCurrentWordIndex] = useState(-1);
+  const [timingMap, setTimingMap] = useState<ScriptTimingMap | null>(null);
+  const playbackStartTimeRef = useRef(0);
+  const pauseOffsetRef = useRef(0);
+  const animationFrameRef = useRef<number | null>(null);
 
   // Background music refs
   const backgroundAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -619,6 +634,184 @@ const App: React.FC = () => {
     }
   };
 
+  // Progress tracking for inline player
+  const updateProgress = useCallback(() => {
+    if (!audioContextRef.current || !isPlaying) return;
+
+    const elapsed = audioContextRef.current.currentTime - playbackStartTimeRef.current;
+    const newCurrentTime = Math.min(pauseOffsetRef.current + elapsed, duration);
+
+    setCurrentTime(newCurrentTime);
+
+    // Update word index based on timing map
+    if (timingMap) {
+      const wordIndex = getCurrentWordIndex(timingMap, newCurrentTime);
+      setCurrentWordIndex(wordIndex);
+    }
+
+    if (newCurrentTime < duration && isPlaying) {
+      animationFrameRef.current = requestAnimationFrame(updateProgress);
+    }
+  }, [isPlaying, duration, timingMap]);
+
+  // Start progress tracking when playing in inline mode
+  useEffect(() => {
+    if (isPlaying && isInlineMode) {
+      animationFrameRef.current = requestAnimationFrame(updateProgress);
+    }
+
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, [isPlaying, isInlineMode, updateProgress]);
+
+  // Pause playback for inline player
+  const handleInlinePause = useCallback(() => {
+    if (!audioContextRef.current || !audioSourceRef.current || !isPlaying) return;
+
+    // Calculate current position
+    const elapsed = audioContextRef.current.currentTime - playbackStartTimeRef.current;
+    pauseOffsetRef.current = Math.min(pauseOffsetRef.current + elapsed, duration);
+
+    // Stop the source
+    try {
+      audioSourceRef.current.stop();
+    } catch (e) {
+      // Already stopped
+    }
+    audioSourceRef.current = null;
+
+    // Cancel animation frame
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+    }
+
+    setIsPlaying(false);
+  }, [isPlaying, duration]);
+
+  // Resume playback for inline player
+  const handleInlinePlay = useCallback(() => {
+    if (!audioContextRef.current || !audioBufferRef.current || isPlaying) return;
+
+    // Resume audio context if suspended
+    if (audioContextRef.current.state === 'suspended') {
+      audioContextRef.current.resume();
+    }
+
+    // Create new source
+    const source = audioContextRef.current.createBufferSource();
+    source.buffer = audioBufferRef.current;
+    source.connect(audioContextRef.current.destination);
+
+    // Start from offset
+    source.start(0, pauseOffsetRef.current);
+    audioSourceRef.current = source;
+
+    // Track timing
+    playbackStartTimeRef.current = audioContextRef.current.currentTime;
+    setIsPlaying(true);
+
+    // Handle natural end
+    source.onended = () => {
+      setIsPlaying(false);
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, [isPlaying]);
+
+  // Toggle play/pause for inline player
+  const handleInlineTogglePlayback = useCallback(() => {
+    if (isPlaying) {
+      handleInlinePause();
+    } else {
+      handleInlinePlay();
+    }
+  }, [isPlaying, handleInlinePause, handleInlinePlay]);
+
+  // Seek for inline player
+  const handleInlineSeek = useCallback((time: number) => {
+    const wasPlaying = isPlaying;
+    const clampedTime = Math.max(0, Math.min(time, duration));
+
+    // Stop current playback
+    if (audioSourceRef.current) {
+      try {
+        audioSourceRef.current.stop();
+      } catch (e) {
+        // Already stopped
+      }
+      audioSourceRef.current = null;
+    }
+
+    // Update offset
+    pauseOffsetRef.current = clampedTime;
+    setCurrentTime(clampedTime);
+
+    // Update word index
+    if (timingMap) {
+      const wordIndex = getCurrentWordIndex(timingMap, clampedTime);
+      setCurrentWordIndex(wordIndex);
+    }
+
+    // Resume if was playing
+    if (wasPlaying && audioContextRef.current && audioBufferRef.current) {
+      const source = audioContextRef.current.createBufferSource();
+      source.buffer = audioBufferRef.current;
+      source.connect(audioContextRef.current.destination);
+      source.start(0, clampedTime);
+      audioSourceRef.current = source;
+
+      playbackStartTimeRef.current = audioContextRef.current.currentTime;
+      setIsPlaying(true);
+
+      source.onended = () => {
+        setIsPlaying(false);
+        if (animationFrameRef.current) {
+          cancelAnimationFrame(animationFrameRef.current);
+        }
+      };
+    } else {
+      setIsPlaying(false);
+    }
+  }, [isPlaying, duration, timingMap]);
+
+  // Stop and exit inline mode
+  const handleInlineStop = useCallback(() => {
+    if (audioSourceRef.current) {
+      try {
+        audioSourceRef.current.stop();
+      } catch (e) {
+        // Already stopped
+      }
+      audioSourceRef.current = null;
+    }
+
+    stopBackgroundMusic();
+
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+    }
+
+    pauseOffsetRef.current = 0;
+    setIsPlaying(false);
+    setIsInlineMode(false);
+    setEnhancedScript('');
+    setCurrentTime(0);
+    setDuration(0);
+    setCurrentWordIndex(-1);
+    setTimingMap(null);
+    audioBufferRef.current = null;
+    setScript('');
+  }, []);
+
+  // Expand to full-screen PLAYER view
+  const handleExpandToPlayer = useCallback(() => {
+    setCurrentView(View.PLAYER);
+  }, []);
+
   const handleGenerateAndPlay = async () => {
     if (!script.trim()) {
       setMicError('Please enter some text to generate a meditation');
@@ -690,6 +883,22 @@ const App: React.FC = () => {
         }
       }
 
+      // Cancel any existing animation frame
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+
+      // Store the audio buffer for pause/resume
+      audioBufferRef.current = audioBuffer;
+
+      // Build timing map for text sync
+      const map = buildTimingMap(enhanced, audioBuffer.duration);
+      setTimingMap(map);
+      setDuration(audioBuffer.duration);
+      setCurrentTime(0);
+      setCurrentWordIndex(0);
+      pauseOffsetRef.current = 0;
+
       // Start new playback
       const source = audioContextRef.current.createBufferSource();
       source.buffer = audioBuffer;
@@ -697,10 +906,15 @@ const App: React.FC = () => {
       source.start();
       audioSourceRef.current = source;
 
-      // Update state and switch to player view
+      // Track playback start time
+      playbackStartTimeRef.current = audioContextRef.current.currentTime;
+
+      // Update state - switch to inline mode instead of PLAYER view
       setScript(enhanced);
+      setEnhancedScript(enhanced);
       setIsPlaying(true);
-      setCurrentView(View.PLAYER);
+      setIsInlineMode(true);
+      setIsGenerating(false);
 
       // Start background music if selected
       startBackgroundMusic(selectedBackgroundTrack);
@@ -717,7 +931,12 @@ const App: React.FC = () => {
         audioTagsEnabled && selectedAudioTags.length > 0 ? selectedAudioTags : undefined
       ).catch(err => console.warn('Failed to save meditation history:', err));
 
-      source.onended = () => setIsPlaying(false);
+      source.onended = () => {
+        setIsPlaying(false);
+        if (animationFrameRef.current) {
+          cancelAnimationFrame(animationFrameRef.current);
+        }
+      };
     } catch (error: any) {
       console.error('Failed to generate and play meditation:', error);
       setMicError(error?.message || 'Failed to generate meditation. Please check your API key and try again.');
@@ -922,24 +1141,60 @@ const App: React.FC = () => {
           {/* VIEW: HOME */}
           {currentView === View.HOME && (
             <div className="w-full flex flex-col h-full animate-in fade-in duration-1000">
-              {/* Tagline - centered in remaining space */}
-              <div className="flex-1 flex flex-col items-center justify-center px-4 pb-[200px] md:pb-[240px]">
-                <p className="text-2xl md:text-4xl font-light tracking-wide text-white/70 text-center">
-                  {tagline.main} <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-indigo-500 font-semibold">{tagline.highlight}</span>
-                </p>
-                <p className="text-base md:text-2xl text-slate-500 mt-1 md:mt-2 hidden sm:block text-center">{tagline.sub}</p>
-              </div>
+              {/* Conditional: Show tagline OR script reader */}
+              {!isInlineMode ? (
+                // Original tagline (centered)
+                <div className="flex-1 flex flex-col items-center justify-center px-4 pb-[200px] md:pb-[240px]">
+                  <p className="text-2xl md:text-4xl font-light tracking-wide text-white/70 text-center">
+                    {tagline.main} <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-indigo-500 font-semibold">{tagline.highlight}</span>
+                  </p>
+                  <p className="text-base md:text-2xl text-slate-500 mt-1 md:mt-2 hidden sm:block text-center">{tagline.sub}</p>
+                </div>
+              ) : (
+                // Script Reader (takes full space above player)
+                <ScriptReader
+                  script={enhancedScript}
+                  currentWordIndex={currentWordIndex}
+                  isPlaying={isPlaying}
+                />
+              )}
 
-              {/* Prompt Box - Fixed at bottom */}
+              {/* Fixed bottom: Prompt box OR Inline Player */}
               <div className="fixed bottom-0 left-0 right-0 z-40 px-2 md:px-6 pb-4 md:pb-6">
                 <div className="w-full max-w-4xl mx-auto">
-                  {micError && (
+                  {micError && !isInlineMode && (
                     <div className="mb-4 text-center">
                       <span className="px-4 py-1.5 rounded-full bg-rose-500/10 text-rose-400 text-[10px] font-bold uppercase tracking-widest border border-rose-500/20">
                         {micError}
                       </span>
                     </div>
                   )}
+
+                  {isInlineMode ? (
+                    // Inline Player
+                    <InlinePlayer
+                      isPlaying={isPlaying}
+                      onPlayPause={handleInlineTogglePlayback}
+                      onStop={handleInlineStop}
+                      onExpand={handleExpandToPlayer}
+                      currentTime={currentTime}
+                      duration={duration}
+                      onSeek={handleInlineSeek}
+                      voiceName={selectedVoice.name}
+                      backgroundTrackName={selectedBackgroundTrack.name}
+                      backgroundVolume={backgroundVolume}
+                      onBackgroundVolumeChange={updateBackgroundVolume}
+                    />
+                  ) : (
+                    // Original Prompt Box
+                    <>
+                      {micError && (
+                        <div className="mb-4 text-center hidden">
+                          <span className="px-4 py-1.5 rounded-full bg-rose-500/10 text-rose-400 text-[10px] font-bold uppercase tracking-widest border border-rose-500/20">
+                            {micError}
+                          </span>
+                        </div>
+                      )}
 
                   <div className="glass glass-prompt rounded-2xl md:rounded-[32px] p-1.5 md:p-2 shadow-2xl shadow-indigo-900/20 border border-white/30">
                     <div className="flex items-center gap-2 md:gap-3 px-1 md:px-2">
@@ -1120,6 +1375,8 @@ const App: React.FC = () => {
                       <div className="text-slate-600 truncate max-w-[80px] md:max-w-none text-right">{selectedVoice.name}</div>
                     </div>
                   </div>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -1132,17 +1389,23 @@ const App: React.FC = () => {
 
               <button
                 onClick={() => {
-                  stopBackgroundMusic();
-                  audioSourceRef.current?.stop();
-                  setIsPlaying(false);
-                  setCurrentView(View.HOME);
+                  // If came from inline mode, go back to inline mode
+                  if (isInlineMode) {
+                    setCurrentView(View.HOME);
+                  } else {
+                    // Otherwise stop everything and go to HOME
+                    stopBackgroundMusic();
+                    audioSourceRef.current?.stop();
+                    setIsPlaying(false);
+                    setCurrentView(View.HOME);
+                  }
                 }}
                 className="absolute top-6 left-6 md:top-8 md:left-8 text-slate-600 hover:text-white transition-all flex items-center gap-3 group btn-press focus-ring rounded-full"
               >
                 <div className="w-12 h-12 min-w-[44px] min-h-[44px] rounded-full border border-white/5 flex items-center justify-center group-hover:bg-white/10 group-hover:scale-110 transition-all">
                   <ICONS.ArrowBack className="w-5 h-5" />
                 </div>
-                <span className="hidden md:inline text-[11px] font-bold uppercase tracking-[0.3em]">Back</span>
+                <span className="hidden md:inline text-[11px] font-bold uppercase tracking-[0.3em]">{isInlineMode ? 'Collapse' : 'Back'}</span>
               </button>
 
               <div className="w-full max-w-2xl text-center space-y-6 md:space-y-8">
@@ -1855,7 +2118,7 @@ const App: React.FC = () => {
 
         {/* MODAL: Library */}
         {showLibrary && (
-          <div className="fixed inset-0 z-[80] bg-[#020617]/95 backdrop-blur-3xl flex flex-col p-6 animate-in fade-in zoom-in duration-500 overflow-y-auto">
+          <div className="fixed inset-0 z-[80] flex flex-col p-6 animate-in fade-in duration-300 overflow-y-auto">
             <Starfield />
 
             <button
