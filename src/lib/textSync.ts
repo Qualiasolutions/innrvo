@@ -127,6 +127,10 @@ export function buildTimingMap(script: string, audioDuration: number): ScriptTim
   };
 }
 
+// Offset to compensate for TTS pacing - text highlights ahead of audio
+// Positive value = text highlights earlier (leads the audio)
+const SYNC_LEAD_TIME = 1.5; // seconds
+
 /**
  * Get the current word index based on playback time
  */
@@ -136,10 +140,13 @@ export function getCurrentWordIndex(
 ): number {
   if (!timingMap) return -1;
 
+  // Apply lead time offset so text highlights slightly ahead of audio
+  const adjustedTime = currentTime + SYNC_LEAD_TIME;
+
   for (const segment of timingMap.segments) {
     if (segment.type === 'word' &&
-        currentTime >= segment.startTime &&
-        currentTime < segment.endTime) {
+        adjustedTime >= segment.startTime &&
+        adjustedTime < segment.endTime) {
       return segment.wordIndex ?? -1;
     }
   }
@@ -149,7 +156,7 @@ export function getCurrentWordIndex(
     .reverse()
     .find(s => s.type === 'word');
 
-  if (lastWordSegment && currentTime >= lastWordSegment.endTime) {
+  if (lastWordSegment && adjustedTime >= lastWordSegment.endTime) {
     return lastWordSegment.wordIndex ?? -1;
   }
 
