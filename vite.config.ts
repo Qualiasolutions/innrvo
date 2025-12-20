@@ -28,12 +28,15 @@ export default defineConfig(({ mode }) => {
               'react-vendor': ['react', 'react-dom'],
               'd3-vendor': ['d3'],
               'supabase-vendor': ['@supabase/supabase-js'],
-              'genai-vendor': ['@google/genai'],
+              'sentry-vendor': ['@sentry/react'],
+              // Note: @google/genai is now dynamically imported and will be code-split automatically
             },
           },
         },
         // Target modern browsers for smaller bundles
         target: 'es2020',
+        // Increase chunk size warning threshold (Sentry is large but necessary)
+        chunkSizeWarningLimit: 600,
       },
     };
 });

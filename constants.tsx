@@ -154,12 +154,9 @@ export const TEMPLATES: ScriptTemplate[] = TEMPLATE_CATEGORIES.flatMap(cat =>
   cat.subgroups.flatMap(subgroup => subgroup.templates)
 );
 
-export const VOICE_PROFILES: VoiceProfile[] = [
-  { id: 'v1', name: 'Zephyr', provider: 'Gemini', voiceName: 'Zephyr', description: 'Deep, resonant, and incredibly calming.' },
-  { id: 'v2', name: 'Kore', provider: 'Gemini', voiceName: 'Kore', description: 'Bright, nurturing, and clear.' },
-  { id: 'v3', name: 'Puck', provider: 'Gemini', voiceName: 'Puck', description: 'Playful, storytelling, and energetic.' },
-  { id: 'v4', name: 'Fenrir', provider: 'Gemini', voiceName: 'Fenrir', description: 'Steady, grounding, and ancient.' }
-];
+// Default voices removed - users must clone their own voices
+// This ensures personalized experience and reduces API costs
+export const VOICE_PROFILES: VoiceProfile[] = [];
 
 export interface BackgroundTrack {
   id: string;

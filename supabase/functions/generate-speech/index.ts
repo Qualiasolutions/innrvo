@@ -108,97 +108,53 @@ serve(async (req) => {
       );
     }
 
-    let audioBase64: string;
-
-    // Route to appropriate TTS provider
-    if (voiceProfile.provider === 'ElevenLabs' && voiceProfile.elevenlabs_voice_id) {
-      // Use ElevenLabs for cloned voices
-      const elevenlabsApiKey = Deno.env.get('ELEVENLABS_API_KEY');
-      if (!elevenlabsApiKey) {
-        return new Response(
-          JSON.stringify({ error: 'ElevenLabs API key not configured' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      const requestData = {
-        text,
-        model_id: 'eleven_multilingual_v2',
-        voice_settings: {
-          stability: voiceSettings?.stability ?? 0.5,
-          similarity_boost: voiceSettings?.similarity_boost ?? 0.8,
-          style: voiceSettings?.style ?? 0.0,
-          use_speaker_boost: voiceSettings?.use_speaker_boost ?? true,
-        },
-      };
-
-      const response = await fetch(
-        `https://api.elevenlabs.io/v1/text-to-speech/${voiceProfile.elevenlabs_voice_id}`,
-        {
-          method: 'POST',
-          headers: {
-            'xi-api-key': elevenlabsApiKey,
-            'Content-Type': 'application/json',
-            'Accept': 'audio/mpeg',
-          },
-          body: JSON.stringify(requestData),
-        }
+    // Only cloned ElevenLabs voices are supported
+    if (!voiceProfile.elevenlabs_voice_id) {
+      return new Response(
+        JSON.stringify({ error: 'Only cloned voices are supported. Please clone a voice first.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(`TTS generation failed: ${error.detail || error.message}`);
-      }
+    const elevenlabsApiKey = Deno.env.get('ELEVENLABS_API_KEY');
+    if (!elevenlabsApiKey) {
+      return new Response(
+        JSON.stringify({ error: 'ElevenLabs API key not configured' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
-      const audioBlob = await response.blob();
-      audioBase64 = await blobToBase64(audioBlob);
-    } else {
-      // Use Gemini for prebuilt voices (fall back)
-      const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
-      if (!geminiApiKey) {
-        return new Response(
-          JSON.stringify({ error: 'Gemini API key not configured' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
+    const requestData = {
+      text,
+      model_id: 'eleven_multilingual_v2',
+      voice_settings: {
+        stability: voiceSettings?.stability ?? 0.5,
+        similarity_boost: voiceSettings?.similarity_boost ?? 0.8,
+        style: voiceSettings?.style ?? 0.0,
+        use_speaker_boost: voiceSettings?.use_speaker_boost ?? true,
+      },
+    };
 
-      // Get Gemini voice name from accent field
-      const { data: fullProfile } = await supabase
-        .from('voice_profiles')
-        .select('accent')
-        .eq('id', voiceId)
-        .single();
-
-      const voiceName = fullProfile?.accent || 'Kore';
-
-      // Call Gemini TTS
-      const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent', {
+    const response = await fetch(
+      `https://api.elevenlabs.io/v1/text-to-speech/${voiceProfile.elevenlabs_voice_id}`,
+      {
         method: 'POST',
         headers: {
+          'xi-api-key': elevenlabsApiKey,
           'Content-Type': 'application/json',
-          'x-goog-api-key': geminiApiKey,
+          'Accept': 'audio/mpeg',
         },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text }] }],
-          generationConfig: {
-            responseModalities: ['AUDIO'],
-            speechConfig: {
-              voiceConfig: {
-                prebuiltVoiceConfig: { voiceName },
-              },
-            },
-          },
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(`Gemini TTS failed: ${error.message}`);
+        body: JSON.stringify(requestData),
       }
+    );
 
-      const data = await response.json();
-      audioBase64 = data.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(`TTS generation failed: ${error.detail || error.message}`);
     }
+
+    const audioBlob = await response.blob();
+    const audioBase64 = await blobToBase64(audioBlob);
 
     if (!audioBase64) {
       throw new Error('No audio data received');

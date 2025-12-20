@@ -1,12 +1,22 @@
-
-import { GoogleGenAI, Type, Modality } from "@google/genai";
+// Lazy import for GoogleGenAI - only load when needed (fallback for unauthenticated users)
+// This reduces initial bundle size by ~250KB
 import { geminiTTS, geminiGenerateScript, isEdgeFunctionAvailable } from './src/lib/edgeFunctions';
 
 // Feature flag: Use Edge Functions for all API calls (secure, API key server-side)
 const USE_EDGE_FUNCTIONS = true;
 
-// Legacy direct API access (deprecated - only used as fallback for unauthenticated users)
-const getAI = () => new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
+// Lazy load GoogleGenAI only when needed (deprecated fallback)
+let GoogleGenAI: any = null;
+let Modality: any = null;
+
+async function getAI() {
+  if (!GoogleGenAI) {
+    const genai = await import('@google/genai');
+    GoogleGenAI = genai.GoogleGenAI;
+    Modality = genai.Modality;
+  }
+  return new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
+}
 
 export const geminiService = {
   /**
@@ -22,11 +32,12 @@ export const geminiService = {
         return geminiGenerateScript(thought, audioTags);
       }
 
-      // Legacy fallback for unauthenticated users
-      const ai = getAI();
+      // Legacy fallback for unauthenticated users (dynamically loads 250KB SDK)
       if (!import.meta.env.VITE_GEMINI_API_KEY) {
         throw new Error('Please sign in to generate meditation scripts.');
       }
+
+      const ai = await getAI();
 
       let audioTagsInstruction = '';
       if (audioTags && audioTags.length > 0) {
@@ -89,11 +100,12 @@ Output only the meditation script, no titles or labels.`,
         return geminiTTS(text, voiceName);
       }
 
-      // Legacy fallback for unauthenticated users
-      const ai = getAI();
+      // Legacy fallback for unauthenticated users (dynamically loads 250KB SDK)
       if (!import.meta.env.VITE_GEMINI_API_KEY) {
         throw new Error('Please sign in to generate speech.');
       }
+
+      const ai = await getAI();
 
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash-preview-tts",

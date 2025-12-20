@@ -60,7 +60,7 @@ const App: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationStage, setGenerationStage] = useState<'idle' | 'script' | 'voice' | 'ready'>('idle');
   const [availableVoices, setAvailableVoices] = useState<VoiceProfile[]>(VOICE_PROFILES);
-  const [selectedVoice, setSelectedVoice] = useState<VoiceProfile>(VOICE_PROFILES[1]);
+  const [selectedVoice, setSelectedVoice] = useState<VoiceProfile | null>(null);
 
   // Cloning states
   const [cloningStatus, setCloningStatus] = useState<CloningStatus>({ state: 'idle' });
@@ -274,18 +274,25 @@ const App: React.FC = () => {
       const voices = await getUserVoiceProfiles();
       setSavedVoices(voices);
 
-      // Add saved voices to available voices
-      const clonedVoiceProfiles = voices.map(v => ({
-        id: v.id,
-        name: v.name,
-        provider: v.provider || (v.elevenlabs_voice_id ? 'ElevenLabs' : 'Gemini'),
-        voiceName: v.accent || 'Kore', // Use saved Gemini voice or default to Kore
-        description: v.description || 'Your personalized voice profile',
-        isCloned: !!v.elevenlabs_voice_id,
-        elevenlabsVoiceId: v.elevenlabs_voice_id
-      }));
+      // Add saved voices to available voices (cloned voices only)
+      const clonedVoiceProfiles = voices
+        .filter(v => v.elevenlabs_voice_id) // Only include voices with ElevenLabs ID
+        .map(v => ({
+          id: v.id,
+          name: v.name,
+          provider: 'ElevenLabs' as const,
+          voiceName: v.name, // Use voice name for display
+          description: v.description || 'Your personalized voice clone',
+          isCloned: true,
+          elevenlabsVoiceId: v.elevenlabs_voice_id
+        }));
 
-      setAvailableVoices([...clonedVoiceProfiles, ...VOICE_PROFILES]);
+      setAvailableVoices(clonedVoiceProfiles);
+
+      // Auto-select first cloned voice if none selected
+      if (!selectedVoice && clonedVoiceProfiles.length > 0) {
+        setSelectedVoice(clonedVoiceProfiles[0]);
+      }
     } catch (error) {
       console.error('Failed to load voices:', error);
     }
@@ -295,8 +302,8 @@ const App: React.FC = () => {
     await signOut();
     setUser(null);
     setSavedVoices([]);
-    setAvailableVoices(VOICE_PROFILES);
-    setSelectedVoice(VOICE_PROFILES[1]);
+    setAvailableVoices([]);
+    setSelectedVoice(null);
   };
 
   const handleDeleteHistory = async (id: string) => {
@@ -1026,6 +1033,13 @@ const App: React.FC = () => {
       return;
     }
 
+    // Require a cloned voice to generate
+    if (!selectedVoice) {
+      setMicError('Please clone a voice first to generate meditations');
+      setShowCloneModal(true);
+      return;
+    }
+
     const originalPrompt = script; // Store original prompt before we modify script state
     setIsGenerating(true);
     setGenerationStage('script');
@@ -1308,20 +1322,29 @@ const App: React.FC = () => {
           <div className="flex items-center gap-2 md:gap-4">
             {/* Voice selector - hidden on very small screens, compact on mobile */}
             <div className="hidden xs:flex items-center gap-2">
-              <select
-                value={selectedVoice.id}
-                onChange={(e) => {
-                  const voice = availableVoices.find(v => v.id === e.target.value);
-                  if (voice) setSelectedVoice(voice);
-                }}
-                className="bg-white/5 border border-white/10 rounded-lg md:rounded-xl px-2 md:px-3 py-1.5 md:py-2 text-[10px] md:text-[11px] font-bold uppercase tracking-wider md:tracking-widest text-slate-300 outline-none focus:border-indigo-500 transition-all cursor-pointer hover:bg-white/10 max-w-[100px] md:max-w-none truncate"
-              >
-                {availableVoices.map(v => (
-                  <option key={v.id} value={v.id} className="bg-slate-900">
-                    {v.name} {v.isCloned ? '★' : ''}
-                  </option>
-                ))}
-              </select>
+              {availableVoices.length > 0 ? (
+                <select
+                  value={selectedVoice?.id || ''}
+                  onChange={(e) => {
+                    const voice = availableVoices.find(v => v.id === e.target.value);
+                    if (voice) setSelectedVoice(voice);
+                  }}
+                  className="bg-white/5 border border-white/10 rounded-lg md:rounded-xl px-2 md:px-3 py-1.5 md:py-2 text-[10px] md:text-[11px] font-bold uppercase tracking-wider md:tracking-widest text-slate-300 outline-none focus:border-indigo-500 transition-all cursor-pointer hover:bg-white/10 max-w-[100px] md:max-w-none truncate"
+                >
+                  {availableVoices.map(v => (
+                    <option key={v.id} value={v.id} className="bg-slate-900">
+                      {v.name} ★
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <button
+                  onClick={() => setShowCloneModal(true)}
+                  className="bg-indigo-500/20 border border-indigo-500/30 rounded-lg md:rounded-xl px-2 md:px-3 py-1.5 md:py-2 text-[10px] md:text-[11px] font-bold uppercase tracking-wider text-indigo-300 hover:bg-indigo-500/30 transition-all"
+                >
+                  Clone Voice
+                </button>
+              )}
             </div>
 
             {/* User Menu - icons only on mobile */}
@@ -1400,7 +1423,7 @@ const App: React.FC = () => {
                       currentTime={currentTime}
                       duration={duration}
                       onSeek={handleInlineSeek}
-                      voiceName={selectedVoice.name}
+                      voiceName={selectedVoice?.name || 'Voice'}
                       backgroundTrackName={selectedBackgroundTrack.name}
                       backgroundVolume={backgroundVolume}
                       onBackgroundVolumeChange={updateBackgroundVolume}
@@ -1598,7 +1621,7 @@ const App: React.FC = () => {
                           <span className="text-[9px] md:text-[10px]">{selectedAudioTags.length} tags</span>
                         </button>
                       )}
-                      <div className="text-slate-600 truncate max-w-[80px] md:max-w-none text-right">{selectedVoice.name}</div>
+                      <div className="text-slate-600 truncate max-w-[80px] md:max-w-none text-right">{selectedVoice?.name || 'No voice'}</div>
                     </div>
                   </div>
                     </>
@@ -2099,15 +2122,16 @@ const App: React.FC = () => {
             const voiceProfile: VoiceProfile = {
               id: voice.id,
               name: voice.name,
-              provider: 'Custom',
-              voiceName: 'Kore',
+              provider: 'ElevenLabs',
+              voiceName: voice.name,
               description: voice.description || 'Your personalized voice clone',
-              isCloned: true
+              isCloned: true,
+              elevenlabsVoiceId: voice.elevenlabs_voice_id
             };
             setSelectedVoice(voiceProfile);
             setShowVoiceManager(false);
           }}
-          currentVoiceId={selectedVoice.id}
+          currentVoiceId={selectedVoice?.id}
         />
 
         {/* Burger Menu Drawer */}

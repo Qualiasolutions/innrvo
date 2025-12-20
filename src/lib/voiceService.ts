@@ -1,6 +1,6 @@
 import { VoiceProfile } from '../../types';
 import { elevenlabsService } from './elevenlabs';
-import { geminiService, decodeAudioBuffer } from '../../geminiService';
+// Note: Gemini TTS removed - only cloned ElevenLabs voices are supported
 
 /**
  * Strip audio tags from text before sending to TTS
@@ -29,30 +29,21 @@ export const voiceService = {
     // Strip audio tags before sending to TTS - they would be spoken literally
     const cleanText = stripAudioTags(text);
 
-    // Check if this is a cloned voice with ElevenLabs ID
-    if (voice.isCloned && voice.elevenlabsVoiceId) {
-      // Use ElevenLabs for cloned voices
-      const base64 = await elevenlabsService.generateSpeech(cleanText, voice.elevenlabsVoiceId);
-
-      // Decode to AudioBuffer if needed
-      if (audioContext) {
-        const audioBuffer = await this.decodeElevenLabsAudio(base64, audioContext);
-        return { audioBuffer, base64 };
-      }
-
-      return { audioBuffer: null as any, base64 };
-    } else {
-      // Fall back to Gemini for prebuilt voices
-      const base64 = await geminiService.generateSpeech(cleanText, voice.voiceName);
-
-      // Decode to AudioBuffer if needed
-      if (audioContext) {
-        const audioBuffer = await decodeAudioBuffer(base64, audioContext);
-        return { audioBuffer, base64 };
-      }
-
-      return { audioBuffer: null as any, base64 };
+    // Only cloned voices with ElevenLabs ID are supported
+    if (!voice.isCloned || !voice.elevenlabsVoiceId) {
+      throw new Error('Please clone a voice to generate meditations. Default voices are no longer available.');
     }
+
+    // Use ElevenLabs for cloned voices
+    const base64 = await elevenlabsService.generateSpeech(cleanText, voice.elevenlabsVoiceId);
+
+    // Decode to AudioBuffer if needed
+    if (audioContext) {
+      const audioBuffer = await this.decodeElevenLabsAudio(base64, audioContext);
+      return { audioBuffer, base64 };
+    }
+
+    return { audioBuffer: null as any, base64 };
   },
 
   /**
@@ -68,11 +59,12 @@ export const voiceService = {
 
   /**
    * Checks if a voice is ready for TTS generation
+   * Only cloned voices are supported
    */
   async isVoiceReady(voice: VoiceProfile): Promise<boolean> {
+    // Only cloned voices with ElevenLabs ID are supported
     if (!voice.isCloned || !voice.elevenlabsVoiceId) {
-      // Prebuilt Gemini voices are always ready
-      return true;
+      return false;
     }
 
     try {
