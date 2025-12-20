@@ -4,8 +4,8 @@ import { supabase } from '../../lib/supabase';
 const COST_CONFIG = {
   VOICE_CLONE: 5000, // 5,000 credits to clone ($5)
   TTS_1K_CHARS: 280, // 280 credits per 1K characters ($0.30)
-  FREE_MONTHLY_CREDITS: 10000, // $10 worth
-  FREE_MONTHLY_CLONES: 2,
+  FREE_MONTHLY_CREDITS: 100000, // 100k credits
+  FREE_MONTHLY_CLONES: 20, // 20 clones per month
 } as const;
 
 export interface UserCredits {
@@ -41,16 +41,20 @@ export const creditService = {
       .from('user_credits')
       .select('credits_remaining')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
 
-    if (error && error.code === 'PGRST116') {
+    if (error) {
+      console.error('Error fetching credits:', error);
+      throw error;
+    }
+
+    if (!data) {
       // User credits not initialized, create default
       await this.initializeUserCredits(userId);
       return COST_CONFIG.FREE_MONTHLY_CREDITS;
     }
 
-    if (error) throw error;
-    return data?.credits_remaining || 0;
+    return data.credits_remaining || 0;
   },
 
   /**
@@ -63,9 +67,9 @@ export const creditService = {
         user_id: userId,
         total_credits: COST_CONFIG.FREE_MONTHLY_CREDITS,
         credits_used: 0,
-      });
+      }, { onConflict: 'user_id', ignoreDuplicates: true });
 
-    if (error) throw error;
+    if (error && error.code !== '23505') throw error;
   },
 
   /**
@@ -174,9 +178,14 @@ export const creditService = {
       .select('*')
       .eq('user_id', userId)
       .eq('month_start', monthStart)
-      .single();
+      .maybeSingle();
 
-    if (error && error.code === 'PGRST116') {
+    if (error) {
+      console.error('Error fetching usage limits:', error);
+      throw error;
+    }
+
+    if (!data) {
       // No record for this month, create default
       await this.initializeMonthlyLimits(userId);
       return {
@@ -188,7 +197,6 @@ export const creditService = {
       };
     }
 
-    if (error) throw error;
     return data;
   },
 
@@ -205,9 +213,9 @@ export const creditService = {
         credits_limit: COST_CONFIG.FREE_MONTHLY_CREDITS,
         clones_created: 0,
         clones_limit: COST_CONFIG.FREE_MONTHLY_CLONES,
-      });
+      }, { onConflict: 'user_id,month_start', ignoreDuplicates: true });
 
-    if (error) throw error;
+    if (error && error.code !== '23505') throw error;
   },
 
   /**
