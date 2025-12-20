@@ -1347,6 +1347,142 @@ const App: React.FC = () => {
           </div>
         )}
 
+        {/* MODAL: Audio Tags Selector */}
+        {showAudioTagsModal && (
+          <>
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              {/* Backdrop */}
+              <div
+                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                onClick={() => setShowAudioTagsModal(false)}
+              />
+
+              {/* Modal Content */}
+              <div className="relative z-10 w-full max-w-lg glass rounded-3xl border border-white/10 shadow-2xl shadow-black/50 max-h-[80vh] flex flex-col animate-in fade-in zoom-in-95 duration-200">
+                {/* Header */}
+                <div className="flex items-center justify-between p-4 md:p-6 border-b border-white/10">
+                  <div>
+                    <h2 className="text-xl md:text-2xl font-bold text-white">Audio Tags</h2>
+                    <p className="text-xs md:text-sm text-slate-400 mt-1">
+                      Add special markers to enhance your meditation
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setShowAudioTagsModal(false)}
+                    className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all"
+                  >
+                    <ICONS.Close className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
+                  {/* Enable Toggle */}
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10">
+                    <div>
+                      <p className="text-sm font-medium text-white">Enable Audio Tags</p>
+                      <p className="text-xs text-slate-400">Include tags in generated scripts</p>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        const newValue = !audioTagsEnabled;
+                        setAudioTagsEnabled(newValue);
+                        try {
+                          await updateAudioTagPreferences({ enabled: newValue });
+                        } catch (err) {
+                          console.warn('Failed to save audio tag preference:', err);
+                        }
+                      }}
+                      className={`relative w-12 h-6 rounded-full transition-colors ${
+                        audioTagsEnabled ? 'bg-violet-500' : 'bg-slate-600'
+                      }`}
+                    >
+                      <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
+                        audioTagsEnabled ? 'translate-x-7' : 'translate-x-1'
+                      }`} />
+                    </button>
+                  </div>
+
+                  {/* Selected Tags Preview */}
+                  {selectedAudioTags.length > 0 && (
+                    <div className="p-3 rounded-xl bg-violet-500/10 border border-violet-500/20">
+                      <p className="text-xs font-medium text-violet-300 mb-2">Selected Tags ({selectedAudioTags.length})</p>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedAudioTags.map(tagId => {
+                          const tag = AUDIO_TAG_CATEGORIES.flatMap(c => c.tags).find(t => t.id === tagId);
+                          return tag ? (
+                            <button
+                              key={tagId}
+                              onClick={() => setSelectedAudioTags(prev => prev.filter(id => id !== tagId))}
+                              className="px-2 py-1 rounded-lg bg-violet-500/20 text-violet-300 text-xs hover:bg-red-500/20 hover:text-red-300 transition-colors"
+                            >
+                              {tag.label} ×
+                            </button>
+                          ) : null;
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Tag Categories */}
+                  {AUDIO_TAG_CATEGORIES.map(category => (
+                    <div key={category.id}>
+                      <h3 className={`text-sm font-semibold mb-3 ${category.color}`}>
+                        {category.name}
+                      </h3>
+                      <div className="grid grid-cols-2 gap-2">
+                        {category.tags.map(tag => {
+                          const isSelected = selectedAudioTags.includes(tag.id);
+                          const isFavorite = favoriteAudioTags.includes(tag.id);
+                          return (
+                            <button
+                              key={tag.id}
+                              onClick={() => {
+                                setSelectedAudioTags(prev =>
+                                  isSelected
+                                    ? prev.filter(id => id !== tag.id)
+                                    : [...prev, tag.id]
+                                );
+                              }}
+                              className={`p-3 rounded-xl text-left transition-all btn-press ${
+                                isSelected
+                                  ? `${category.bgColor} ${category.color} border border-current/30`
+                                  : 'bg-white/5 hover:bg-white/10 text-slate-300 border border-transparent'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm font-medium">{tag.label}</span>
+                                {isFavorite && <span className="text-yellow-400 text-xs">★</span>}
+                              </div>
+                              <p className="text-xs text-slate-400 mt-1">{tag.description}</p>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Footer */}
+                <div className="p-4 md:p-6 border-t border-white/10 flex gap-3">
+                  <button
+                    onClick={() => setSelectedAudioTags([])}
+                    className="flex-1 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 font-medium transition-all"
+                  >
+                    Clear All
+                  </button>
+                  <button
+                    onClick={() => setShowAudioTagsModal(false)}
+                    className="flex-1 py-3 rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 text-white font-medium transition-all hover:shadow-lg hover:shadow-violet-500/25"
+                  >
+                    Done
+                  </button>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
         {/* Auth Modal */}
         <AuthModal
           isOpen={showAuthModal}
