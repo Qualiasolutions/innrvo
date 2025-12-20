@@ -58,6 +58,9 @@ const App: React.FC = () => {
   const [showTerms, setShowTerms] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
 
+  // Prompt menu state
+  const [showPromptMenu, setShowPromptMenu] = useState(false);
+
   // Library state
   const [libraryTab, setLibraryTab] = useState<'history' | 'saved'>('history');
   const [meditationHistory, setMeditationHistory] = useState<MeditationHistory[]>([]);
@@ -121,6 +124,17 @@ const App: React.FC = () => {
       stopBackgroundMusic();
     };
   }, []);
+
+  // Close prompt menu on Escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && showPromptMenu) {
+        setShowPromptMenu(false);
+      }
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [showPromptMenu]);
 
   const checkUser = async () => {
     const currentUser = await getCurrentUser();
@@ -845,45 +859,104 @@ const App: React.FC = () => {
                       />
 
                       <div className="flex items-center justify-between px-2 md:px-6 pb-2 md:pb-4">
-                        <div className="flex items-center gap-1.5 md:gap-3">
-                          {/* Clone Voice Button */}
+                        {/* Plus Menu Button */}
+                        <div className="relative">
                           <button
-                            onClick={() => {
-                              setShowCloneModal(true);
-                              setMicError(null);
-                            }}
-                            className="p-2.5 md:p-3 min-h-[40px] min-w-[40px] md:min-h-[44px] md:min-w-[44px] rounded-xl md:rounded-2xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-indigo-400 transition-all btn-press focus-ring flex items-center justify-center"
-                            title="Clone your voice"
+                            onClick={() => setShowPromptMenu(!showPromptMenu)}
+                            className={`p-2.5 md:p-3 min-h-[40px] min-w-[40px] md:min-h-[44px] md:min-w-[44px] rounded-xl md:rounded-2xl transition-all btn-press focus-ring flex items-center justify-center ${
+                              showPromptMenu
+                                ? 'bg-indigo-500/20 text-indigo-400'
+                                : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white'
+                            }`}
+                            title="Open menu"
                           >
-                            <ICONS.Waveform className="w-4 h-4 md:w-5 md:h-5" />
+                            <ICONS.Plus className={`w-4 h-4 md:w-5 md:h-5 transition-transform duration-200 ${showPromptMenu ? 'rotate-45' : ''}`} />
                           </button>
-                          {/* Templates Button */}
-                          <button
-                            onClick={() => setShowTemplatesModal(true)}
-                            className="p-2.5 md:p-3 min-h-[40px] min-w-[40px] md:min-h-[44px] md:min-w-[44px] rounded-xl md:rounded-2xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-purple-400 transition-all btn-press focus-ring flex items-center justify-center"
-                            title="Browse templates"
-                          >
-                            <ICONS.Sparkle className="w-4 h-4 md:w-5 md:h-5" />
-                          </button>
-                          {/* Music Button */}
-                          <button
-                            onClick={() => setShowMusicModal(true)}
-                            className={`p-2.5 md:p-3 min-h-[40px] min-w-[40px] md:min-h-[44px] md:min-w-[44px] rounded-xl md:rounded-2xl transition-all btn-press focus-ring flex items-center justify-center ${selectedBackgroundTrack.id !== 'none' ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30' : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-emerald-400'}`}
-                            title={`Background: ${selectedBackgroundTrack.name}`}
-                          >
-                            <ICONS.Music className="w-4 h-4 md:w-5 md:h-5" />
-                          </button>
-                          {/* Mic Button */}
-                          <button
-                            onMouseDown={startRecording}
-                            onMouseUp={stopRecording}
-                            onTouchStart={startRecording}
-                            onTouchEnd={stopRecording}
-                            className={`p-2.5 md:p-3 min-h-[40px] min-w-[40px] md:min-h-[44px] md:min-w-[44px] rounded-xl md:rounded-2xl transition-all shadow-xl btn-press focus-ring flex items-center justify-center ${isRecording ? 'bg-rose-500 text-white scale-110 shadow-rose-500/40' : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'}`}
-                            title="Hold to speak"
-                          >
-                            <ICONS.Microphone className="w-4 h-4 md:w-5 md:h-5" />
-                          </button>
+
+                          {/* Popup Menu */}
+                          {showPromptMenu && (
+                            <>
+                              {/* Backdrop to close menu */}
+                              <div
+                                className="fixed inset-0 z-40"
+                                onClick={() => setShowPromptMenu(false)}
+                              />
+
+                              {/* Menu Container */}
+                              <div className="absolute bottom-full left-0 mb-3 z-50 glass rounded-2xl p-2 border border-white/10 shadow-xl shadow-black/20 animate-in fade-in slide-in-from-bottom-2">
+                                <div className="grid grid-cols-2 gap-2">
+                                  {/* Clone Voice */}
+                                  <button
+                                    onClick={() => {
+                                      setShowCloneModal(true);
+                                      setMicError(null);
+                                      setShowPromptMenu(false);
+                                    }}
+                                    className="p-3 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-indigo-400 transition-all btn-press focus-ring flex flex-col items-center gap-1.5"
+                                    title="Clone your voice"
+                                  >
+                                    <ICONS.Waveform className="w-5 h-5" />
+                                    <span className="text-[10px] font-medium">Clone</span>
+                                  </button>
+
+                                  {/* Templates */}
+                                  <button
+                                    onClick={() => {
+                                      setShowTemplatesModal(true);
+                                      setShowPromptMenu(false);
+                                    }}
+                                    className="p-3 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-purple-400 transition-all btn-press focus-ring flex flex-col items-center gap-1.5"
+                                    title="Browse templates"
+                                  >
+                                    <ICONS.Sparkle className="w-5 h-5" />
+                                    <span className="text-[10px] font-medium">Templates</span>
+                                  </button>
+
+                                  {/* Music */}
+                                  <button
+                                    onClick={() => {
+                                      setShowMusicModal(true);
+                                      setShowPromptMenu(false);
+                                    }}
+                                    className={`p-3 rounded-xl transition-all btn-press focus-ring flex flex-col items-center gap-1.5 ${
+                                      selectedBackgroundTrack.id !== 'none'
+                                        ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30'
+                                        : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-emerald-400'
+                                    }`}
+                                    title={`Background: ${selectedBackgroundTrack.name}`}
+                                  >
+                                    <ICONS.Music className="w-5 h-5" />
+                                    <span className="text-[10px] font-medium">Music</span>
+                                  </button>
+
+                                  {/* Microphone */}
+                                  <button
+                                    onMouseDown={(e) => {
+                                      e.preventDefault();
+                                      startRecording();
+                                      setShowPromptMenu(false);
+                                    }}
+                                    onMouseUp={stopRecording}
+                                    onTouchStart={(e) => {
+                                      e.preventDefault();
+                                      startRecording();
+                                      setShowPromptMenu(false);
+                                    }}
+                                    onTouchEnd={stopRecording}
+                                    className={`p-3 rounded-xl transition-all btn-press focus-ring flex flex-col items-center gap-1.5 ${
+                                      isRecording
+                                        ? 'bg-rose-500 text-white scale-105 shadow-rose-500/40'
+                                        : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'
+                                    }`}
+                                    title="Hold to speak"
+                                  >
+                                    <ICONS.Microphone className="w-5 h-5" />
+                                    <span className="text-[10px] font-medium">Speak</span>
+                                  </button>
+                                </div>
+                              </div>
+                            </>
+                          )}
                         </div>
 
                         <button

@@ -156,8 +156,8 @@
 @layer utilities {
   /* Animate in utility */
   .animate-in {
-    animation-duration: 0.3s;
-    animation-timing-function: ease-out;
+    animation-duration: 0.2s;
+    animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
     animation-fill-mode: both;
   }
 
@@ -167,6 +167,10 @@
 
   .zoom-in {
     animation-name: zoomIn;
+  }
+
+  .slide-in-from-bottom-2 {
+    animation-name: slideInFromBottom;
   }
 }
 
@@ -212,6 +216,17 @@
   to {
     opacity: 1;
     transform: scale(1);
+  }
+}
+
+@keyframes slideInFromBottom {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
