@@ -1095,6 +1095,19 @@ const App: React.FC = () => {
                         <span className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full flex-shrink-0 ${isRecording ? 'bg-rose-500 animate-ping' : isGenerating ? 'bg-indigo-500 animate-pulse' : 'bg-emerald-500'}`}></span>
                         <span className="text-slate-400 truncate">{isRecording ? 'Capturing...' : isGenerating ? 'Generating...' : 'Ready'}</span>
                       </div>
+                      {/* Audio Tags Indicator */}
+                      {audioTagsEnabled && selectedAudioTags.length > 0 && (
+                        <button
+                          onClick={() => {
+                            setSuggestedAudioTags(getSuggestedTags(script));
+                            setShowAudioTagsModal(true);
+                          }}
+                          className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-400 hover:bg-violet-500/20 transition-colors normal-case tracking-normal"
+                        >
+                          <ICONS.Tags className="w-3 h-3" />
+                          <span className="text-[9px] md:text-[10px]">{selectedAudioTags.length} tags</span>
+                        </button>
+                      )}
                       <div className="text-slate-600 truncate max-w-[80px] md:max-w-none text-right">{selectedVoice.name}</div>
                     </div>
                   </div>
