@@ -150,6 +150,30 @@ export async function elevenLabsCloneVoice(
   return data.voice_id;
 }
 
+/**
+ * Delete a voice from ElevenLabs via Edge Function
+ * API key is stored server-side
+ */
+export async function elevenLabsDeleteVoice(voiceId: string): Promise<void> {
+  await callEdgeFunction<{ success: boolean }>('elevenlabs-voice-ops', {
+    operation: 'delete',
+    voiceId,
+  });
+}
+
+/**
+ * Get voice status from ElevenLabs via Edge Function
+ * API key is stored server-side
+ * @returns 'ready' if voice exists, 'deleted' if not found
+ */
+export async function elevenLabsGetVoiceStatus(voiceId: string): Promise<string> {
+  const response = await callEdgeFunction<{ success: boolean; status: string }>('elevenlabs-voice-ops', {
+    operation: 'status',
+    voiceId,
+  });
+  return response.status;
+}
+
 // ============================================================================
 // Gemini Edge Function Wrappers
 // ============================================================================
