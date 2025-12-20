@@ -568,8 +568,15 @@ const App: React.FC = () => {
     setMicError(null);
 
     try {
-      // Generate enhanced meditation from short prompt
-      const enhanced = await geminiService.enhanceScript(script);
+      // Get audio tag labels from selected tag IDs (only if audio tags are enabled)
+      const audioTagLabels = audioTagsEnabled && selectedAudioTags.length > 0
+        ? AUDIO_TAG_CATEGORIES.flatMap(cat => cat.tags)
+            .filter(tag => selectedAudioTags.includes(tag.id))
+            .map(tag => tag.label)
+        : undefined;
+
+      // Generate enhanced meditation from short prompt (with optional audio tags)
+      const enhanced = await geminiService.enhanceScript(script, audioTagLabels);
 
       if (!enhanced || !enhanced.trim()) {
         throw new Error('Failed to generate meditation script. Please try again.');
@@ -645,7 +652,8 @@ const App: React.FC = () => {
         selectedVoice.name,
         selectedBackgroundTrack?.id,
         selectedBackgroundTrack?.name,
-        Math.round(audioBuffer.duration)
+        Math.round(audioBuffer.duration),
+        audioTagsEnabled && selectedAudioTags.length > 0 ? selectedAudioTags : undefined
       ).catch(err => console.warn('Failed to save meditation history:', err));
 
       source.onended = () => setIsPlaying(false);

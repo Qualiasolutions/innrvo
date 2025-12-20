@@ -8,32 +8,44 @@ export const geminiService = {
   /**
    * Complex reasoning for script generation using Thinking Mode.
    * Uses gemini-3-pro-preview with the maximum thinking budget.
+   * @param thought - The user's meditation idea/prompt
+   * @param audioTags - Optional array of audio tag labels to incorporate (e.g., "[long pause]", "[deep breath]")
    */
-  async enhanceScript(thought: string): Promise<string> {
+  async enhanceScript(thought: string, audioTags?: string[]): Promise<string> {
     try {
       const ai = getAI();
       if (!import.meta.env.VITE_GEMINI_API_KEY) {
         throw new Error('API key not found. Please set VITE_GEMINI_API_KEY in your environment variables.');
       }
-      
+
+      // Build audio tags instruction if tags are provided
+      let audioTagsInstruction = '';
+      if (audioTags && audioTags.length > 0) {
+        audioTagsInstruction = `
+        5. Audio Tags: Naturally incorporate these audio cues throughout the script where appropriate: ${audioTags.join(', ')}.
+           - Place them inline within the text where they should occur (e.g., "Take a deep breath in... [long pause] ...and slowly release.")
+           - Use them to enhance the pacing and immersive quality of the meditation.
+           - Don't overuse them - place them at natural transition points and moments of emphasis.`;
+      }
+
       const response = await ai.models.generateContent({
         model: 'gemini-3-pro-preview',
-        contents: `Transform this short, messy thought into a beautiful, immersive, and structured guided meditation script or story outline: "${thought}". 
+        contents: `Transform this short, messy thought into a beautiful, immersive, and structured guided meditation script or story outline: "${thought}".
         Requirements:
         1. Length: 300-500 words.
         2. Tone: Professional, soothing, and high-fidelity.
         3. Structure: Include an introduction, a guided journey/visualization, and a gentle closing.
-        4. Creativity: Use evocative and sensory language.`,
+        4. Creativity: Use evocative and sensory language.${audioTagsInstruction}`,
         config: {
           thinkingConfig: { thinkingBudget: 32768 }
         },
       });
-      
+
       const text = response.text;
       if (!text || text.trim() === '') {
         throw new Error('Empty response from API. Please try again.');
       }
-      
+
       return text;
     } catch (error: any) {
       console.error('Error in enhanceScript:', error);
