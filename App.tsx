@@ -1370,21 +1370,8 @@ const App: React.FC = () => {
               )}
             </div>
 
-            {/* User Menu - icons only on mobile */}
-            {user ? (
-              <div className="flex items-center gap-1.5 md:gap-2">
-                <button
-                  onClick={handleSignOut}
-                  className="p-2 md:px-3 md:py-2 min-w-[40px] min-h-[40px] md:min-w-0 md:min-h-0 rounded-lg md:rounded-xl bg-white/5 hover:bg-white/10 text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-all flex items-center justify-center"
-                  title="Sign Out"
-                >
-                  <span className="hidden md:inline">Sign Out</span>
-                  <svg className="w-4 h-4 md:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                  </svg>
-                </button>
-              </div>
-            ) : (
+            {/* User Menu */}
+            {!user && (
               <button
                 onClick={() => setShowAuthModal(true)}
                 className="px-3 md:px-4 py-2 min-h-[40px] md:min-h-[44px] rounded-lg md:rounded-xl bg-gradient-to-r from-indigo-600/20 to-purple-600/20 hover:from-indigo-600/30 hover:to-purple-600/30 border border-indigo-500/20 text-[10px] font-bold uppercase tracking-wider md:tracking-widest text-indigo-400 transition-all"
@@ -1483,6 +1470,25 @@ const App: React.FC = () => {
                               {/* Menu Container */}
                               <div className="absolute bottom-full left-0 mb-3 z-50 glass rounded-2xl p-2 border border-white/10 shadow-xl shadow-black/20 animate-in fade-in slide-in-from-bottom-2 min-w-[160px]">
                                 <div className="grid grid-cols-2 gap-2 w-full">
+                                  {/* Voice Selection */}
+                                  <button
+                                    onClick={() => {
+                                      setShowVoiceManager(true);
+                                      setShowPromptMenu(false);
+                                    }}
+                                    className={`p-3 rounded-xl transition-all btn-press focus-ring flex flex-col items-center gap-1.5 ${
+                                      selectedVoice
+                                        ? 'bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30'
+                                        : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-cyan-400'
+                                    }`}
+                                    title={selectedVoice ? `Voice: ${selectedVoice.name}` : 'Select voice'}
+                                  >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                                    </svg>
+                                    <span className="text-[10px] font-medium">Voice</span>
+                                  </button>
+
                                   {/* Clone Voice */}
                                   <button
                                     onClick={() => {
@@ -1637,13 +1643,6 @@ const App: React.FC = () => {
                           <span className="text-[9px] md:text-[10px]">{selectedAudioTags.length} tags</span>
                         </button>
                       )}
-                      <button
-                        onClick={() => setShowVoiceManager(true)}
-                        className="text-slate-600 hover:text-indigo-400 truncate max-w-[80px] md:max-w-none text-right transition-colors cursor-pointer"
-                        title="Change voice"
-                      >
-                        {selectedVoice?.name || 'No voice'}
-                      </button>
                     </div>
                   </div>
                     </>
@@ -2203,7 +2202,7 @@ const App: React.FC = () => {
                       </>
                     ) : (
                       <>
-                        <ICONS.Play className="w-4 h-4" />
+                        <ICONS.Player className="w-4 h-4" />
                         Play Meditation
                       </>
                     )}
@@ -2369,6 +2368,24 @@ const App: React.FC = () => {
                   </button>
                 </div>
               </div>
+
+              {/* Sign Out Button */}
+              {user && (
+                <div className="p-3 border-t border-white/5">
+                  <button
+                    onClick={() => {
+                      setShowBurgerMenu(false);
+                      handleSignOut();
+                    }}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white/5 hover:bg-rose-500/10 text-slate-400 hover:text-rose-400 transition-all"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    <span className="text-sm font-medium">Sign Out</span>
+                  </button>
+                </div>
+              )}
 
               {/* Footer */}
               <div className="p-4 border-t border-white/5 space-y-2">
