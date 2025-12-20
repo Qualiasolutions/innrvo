@@ -33,6 +33,22 @@ const App: React.FC = () => {
   const [showMusicModal, setShowMusicModal] = useState(false);
   const [selectedBackgroundTrack, setSelectedBackgroundTrack] = useState<BackgroundTrack>(BACKGROUND_TRACKS[0]);
 
+  // Group tracks by category for music modal
+  const tracksByCategory = BACKGROUND_TRACKS.reduce((acc, track) => {
+    if (!acc[track.category]) acc[track.category] = [];
+    acc[track.category].push(track);
+    return acc;
+  }, {} as Record<string, BackgroundTrack[]>);
+
+  const categoryConfig: Record<string, { label: string; color: string; bgColor: string }> = {
+    'ambient': { label: 'Ambient', color: 'text-cyan-400', bgColor: 'bg-cyan-500/10' },
+    'nature': { label: 'Nature', color: 'text-emerald-400', bgColor: 'bg-emerald-500/10' },
+    'binaural': { label: 'Binaural', color: 'text-violet-400', bgColor: 'bg-violet-500/10' },
+    'instrumental': { label: 'Instrumental', color: 'text-purple-400', bgColor: 'bg-purple-500/10' },
+    'lofi': { label: 'Lo-Fi', color: 'text-orange-400', bgColor: 'bg-orange-500/10' },
+    'classical': { label: 'Classical', color: 'text-rose-400', bgColor: 'bg-rose-500/10' },
+  };
+
   // Burger menu states
   const [showBurgerMenu, setShowBurgerMenu] = useState(false);
   const [showHowItWorks, setShowHowItWorks] = useState(false);
@@ -61,6 +77,10 @@ const App: React.FC = () => {
   const audioContextRef = useRef<AudioContext | null>(null);
   const audioSourceRef = useRef<AudioBufferSourceNode | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+
+  // Background music refs
+  const backgroundAudioRef = useRef<HTMLAudioElement | null>(null);
+  const [backgroundVolume, setBackgroundVolume] = useState(0.3); // 30% default
 
   // Auth states
   const [user, setUser] = useState<any>(null);
@@ -94,6 +114,13 @@ const App: React.FC = () => {
         .finally(() => setIsLoadingHistory(false));
     }
   }, [showLibrary, user]);
+
+  // Cleanup background music on unmount
+  useEffect(() => {
+    return () => {
+      stopBackgroundMusic();
+    };
+  }, []);
 
   const checkUser = async () => {
     const currentUser = await getCurrentUser();
@@ -450,6 +477,42 @@ const App: React.FC = () => {
     }
   };
 
+  // Start background music
+  const startBackgroundMusic = async (track: BackgroundTrack) => {
+    // Stop any existing background music
+    stopBackgroundMusic();
+
+    if (track.id === 'none' || !track.audioUrl) return;
+
+    try {
+      const audio = new Audio(track.audioUrl);
+      audio.loop = true;
+      audio.volume = backgroundVolume;
+      backgroundAudioRef.current = audio;
+
+      await audio.play();
+    } catch (error) {
+      console.error('Failed to play background music:', error);
+    }
+  };
+
+  // Stop background music
+  const stopBackgroundMusic = () => {
+    if (backgroundAudioRef.current) {
+      backgroundAudioRef.current.pause();
+      backgroundAudioRef.current.currentTime = 0;
+      backgroundAudioRef.current = null;
+    }
+  };
+
+  // Update background volume
+  const updateBackgroundVolume = (volume: number) => {
+    setBackgroundVolume(volume);
+    if (backgroundAudioRef.current) {
+      backgroundAudioRef.current.volume = volume;
+    }
+  };
+
   const handleGenerateAndPlay = async () => {
     if (!script.trim()) {
       setMicError('Please enter some text to generate a meditation');
@@ -525,6 +588,9 @@ const App: React.FC = () => {
       setScript(enhanced);
       setIsPlaying(true);
       setCurrentView(View.PLAYER);
+
+      // Start background music if selected
+      startBackgroundMusic(selectedBackgroundTrack);
 
       // Auto-save to meditation history (fire and forget, don't block playback)
       saveMeditationHistory(
@@ -656,6 +722,34 @@ const App: React.FC = () => {
               onClick={() => setCurrentView(View.HOME)}
             >
               <ICONS.Logo className="h-5 md:h-7 text-white" />
+            </div>
+
+            {/* Desktop Navigation Links - Hidden on mobile */}
+            <div className="hidden md:flex items-center gap-1 ml-6">
+              <button
+                onClick={() => setShowHowItWorks(true)}
+                className="px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors rounded-lg hover:bg-white/5"
+              >
+                How It Works
+              </button>
+              <button
+                onClick={() => setShowLibrary(true)}
+                className="px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors rounded-lg hover:bg-white/5"
+              >
+                Library
+              </button>
+              <button
+                onClick={() => setShowPricing(true)}
+                className="px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors rounded-lg hover:bg-white/5"
+              >
+                Pricing
+              </button>
+              <button
+                onClick={() => setShowAboutUs(true)}
+                className="px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors rounded-lg hover:bg-white/5"
+              >
+                About Us
+              </button>
             </div>
           </div>
 
@@ -837,6 +931,7 @@ const App: React.FC = () => {
 
               <button
                 onClick={() => {
+                  stopBackgroundMusic();
                   audioSourceRef.current?.stop();
                   setIsPlaying(false);
                   setCurrentView(View.HOME);
@@ -881,6 +976,23 @@ const App: React.FC = () => {
                   <ICONS.SkipNext className="w-7 h-7 md:w-8 md:h-8" />
                 </button>
               </div>
+
+              {/* Background Music Volume Control */}
+              {selectedBackgroundTrack.id !== 'none' && (
+                <div className="flex items-center gap-3 mt-4">
+                  <ICONS.Music className="w-4 h-4 text-slate-500" />
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.1"
+                    value={backgroundVolume}
+                    onChange={(e) => updateBackgroundVolume(parseFloat(e.target.value))}
+                    className="w-32 h-1 bg-white/10 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white"
+                  />
+                  <span className="text-xs text-slate-500 w-8">{Math.round(backgroundVolume * 100)}%</span>
+                </div>
+              )}
             </div>
           )}
 
@@ -1052,128 +1164,63 @@ const App: React.FC = () => {
 
         {/* MODAL: Music Selector */}
         {showMusicModal && (
-          <div className="fixed inset-0 z-[80] bg-[#020617]/95 backdrop-blur-3xl flex flex-col p-6 animate-in fade-in zoom-in duration-500 overflow-y-auto">
+          <div className="fixed inset-0 z-[80] bg-[#020617]/95 backdrop-blur-3xl flex flex-col p-4 md:p-6 animate-in fade-in zoom-in duration-500 overflow-y-auto">
             <Background />
             <Starfield />
 
-            {/* Back Button */}
             <button
               onClick={() => setShowMusicModal(false)}
-              className="fixed top-6 left-6 md:top-8 md:left-8 text-slate-600 hover:text-white transition-all flex items-center gap-3 group btn-press focus-ring rounded-full z-[100]"
+              className="fixed top-4 left-4 md:top-6 md:left-6 text-slate-600 hover:text-white transition-all flex items-center gap-3 group btn-press focus-ring rounded-full z-[100]"
             >
-              <div className="w-12 h-12 min-w-[44px] min-h-[44px] rounded-full border border-white/5 flex items-center justify-center group-hover:bg-white/10 group-hover:scale-110 transition-all">
-                <ICONS.ArrowBack className="w-5 h-5" />
+              <div className="w-10 h-10 md:w-12 md:h-12 min-w-[40px] min-h-[40px] rounded-full border border-white/5 flex items-center justify-center group-hover:bg-white/10 group-hover:scale-110 transition-all">
+                <ICONS.ArrowBack className="w-4 h-4 md:w-5 md:h-5" />
               </div>
               <span className="hidden md:inline text-[11px] font-bold uppercase tracking-[0.3em]">Back</span>
             </button>
 
-            {/* Modal Content */}
-            <div className="flex-1 flex flex-col items-center justify-center pt-16 md:pt-0 relative z-10">
-              <h2 className="text-3xl md:text-5xl font-extralight text-center mb-3 tracking-tight">
-                <span className="bg-gradient-to-r from-emerald-300 via-cyan-200 to-teal-300 bg-clip-text text-transparent">Background Music</span>
+            <div className="flex-1 flex flex-col items-center pt-16 md:pt-12 relative z-10 max-w-5xl mx-auto w-full">
+              <div className="inline-block px-4 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-bold uppercase tracking-[0.4em] mb-4 md:mb-6">Background</div>
+              <h2 className="text-2xl md:text-4xl font-extralight text-center mb-2 tracking-tight">
+                <span className="bg-gradient-to-r from-emerald-300 via-cyan-200 to-teal-300 bg-clip-text text-transparent">Choose Music</span>
               </h2>
-              <p className="text-slate-500 text-center mb-12 max-w-md">Choose ambient sounds to enhance your meditation experience</p>
+              <p className="text-slate-500 text-center mb-6 md:mb-8 text-sm">Select background audio for your meditation</p>
 
-              {/* Music Categories */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-3xl">
-                {/* Nature Sounds */}
-                <div className="space-y-3">
-                  <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 px-2">Nature</h3>
-                  {BACKGROUND_TRACKS.filter(t => t.category === 'nature').map(track => (
-                    <GlassCard
-                      key={track.id}
-                      onClick={() => {
-                        setSelectedBackgroundTrack(track);
-                        setShowMusicModal(false);
-                      }}
-                      className={`!p-4 !rounded-xl cursor-pointer border transition-all ${
-                        selectedBackgroundTrack.id === track.id
-                          ? 'border-emerald-500/50 bg-emerald-500/10'
-                          : 'border-transparent hover:border-emerald-500/30'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                          selectedBackgroundTrack.id === track.id ? 'bg-emerald-500/30' : 'bg-white/5'
-                        }`}>
-                          <ICONS.Music className="w-5 h-5 text-emerald-400" />
-                        </div>
-                        <div className="flex-1">
-                          <h5 className="text-sm font-bold text-white">{track.name}</h5>
-                          <p className="text-xs text-slate-400">{track.description}</p>
-                        </div>
-                        {selectedBackgroundTrack.id === track.id && (
-                          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                        )}
+              <div className="w-full space-y-6">
+                {Object.entries(tracksByCategory).map(([category, tracks]) => {
+                  const config = categoryConfig[category];
+                  if (!config) return null;
+                  return (
+                    <div key={category}>
+                      <h3 className={`text-sm font-bold uppercase tracking-wider mb-3 ${config.color}`}>
+                        {config.label}
+                      </h3>
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3">
+                        {tracks.map((track) => (
+                          <button
+                            key={track.id}
+                            onClick={() => {
+                              setSelectedBackgroundTrack(track);
+                              setShowMusicModal(false);
+                            }}
+                            className={`p-3 md:p-4 rounded-xl text-left transition-all ${
+                              selectedBackgroundTrack.id === track.id
+                                ? `${config.bgColor} border-2 border-current ${config.color}`
+                                : 'bg-white/5 hover:bg-white/10 border border-transparent'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 mb-1">
+                              <ICONS.Music className={`w-4 h-4 ${selectedBackgroundTrack.id === track.id ? config.color : 'text-slate-500'}`} />
+                              <span className={`font-medium text-sm truncate ${selectedBackgroundTrack.id === track.id ? 'text-white' : 'text-slate-300'}`}>
+                                {track.name}
+                              </span>
+                            </div>
+                            <p className="text-xs text-slate-500 line-clamp-2">{track.description}</p>
+                          </button>
+                        ))}
                       </div>
-                    </GlassCard>
-                  ))}
-                </div>
-
-                {/* Ambient & Binaural */}
-                <div className="space-y-3">
-                  <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 px-2">Ambient & Binaural</h3>
-                  {BACKGROUND_TRACKS.filter(t => t.category === 'ambient' || t.category === 'binaural').map(track => (
-                    <GlassCard
-                      key={track.id}
-                      onClick={() => {
-                        setSelectedBackgroundTrack(track);
-                        setShowMusicModal(false);
-                      }}
-                      className={`!p-4 !rounded-xl cursor-pointer border transition-all ${
-                        selectedBackgroundTrack.id === track.id
-                          ? 'border-cyan-500/50 bg-cyan-500/10'
-                          : 'border-transparent hover:border-cyan-500/30'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                          selectedBackgroundTrack.id === track.id ? 'bg-cyan-500/30' : 'bg-white/5'
-                        }`}>
-                          <ICONS.Music className="w-5 h-5 text-cyan-400" />
-                        </div>
-                        <div className="flex-1">
-                          <h5 className="text-sm font-bold text-white">{track.name}</h5>
-                          <p className="text-xs text-slate-400">{track.description}</p>
-                        </div>
-                        {selectedBackgroundTrack.id === track.id && (
-                          <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-                        )}
-                      </div>
-                    </GlassCard>
-                  ))}
-
-                  <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 px-2 pt-4">Instrumental</h3>
-                  {BACKGROUND_TRACKS.filter(t => t.category === 'instrumental').map(track => (
-                    <GlassCard
-                      key={track.id}
-                      onClick={() => {
-                        setSelectedBackgroundTrack(track);
-                        setShowMusicModal(false);
-                      }}
-                      className={`!p-4 !rounded-xl cursor-pointer border transition-all ${
-                        selectedBackgroundTrack.id === track.id
-                          ? 'border-purple-500/50 bg-purple-500/10'
-                          : 'border-transparent hover:border-purple-500/30'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                          selectedBackgroundTrack.id === track.id ? 'bg-purple-500/30' : 'bg-white/5'
-                        }`}>
-                          <ICONS.Music className="w-5 h-5 text-purple-400" />
-                        </div>
-                        <div className="flex-1">
-                          <h5 className="text-sm font-bold text-white">{track.name}</h5>
-                          <p className="text-xs text-slate-400">{track.description}</p>
-                        </div>
-                        {selectedBackgroundTrack.id === track.id && (
-                          <div className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
-                        )}
-                      </div>
-                    </GlassCard>
-                  ))}
-                </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -1219,8 +1266,15 @@ const App: React.FC = () => {
             {/* Drawer */}
             <div className="fixed top-0 left-0 bottom-0 z-[95] w-[280px] md:w-[320px] bg-[#0a0f1a]/95 backdrop-blur-xl border-r border-white/10 animate-in slide-in-from-left duration-300 flex flex-col">
               {/* Header */}
-              <div className="p-6 border-b border-white/5 flex items-center justify-between">
-                <ICONS.Logo className="h-6 text-white" />
+              <div className="flex items-center justify-between p-4 border-b border-white/5">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center">
+                    <svg className="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <span className="font-semibold text-white">History</span>
+                </div>
                 <button
                   onClick={() => setShowBurgerMenu(false)}
                   className="p-2 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-all"
@@ -1229,83 +1283,106 @@ const App: React.FC = () => {
                 </button>
               </div>
 
-              {/* Menu Items */}
-              <nav className="flex-1 p-4 space-y-2">
-                <button
-                  onClick={() => {
-                    setShowBurgerMenu(false);
-                    setShowHowItWorks(true);
-                  }}
-                  className="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl hover:bg-white/5 text-slate-300 hover:text-white transition-all group"
-                >
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <svg className="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              {/* History Content */}
+              <div className="flex-1 overflow-y-auto p-4">
+                <div className="mb-4">
+                  <h3 className="text-lg font-bold text-white mb-1">Meditation History</h3>
+                  <p className="text-xs text-slate-500">Your recent meditations</p>
+                </div>
+
+                {user ? (
+                  <>
+                    {isLoadingHistory ? (
+                      <div className="flex justify-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-2 border-indigo-500/30 border-t-indigo-500"></div>
+                      </div>
+                    ) : meditationHistory.length > 0 ? (
+                      <div className="space-y-2">
+                        {meditationHistory.slice(0, 10).map((item) => (
+                          <button
+                            key={item.id}
+                            onClick={() => {
+                              setScript(item.prompt);
+                              setShowBurgerMenu(false);
+                            }}
+                            className="w-full text-left p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all group"
+                          >
+                            <p className="text-sm text-white truncate mb-1">{item.prompt}</p>
+                            <div className="flex items-center gap-2 text-[10px] text-slate-500">
+                              {item.voice_name && <span>{item.voice_name}</span>}
+                              <span>•</span>
+                              <span>{new Date(item.created_at).toLocaleDateString()}</span>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <p className="text-slate-500 text-sm">No history yet</p>
+                        <p className="text-slate-600 text-xs mt-1">Create your first meditation</p>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-slate-400 text-sm mb-3">Sign in to view history</p>
+                    <button
+                      onClick={() => {
+                        setShowBurgerMenu(false);
+                        setShowAuthModal(true);
+                      }}
+                      className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm transition-colors"
+                    >
+                      Sign In
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Mobile Navigation Links */}
+              <div className="p-3 border-t border-white/5 md:hidden">
+                <div className="grid grid-cols-4 gap-1">
+                  <button
+                    onClick={() => { setShowBurgerMenu(false); setShowHowItWorks(true); }}
+                    className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-white/5 text-slate-400 hover:text-white transition-all"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
                     </svg>
-                  </div>
-                  <div className="text-left">
-                    <div className="font-semibold">How INrVO Works</div>
-                    <div className="text-xs text-slate-500">Learn how to use the platform</div>
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setShowBurgerMenu(false);
-                    setShowLibrary(true);
-                  }}
-                  className="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl hover:bg-white/5 text-slate-300 hover:text-white transition-all group"
-                >
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <span className="text-[9px]">How</span>
+                  </button>
+                  <button
+                    onClick={() => { setShowBurgerMenu(false); setShowLibrary(true); }}
+                    className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-white/5 text-slate-400 hover:text-white transition-all"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
                     </svg>
-                  </div>
-                  <div className="text-left">
-                    <div className="font-semibold">My Library</div>
-                    <div className="text-xs text-slate-500">Your saved meditations</div>
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setShowBurgerMenu(false);
-                    setShowPricing(true);
-                  }}
-                  className="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl hover:bg-white/5 text-slate-300 hover:text-white transition-all group"
-                >
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <svg className="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <span className="text-[9px]">Library</span>
+                  </button>
+                  <button
+                    onClick={() => { setShowBurgerMenu(false); setShowPricing(true); }}
+                    className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-white/5 text-slate-400 hover:text-white transition-all"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
                     </svg>
-                  </div>
-                  <div className="text-left">
-                    <div className="font-semibold">Pricing</div>
-                    <div className="text-xs text-slate-500">Plans and features</div>
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setShowBurgerMenu(false);
-                    setShowAboutUs(true);
-                  }}
-                  className="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl hover:bg-white/5 text-slate-300 hover:text-white transition-all group"
-                >
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500/20 to-rose-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <svg className="w-5 h-5 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <span className="text-[9px]">Pricing</span>
+                  </button>
+                  <button
+                    onClick={() => { setShowBurgerMenu(false); setShowAboutUs(true); }}
+                    className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-white/5 text-slate-400 hover:text-white transition-all"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
                     </svg>
-                  </div>
-                  <div className="text-left">
-                    <div className="font-semibold">About Us</div>
-                    <div className="text-xs text-slate-500">Our story and mission</div>
-                  </div>
-                </button>
-              </nav>
+                    <span className="text-[9px]">About</span>
+                  </button>
+                </div>
+              </div>
 
               {/* Footer */}
-              <div className="p-4 border-t border-white/5 space-y-3">
+              <div className="p-4 border-t border-white/5 space-y-2">
                 <div className="flex items-center justify-center gap-4 text-[10px] text-slate-600 uppercase tracking-widest">
                   <button
                     onClick={() => { setShowBurgerMenu(false); setShowTerms(true); }}
@@ -1329,6 +1406,9 @@ const App: React.FC = () => {
                 >
                   Powered by Qualia Solutions
                 </a>
+                <p className="text-[9px] text-slate-700 text-center">
+                  © {new Date().getFullYear()} INrVO. All rights reserved.
+                </p>
               </div>
             </div>
           </>

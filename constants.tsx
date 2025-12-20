@@ -165,19 +165,44 @@ export interface BackgroundTrack {
   id: string;
   name: string;
   description: string;
-  category: 'ambient' | 'nature' | 'binaural' | 'instrumental';
+  category: 'ambient' | 'nature' | 'binaural' | 'instrumental' | 'lofi' | 'classical';
+  audioUrl?: string; // URL to audio file for playback
   previewUrl?: string; // For future use
 }
 
 export const BACKGROUND_TRACKS: BackgroundTrack[] = [
+  // No Music Option
   { id: 'none', name: 'No Music', description: 'Voice only, no background', category: 'ambient' },
-  { id: 'rain', name: 'Gentle Rain', description: 'Soft rainfall for deep relaxation', category: 'nature' },
-  { id: 'ocean', name: 'Ocean Waves', description: 'Rhythmic waves on a peaceful shore', category: 'nature' },
-  { id: 'forest', name: 'Forest Ambience', description: 'Birds and rustling leaves', category: 'nature' },
-  { id: 'space', name: 'Cosmic Drift', description: 'Deep space ambient tones', category: 'ambient' },
-  { id: 'piano', name: 'Soft Piano', description: 'Gentle piano melodies', category: 'instrumental' },
-  { id: 'binaural-alpha', name: 'Alpha Waves', description: '10Hz for relaxation and creativity', category: 'binaural' },
-  { id: 'binaural-theta', name: 'Theta Waves', description: '6Hz for deep meditation', category: 'binaural' },
+
+  // Nature Sounds
+  { id: 'rain', name: 'Gentle Rain', description: 'Soft rainfall for deep relaxation', category: 'nature', audioUrl: '/audio/rain.mp3' },
+  { id: 'ocean', name: 'Ocean Waves', description: 'Rhythmic waves on a peaceful shore', category: 'nature', audioUrl: '/audio/ocean.mp3' },
+  { id: 'forest', name: 'Forest Ambience', description: 'Birds and rustling leaves', category: 'nature', audioUrl: '/audio/forest.mp3' },
+  { id: 'thunderstorm', name: 'Distant Thunder', description: 'Rolling thunder with rain', category: 'nature', audioUrl: '/audio/thunder.mp3' },
+  { id: 'creek', name: 'Babbling Creek', description: 'Gentle stream flowing', category: 'nature', audioUrl: '/audio/creek.mp3' },
+
+  // Ambient
+  { id: 'space', name: 'Cosmic Drift', description: 'Deep space ambient tones', category: 'ambient', audioUrl: '/audio/space.mp3' },
+  { id: 'drone', name: 'Healing Drone', description: 'Continuous harmonic drone', category: 'ambient', audioUrl: '/audio/drone.mp3' },
+  { id: 'meditation-bells', name: 'Temple Bells', description: 'Soft Tibetan singing bowls', category: 'ambient', audioUrl: '/audio/bells.mp3' },
+
+  // Instrumental
+  { id: 'piano', name: 'Soft Piano', description: 'Gentle piano melodies', category: 'instrumental', audioUrl: '/audio/piano.mp3' },
+  { id: 'guitar', name: 'Acoustic Guitar', description: 'Soft fingerpicking patterns', category: 'instrumental', audioUrl: '/audio/guitar.mp3' },
+  { id: 'strings', name: 'Ambient Strings', description: 'Ethereal string arrangements', category: 'instrumental', audioUrl: '/audio/strings.mp3' },
+
+  // Binaural Beats
+  { id: 'binaural-alpha', name: 'Alpha Waves', description: '10Hz for relaxation and creativity', category: 'binaural', audioUrl: '/audio/alpha.mp3' },
+  { id: 'binaural-theta', name: 'Theta Waves', description: '6Hz for deep meditation', category: 'binaural', audioUrl: '/audio/theta.mp3' },
+  { id: 'binaural-delta', name: 'Delta Waves', description: '2Hz for deep sleep', category: 'binaural', audioUrl: '/audio/delta.mp3' },
+
+  // Lo-Fi (New Category)
+  { id: 'lofi-chill', name: 'Lo-Fi Chill', description: 'Relaxing lo-fi hip hop beats', category: 'lofi', audioUrl: '/audio/lofi-chill.mp3' },
+  { id: 'lofi-rain', name: 'Lo-Fi Rain', description: 'Lo-fi beats with rain ambience', category: 'lofi', audioUrl: '/audio/lofi-rain.mp3' },
+
+  // Classical (New Category)
+  { id: 'classical-calm', name: 'Calm Classical', description: 'Peaceful classical compositions', category: 'classical', audioUrl: '/audio/classical.mp3' },
+  { id: 'classical-nocturne', name: 'Nocturne', description: 'Chopin-style piano nocturnes', category: 'classical', audioUrl: '/audio/nocturne.mp3' },
 ];
 
 export const ICONS = {
