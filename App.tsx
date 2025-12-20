@@ -1351,13 +1351,6 @@ const App: React.FC = () => {
             {user ? (
               <div className="flex items-center gap-1.5 md:gap-2">
                 <button
-                  onClick={() => setShowVoiceManager(true)}
-                  className="p-2 md:p-2.5 min-w-[40px] min-h-[40px] md:min-w-[44px] md:min-h-[44px] rounded-lg md:rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all flex items-center justify-center"
-                  title="Manage voices"
-                >
-                  <ICONS.Waveform className="w-4 h-4 md:w-5 md:h-5" />
-                </button>
-                <button
                   onClick={handleSignOut}
                   className="p-2 md:px-3 md:py-2 min-w-[40px] min-h-[40px] md:min-w-0 md:min-h-0 rounded-lg md:rounded-xl bg-white/5 hover:bg-white/10 text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-all flex items-center justify-center"
                   title="Sign Out"
@@ -1621,7 +1614,13 @@ const App: React.FC = () => {
                           <span className="text-[9px] md:text-[10px]">{selectedAudioTags.length} tags</span>
                         </button>
                       )}
-                      <div className="text-slate-600 truncate max-w-[80px] md:max-w-none text-right">{selectedVoice?.name || 'No voice'}</div>
+                      <button
+                        onClick={() => setShowVoiceManager(true)}
+                        className="text-slate-600 hover:text-indigo-400 truncate max-w-[80px] md:max-w-none text-right transition-colors cursor-pointer"
+                        title="Change voice"
+                      >
+                        {selectedVoice?.name || 'No voice'}
+                      </button>
                     </div>
                   </div>
                     </>

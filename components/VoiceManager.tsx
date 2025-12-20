@@ -3,7 +3,6 @@ import { getUserVoiceProfiles, deleteVoiceProfile, updateVoiceProfile, VoiceProf
 import { ICONS } from '../constants';
 import GlassCard from './GlassCard';
 import Starfield from './Starfield';
-import Background from './Background';
 
 interface VoiceManagerProps {
   isOpen: boolean;
@@ -79,7 +78,6 @@ const VoiceManager: React.FC<VoiceManagerProps> = ({
 
   return (
     <div className="fixed inset-0 z-[80] bg-[#020617]/95 backdrop-blur-3xl flex flex-col p-6 animate-in fade-in zoom-in duration-500 overflow-y-auto">
-      <Background />
       <Starfield />
       <div className="relative z-10">
         {/* Back Button */}
