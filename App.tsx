@@ -5,7 +5,6 @@ import { TEMPLATE_CATEGORIES, VOICE_PROFILES, ICONS, BACKGROUND_TRACKS, Backgrou
 import GlassCard from './components/GlassCard';
 import Visualizer from './components/Visualizer';
 import Starfield from './components/Starfield';
-import Background from './components/Background';
 import LoadingScreen from './components/LoadingScreen';
 import AuthModal from './components/AuthModal';
 import VoiceManager from './components/VoiceManager';
@@ -802,8 +801,6 @@ const App: React.FC = () => {
       {isLoading && <LoadingScreen onComplete={() => setIsLoading(false)} />}
 
       <div className={`relative h-[100dvh] w-full flex flex-col overflow-hidden transition-opacity duration-700 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
-        {/* Background Images */}
-        <Background />
         <Starfield />
 
         {/* Simple Navigation - Mobile Optimized */}
@@ -1119,7 +1116,6 @@ const App: React.FC = () => {
           {/* VIEW: PLAYER (Immersive Mode) */}
           {currentView === View.PLAYER && (
             <div className="fixed inset-0 z-[100] bg-[#020617] flex flex-col items-center justify-center p-6 space-y-12 md:space-y-20 animate-in fade-in duration-1000">
-              <Background />
               <Starfield />
 
               <button
@@ -1207,7 +1203,6 @@ const App: React.FC = () => {
         {/* MODAL: Templates */}
         {showTemplatesModal && (
           <div className="fixed inset-0 z-[80] bg-[#020617]/95 backdrop-blur-3xl flex flex-col p-6 animate-in fade-in zoom-in duration-500 overflow-y-auto">
-            <Background />
             <Starfield />
 
             {/* Back Button */}
@@ -1358,7 +1353,6 @@ const App: React.FC = () => {
         {/* MODAL: Music Selector */}
         {showMusicModal && (
           <div className="fixed inset-0 z-[80] bg-[#020617]/95 backdrop-blur-3xl flex flex-col p-4 md:p-6 animate-in fade-in zoom-in duration-500 overflow-y-auto">
-            <Background />
             <Starfield />
 
             <button
@@ -1777,7 +1771,6 @@ const App: React.FC = () => {
         {/* MODAL: How It Works */}
         {showHowItWorks && (
           <div className="fixed inset-0 z-[80] bg-[#020617]/95 backdrop-blur-3xl flex flex-col p-6 animate-in fade-in zoom-in duration-500 overflow-y-auto">
-            <Background />
             <Starfield />
 
             <button
@@ -1851,7 +1844,6 @@ const App: React.FC = () => {
         {/* MODAL: Library */}
         {showLibrary && (
           <div className="fixed inset-0 z-[80] bg-[#020617]/95 backdrop-blur-3xl flex flex-col p-6 animate-in fade-in zoom-in duration-500 overflow-y-auto">
-            <Background />
             <Starfield />
 
             <button
@@ -2014,7 +2006,6 @@ const App: React.FC = () => {
         {/* MODAL: Pricing */}
         {showPricing && (
           <div className="fixed inset-0 z-[80] bg-[#020617]/95 backdrop-blur-3xl flex flex-col p-6 animate-in fade-in zoom-in duration-500 overflow-y-auto">
-            <Background />
             <Starfield />
 
             <button
@@ -2131,7 +2122,6 @@ const App: React.FC = () => {
         {/* MODAL: About Us */}
         {showAboutUs && (
           <div className="fixed inset-0 z-[80] bg-[#020617]/95 backdrop-blur-3xl flex flex-col p-6 animate-in fade-in zoom-in duration-500 overflow-y-auto">
-            <Background />
             <Starfield />
 
             <button
