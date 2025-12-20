@@ -1,10 +1,11 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { View, VoiceProfile, ScriptTimingMap } from './types';
+import { View, VoiceProfile, ScriptTimingMap, CloningStatus, CreditInfo } from './types';
 import { TEMPLATE_CATEGORIES, VOICE_PROFILES, ICONS, BACKGROUND_TRACKS, BackgroundTrack, AUDIO_TAG_CATEGORIES } from './constants';
 import GlassCard from './components/GlassCard';
 import Visualizer from './components/Visualizer';
 import Starfield from './components/Starfield';
+import Background from './components/Background';
 import LoadingScreen from './components/LoadingScreen';
 import AuthModal from './components/AuthModal';
 import VoiceManager from './components/VoiceManager';
@@ -42,6 +43,13 @@ const App: React.FC = () => {
 
   // Modal states
   const [showCloneModal, setShowCloneModal] = useState(false);
+  const [cloningStatus, setCloningStatus] = useState<CloningStatus>({ state: 'idle' });
+  const [creditInfo, setCreditInfo] = useState<CreditInfo>({
+    canClone: false,
+    creditsRemaining: 0,
+    clonesRemaining: 0,
+    cloneCost: 5000,
+  });
   const [showTemplatesModal, setShowTemplatesModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedSubgroup, setSelectedSubgroup] = useState<string | null>(null);
@@ -547,6 +555,158 @@ const App: React.FC = () => {
       setIsSavingVoice(false);
     }
   };
+
+  // Fetch credit info when clone modal opens
+  const fetchCreditInfo = useCallback(async () => {
+    if (!user) {
+      setCreditInfo({
+        canClone: false,
+        creditsRemaining: 0,
+        clonesRemaining: 0,
+        cloneCost: 5000,
+        reason: 'Please sign in to clone your voice',
+      });
+      return;
+    }
+
+    try {
+      const [canCloneResult, credits, clonesRemaining] = await Promise.all([
+        creditService.canClone(user.id),
+        creditService.getCredits(user.id),
+        creditService.getClonesRemaining(user.id),
+      ]);
+
+      const costConfig = creditService.getCostConfig();
+
+      setCreditInfo({
+        canClone: canCloneResult.can,
+        creditsRemaining: credits,
+        clonesRemaining: clonesRemaining,
+        cloneCost: costConfig.VOICE_CLONE,
+        reason: canCloneResult.reason,
+      });
+    } catch (error) {
+      console.error('Failed to fetch credit info:', error);
+      setCreditInfo({
+        canClone: false,
+        creditsRemaining: 0,
+        clonesRemaining: 0,
+        cloneCost: 5000,
+        reason: 'Failed to check credits',
+      });
+    }
+  }, [user]);
+
+  // Handle recording complete from SimpleVoiceClone
+  const handleCloneRecordingComplete = useCallback(async (blob: Blob, name: string) => {
+    if (!user) {
+      setCloningStatus({ state: 'error', message: 'Please sign in to clone your voice', canRetry: false });
+      return;
+    }
+
+    setCloningStatus({ state: 'validating' });
+
+    try {
+      // Check credits
+      const { can: canClone, reason } = await creditService.canClone(user.id);
+      if (!canClone) {
+        setCloningStatus({ state: 'error', message: reason || 'Cannot clone voice', canRetry: false });
+        return;
+      }
+
+      setCloningStatus({ state: 'uploading_to_elevenlabs' });
+
+      // Clone with ElevenLabs
+      let elevenlabsVoiceId: string;
+      try {
+        elevenlabsVoiceId = await elevenlabsService.cloneVoice(blob, {
+          name,
+          description: 'Voice clone created with INrVO',
+        });
+
+        // Deduct credits
+        const costConfig = creditService.getCostConfig();
+        await creditService.deductCredits(
+          costConfig.VOICE_CLONE,
+          'CLONE_CREATE',
+          undefined,
+          user.id
+        );
+      } catch (cloneError: any) {
+        setCloningStatus({
+          state: 'error',
+          message: cloneError.message || 'Voice cloning failed',
+          canRetry: true,
+        });
+        return;
+      }
+
+      setCloningStatus({ state: 'saving_to_database' });
+
+      // Save to database
+      const savedVoice = await createVoiceProfile(
+        name,
+        'Cloned voice profile',
+        'en-US',
+        undefined,
+        elevenlabsVoiceId
+      );
+
+      // Save audio sample as backup
+      try {
+        const base64 = await blobToBase64(blob);
+        await createVoiceClone(
+          savedVoice.name,
+          base64,
+          'Voice sample for cloned voice',
+          { elevenlabsVoiceId }
+        );
+      } catch (e) {
+        console.warn('Failed to save voice sample:', e);
+      }
+
+      // Create voice profile for UI
+      const newVoice: VoiceProfile = {
+        id: savedVoice.id,
+        name: savedVoice.name,
+        provider: 'ElevenLabs',
+        voiceName: savedVoice.name,
+        description: 'Your personalized cloned voice',
+        isCloned: true,
+        elevenlabsVoiceId,
+      };
+
+      // Update available voices
+      setAvailableVoices((prev) => [...prev, newVoice]);
+      setSelectedVoice(newVoice);
+
+      // Reload voices
+      await loadUserVoices();
+
+      // Update credit info
+      await fetchCreditInfo();
+
+      setCloningStatus({
+        state: 'success',
+        voiceId: savedVoice.id,
+        voiceName: savedVoice.name,
+      });
+    } catch (error: any) {
+      console.error('Voice cloning failed:', error);
+      setCloningStatus({
+        state: 'error',
+        message: error.message || 'Failed to clone voice',
+        canRetry: true,
+      });
+    }
+  }, [user, fetchCreditInfo]);
+
+  // Open clone modal and fetch credit info
+  const openCloneModal = useCallback(() => {
+    setCloningStatus({ state: 'idle' });
+    setShowCloneModal(true);
+    fetchCreditInfo();
+  }, [fetchCreditInfo]);
 
   // Create Voice Profile (now just closes modal if voice is already saved)
   const handleCreateVoiceProfile = async () => {
@@ -1144,7 +1304,7 @@ const App: React.FC = () => {
               {/* Conditional: Show tagline OR script reader */}
               {!isInlineMode ? (
                 // Original tagline (centered)
-                <div className="flex-1 flex flex-col items-center justify-center px-4 pb-[200px] md:pb-[240px]">
+                <div className="flex-1 flex flex-col items-center justify-center px-4 pb-[calc(200px+env(safe-area-inset-bottom,0px))] md:pb-[calc(240px+env(safe-area-inset-bottom,0px))]">
                   <p className="text-2xl md:text-4xl font-light tracking-wide text-white/70 text-center">
                     {tagline.main} <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-indigo-500 font-semibold">{tagline.highlight}</span>
                   </p>
@@ -1160,7 +1320,7 @@ const App: React.FC = () => {
               )}
 
               {/* Fixed bottom: Prompt box OR Inline Player */}
-              <div className="fixed bottom-0 left-0 right-0 z-40 px-2 md:px-6 pb-4 md:pb-6">
+              <div className="fixed bottom-0 left-0 right-0 z-40 px-2 md:px-6 pb-[max(1rem,env(safe-area-inset-bottom))] md:pb-[max(1.5rem,env(safe-area-inset-bottom))]">
                 <div className="w-full max-w-4xl mx-auto">
                   {micError && !isInlineMode && (
                     <div className="mb-4 text-center">
@@ -1227,7 +1387,7 @@ const App: React.FC = () => {
                                   {/* Clone Voice */}
                                   <button
                                     onClick={() => {
-                                      setShowCloneModal(true);
+                                      openCloneModal();
                                       setMicError(null);
                                       setShowPromptMenu(false);
                                     }}
@@ -1465,13 +1625,13 @@ const App: React.FC = () => {
         {/* MODAL: Voice Clone */}
         {showCloneModal && (
           <SimpleVoiceClone
-            onClose={() => setShowCloneModal(false)}
-            onVoiceCreated={(voice) => {
-              setAvailableVoices(prev => [...prev, voice]);
-              setSelectedVoice(voice);
+            onClose={() => {
               setShowCloneModal(false);
+              setCloningStatus({ state: 'idle' });
             }}
-            currentUserId={user?.id}
+            onRecordingComplete={handleCloneRecordingComplete}
+            cloningStatus={cloningStatus}
+            creditInfo={creditInfo}
           />
         )}
 

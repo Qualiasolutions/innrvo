@@ -352,3 +352,49 @@
   animation: neural-wave 4s ease-out forwards;
   pointer-events: none;
 }
+
+/* Script Reader styles */
+.script-reader {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+
+.script-reader::-webkit-scrollbar {
+  width: 4px;
+}
+
+.script-reader::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.script-reader::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+}
+
+.script-reader::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Word highlighting for text sync */
+.word-current {
+  color: #818cf8 !important;
+  text-shadow: 0 0 20px rgba(129, 140, 248, 0.4);
+  font-weight: 500;
+}
+
+.word-past {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.word-future {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* Script text base styles */
+.script-text {
+  font-family: 'Playfair Display', serif;
+  font-weight: 300;
+  line-height: 1.8;
+  letter-spacing: 0.01em;
+}
