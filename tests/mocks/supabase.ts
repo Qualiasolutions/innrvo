@@ -35,6 +35,13 @@ export const mockCreditsStatusResponse = [{
   clone_cost: 5000,
 }];
 
+// Mock response for perform_credit_operation RPC
+export const mockPerformCreditOperationResponse = [{
+  success: true,
+  message: 'Operation successful',
+  credits_remaining: 95000,
+}];
+
 // Create mock query builder
 const createMockQueryBuilder = (mockData: any = null, mockError: any = null) => ({
   select: vi.fn().mockReturnThis(),
@@ -78,6 +85,9 @@ export const createMockSupabase = (overrides: Partial<typeof mockCreditsData> = 
     rpc: vi.fn().mockImplementation((fnName: string) => {
       if (fnName === 'check_user_credits_status') {
         return Promise.resolve({ data: mockCreditsStatusResponse, error: null });
+      }
+      if (fnName === 'perform_credit_operation') {
+        return Promise.resolve({ data: mockPerformCreditOperationResponse, error: null });
       }
       // Default for other RPC calls (deduct_credits, increment_clone_count)
       return Promise.resolve({ data: null, error: null });

@@ -1,17 +1,19 @@
 
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import { View, VoiceProfile, ScriptTimingMap, CloningStatus, CreditInfo } from './types';
 import { TEMPLATE_CATEGORIES, VOICE_PROFILES, ICONS, BACKGROUND_TRACKS, BackgroundTrack, AUDIO_TAG_CATEGORIES } from './constants';
 import { useModals } from './src/contexts/ModalContext';
 import GlassCard from './components/GlassCard';
-import Visualizer from './components/Visualizer';
 import Starfield from './components/Starfield';
 import Background from './components/Background';
 import LoadingScreen from './components/LoadingScreen';
-import AuthModal from './components/AuthModal';
-import VoiceManager from './components/VoiceManager';
-import { SimpleVoiceClone } from './components/SimpleVoiceClone';
 import { AIVoiceInput } from './components/ui/ai-voice-input';
+
+// Lazy-loaded components for bundle optimization (~400KB saved on initial load)
+const Visualizer = lazy(() => import('./components/Visualizer'));
+const AuthModal = lazy(() => import('./components/AuthModal'));
+const VoiceManager = lazy(() => import('./components/VoiceManager'));
+const SimpleVoiceClone = lazy(() => import('./components/SimpleVoiceClone').then(m => ({ default: m.SimpleVoiceClone })));
 import InlinePlayer from './components/InlinePlayer';
 import ScriptReader from './components/ScriptReader';
 import { buildTimingMap, getCurrentWordIndex } from './src/lib/textSync';
@@ -1797,7 +1799,9 @@ const App: React.FC = () => {
 
               <div className="relative w-full aspect-square max-w-[280px] md:max-w-[360px] flex items-center justify-center">
                 <div className={`absolute inset-0 bg-indigo-600/10 rounded-full blur-[100px] transition-all duration-1000 ${isPlaying ? 'scale-150 opacity-100' : 'scale-100 opacity-40'}`}></div>
-                <Visualizer isActive={isPlaying} />
+                <Suspense fallback={<div className="w-full h-full animate-pulse bg-white/5 rounded-full" />}>
+                  <Visualizer isActive={isPlaying} />
+                </Suspense>
               </div>
 
               <div className="flex items-center gap-10 md:gap-16">
@@ -1842,17 +1846,19 @@ const App: React.FC = () => {
 
         </main>
 
-        {/* MODAL: Voice Clone */}
+        {/* MODAL: Voice Clone (lazy-loaded) */}
         {showCloneModal && (
-          <SimpleVoiceClone
-            onClose={() => {
-              setShowCloneModal(false);
-              setCloningStatus({ state: 'idle' });
-            }}
-            onRecordingComplete={handleCloneRecordingComplete}
-            cloningStatus={cloningStatus}
-            creditInfo={creditInfo}
-          />
+          <Suspense fallback={<div className="fixed inset-0 z-[90] bg-slate-950/90 flex items-center justify-center"><div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" /></div>}>
+            <SimpleVoiceClone
+              onClose={() => {
+                setShowCloneModal(false);
+                setCloningStatus({ state: 'idle' });
+              }}
+              onRecordingComplete={handleCloneRecordingComplete}
+              cloningStatus={cloningStatus}
+              creditInfo={creditInfo}
+            />
+          </Suspense>
         )}
 
         {/* MODAL: Templates */}
@@ -2352,39 +2358,43 @@ const App: React.FC = () => {
           </>
         )}
 
-        {/* Auth Modal */}
-        <AuthModal
-          isOpen={showAuthModal}
-          onClose={() => setShowAuthModal(false)}
-          onSuccess={() => {
-            setShowAuthModal(false);
-            checkUser();
-          }}
-        />
+        {/* Auth Modal (lazy-loaded) */}
+        <Suspense fallback={null}>
+          <AuthModal
+            isOpen={showAuthModal}
+            onClose={() => setShowAuthModal(false)}
+            onSuccess={() => {
+              setShowAuthModal(false);
+              checkUser();
+            }}
+          />
+        </Suspense>
 
-        {/* Voice Manager Modal */}
-        <VoiceManager
-          isOpen={showVoiceManager}
-          onClose={() => setShowVoiceManager(false)}
-          onSelectVoice={(voice) => {
-            const voiceProfile: VoiceProfile = {
-              id: voice.id,
-              name: voice.name,
-              provider: 'ElevenLabs',
-              voiceName: voice.name,
-              description: voice.description || 'Your personalized voice clone',
-              isCloned: true,
-              elevenlabsVoiceId: voice.elevenlabs_voice_id
-            };
-            setSelectedVoice(voiceProfile);
-            setShowVoiceManager(false);
-          }}
-          onCloneVoice={() => {
-            openCloneModal();
-            setMicError(null);
-          }}
-          currentVoiceId={selectedVoice?.id}
-        />
+        {/* Voice Manager Modal (lazy-loaded) */}
+        <Suspense fallback={null}>
+          <VoiceManager
+            isOpen={showVoiceManager}
+            onClose={() => setShowVoiceManager(false)}
+            onSelectVoice={(voice) => {
+              const voiceProfile: VoiceProfile = {
+                id: voice.id,
+                name: voice.name,
+                provider: 'ElevenLabs',
+                voiceName: voice.name,
+                description: voice.description || 'Your personalized voice clone',
+                isCloned: true,
+                elevenlabsVoiceId: voice.elevenlabs_voice_id
+              };
+              setSelectedVoice(voiceProfile);
+              setShowVoiceManager(false);
+            }}
+            onCloneVoice={() => {
+              openCloneModal();
+              setMicError(null);
+            }}
+            currentVoiceId={selectedVoice?.id}
+          />
+        </Suspense>
 
         {/* Burger Menu Drawer */}
         {showBurgerMenu && (

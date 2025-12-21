@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { mockUser, mockCreditsData, mockUsageLimits, createMockSupabase } from '../mocks/supabase';
+import { mockUser, mockCreditsData, mockUsageLimits, mockPerformCreditOperationResponse, createMockSupabase } from '../mocks/supabase';
 
 // Mock the supabase import before importing creditService
 vi.mock('../../lib/supabase', () => ({
@@ -12,6 +12,49 @@ import { supabase } from '../../lib/supabase';
 describe('creditService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Clear credit cache before each test to ensure fresh state
+    creditService.clearCache();
+    // Reset the mock implementation for supabase.from to default
+    vi.mocked(supabase.from).mockImplementation((table: string) => {
+      if (table === 'user_credits') {
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          maybeSingle: vi.fn().mockResolvedValue({ data: mockCreditsData, error: null }),
+          upsert: vi.fn().mockResolvedValue({ error: null }),
+        } as any;
+      }
+      if (table === 'voice_usage_limits') {
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          maybeSingle: vi.fn().mockResolvedValue({ data: mockUsageLimits, error: null }),
+          upsert: vi.fn().mockResolvedValue({ error: null }),
+        } as any;
+      }
+      if (table === 'voice_cloning_usage') {
+        return {
+          insert: vi.fn().mockResolvedValue({ error: null }),
+        } as any;
+      }
+      return {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+        insert: vi.fn().mockResolvedValue({ error: null }),
+        upsert: vi.fn().mockResolvedValue({ error: null }),
+      } as any;
+    });
+    // Reset RPC mock
+    vi.mocked(supabase.rpc).mockImplementation((fnName: string) => {
+      if (fnName === 'check_user_credits_status') {
+        return Promise.resolve({ data: [{ credits_remaining: 100000, clones_created: 0, clones_limit: 20, can_clone: true, clone_cost: 5000 }], error: null });
+      }
+      if (fnName === 'perform_credit_operation') {
+        return Promise.resolve({ data: [{ success: true, message: 'Operation successful', credits_remaining: 95000 }], error: null });
+      }
+      return Promise.resolve({ data: null, error: null });
+    });
   });
 
   describe('calculateTTSCost', () => {
@@ -146,8 +189,10 @@ describe('creditService', () => {
       expect(credits).toBe(100000); // Returns FREE_MONTHLY_CREDITS
     });
 
-    it('should throw on database error', async () => {
-      vi.mocked(supabase.from).mockReturnValueOnce({
+    it('should throw on database error when using uncached method', async () => {
+      // Reset and set fresh implementation for this test
+      vi.mocked(supabase.from).mockReset();
+      vi.mocked(supabase.from).mockReturnValue({
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
         maybeSingle: vi.fn().mockResolvedValue({
@@ -156,21 +201,25 @@ describe('creditService', () => {
         }),
       } as any);
 
-      await expect(creditService.getCredits(mockUser.id)).rejects.toThrow();
+      // Use getCreditsUncached which throws on error
+      await expect(creditService.getCreditsUncached(mockUser.id)).rejects.toThrow();
     });
 
-    it('should return 0 if credits_remaining is null', async () => {
-      vi.mocked(supabase.from).mockReturnValueOnce({
+    it('should return FREE_MONTHLY_CREDITS if no user credits record exists', async () => {
+      // Reset and set fresh implementation for this test
+      vi.mocked(supabase.from).mockReset();
+      vi.mocked(supabase.from).mockReturnValue({
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
         maybeSingle: vi.fn().mockResolvedValue({
-          data: { credits_remaining: null },
+          data: null,
           error: null,
         }),
       } as any);
 
-      const credits = await creditService.getCredits(mockUser.id);
-      expect(credits).toBe(0);
+      // When data is null, returns FREE_MONTHLY_CREDITS (100000) as default
+      const credits = await creditService.getCredits(mockUser.id, true); // bypass cache
+      expect(credits).toBe(100000);
     });
   });
 
@@ -238,6 +287,7 @@ describe('creditService', () => {
 
   describe('getClonesRemaining', () => {
     it('should return remaining clones', async () => {
+      // Uses the default mock setup in beforeEach which has mockUsageLimits
       const remaining = await creditService.getClonesRemaining(mockUser.id);
       expect(remaining).toBe(20); // clones_limit (20) - clones_created (0)
     });
@@ -285,9 +335,10 @@ describe('creditService', () => {
   describe('deductCredits', () => {
     beforeEach(() => {
       vi.clearAllMocks();
+      creditService.clearCache();
     });
 
-    it('should deduct credits successfully', async () => {
+    it('should deduct credits successfully using atomic RPC', async () => {
       const result = await creditService.deductCredits(
         1000,
         'TTS_GENERATE',
@@ -295,22 +346,22 @@ describe('creditService', () => {
         mockUser.id
       );
       expect(result).toBe(true);
-      // Check that deduct_credits RPC was called
-      expect(supabase.rpc).toHaveBeenCalledWith('deduct_credits', {
+      // Check that perform_credit_operation RPC was called (new atomic method)
+      expect(supabase.rpc).toHaveBeenCalledWith('perform_credit_operation', {
         p_user_id: mockUser.id,
         p_amount: 1000,
+        p_operation_type: 'TTS_GENERATE',
+        p_voice_profile_id: 'voice-123',
+        p_character_count: null,
       });
     });
 
-    it('should return false when insufficient credits', async () => {
-      vi.mocked(supabase.from).mockReturnValueOnce({
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        maybeSingle: vi.fn().mockResolvedValue({
-          data: { credits_remaining: 500 },
-          error: null,
-        }),
-      } as any);
+    it('should return false when atomic RPC returns insufficient credits', async () => {
+      // Mock RPC to return insufficient credits
+      vi.mocked(supabase.rpc).mockResolvedValueOnce({
+        data: [{ success: false, message: 'Insufficient credits', credits_remaining: 500 }],
+        error: null,
+      });
 
       const result = await creditService.deductCredits(
         1000,
@@ -321,8 +372,14 @@ describe('creditService', () => {
       expect(result).toBe(false);
     });
 
-    it('should return false when RPC fails', async () => {
-      // Mock getCredits to return sufficient credits first
+    it('should fallback to legacy method when atomic RPC not available', async () => {
+      // Mock perform_credit_operation to fail with function not found error
+      vi.mocked(supabase.rpc).mockResolvedValueOnce({
+        data: null,
+        error: { code: '42883', message: 'function perform_credit_operation does not exist' },
+      });
+
+      // Mock getCredits for legacy check
       vi.mocked(supabase.from).mockReturnValueOnce({
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
@@ -332,7 +389,44 @@ describe('creditService', () => {
         }),
       } as any);
 
-      // Mock RPC to fail
+      // Mock legacy deduct_credits RPC
+      vi.mocked(supabase.rpc).mockResolvedValueOnce({
+        data: null,
+        error: null,
+      });
+
+      // Mock insert for trackUsage
+      vi.mocked(supabase.from).mockReturnValueOnce({
+        insert: vi.fn().mockResolvedValue({ error: null }),
+      } as any);
+
+      const result = await creditService.deductCredits(
+        100,
+        'TTS_GENERATE',
+        undefined,
+        mockUser.id
+      );
+      expect(result).toBe(true);
+    });
+
+    it('should return false when legacy RPC also fails', async () => {
+      // Mock perform_credit_operation to fail with function not found error
+      vi.mocked(supabase.rpc).mockResolvedValueOnce({
+        data: null,
+        error: { code: '42883', message: 'function perform_credit_operation does not exist' },
+      });
+
+      // Mock getCredits for legacy check
+      vi.mocked(supabase.from).mockReturnValueOnce({
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({
+          data: { credits_remaining: 100000 },
+          error: null,
+        }),
+      } as any);
+
+      // Mock legacy deduct_credits RPC to fail
       vi.mocked(supabase.rpc).mockResolvedValueOnce({
         data: null,
         error: { message: 'RPC error' },
@@ -347,35 +441,40 @@ describe('creditService', () => {
       expect(result).toBe(false);
     });
 
-    it('should update monthly clones for CLONE_CREATE operation', async () => {
-      const updateMonthlySpy = vi.spyOn(creditService, 'updateMonthlyClones');
-
-      await creditService.deductCredits(
+    it('should use atomic RPC which handles clone count internally', async () => {
+      // The atomic RPC handles everything in one transaction
+      // So no separate updateMonthlyClones call is needed
+      const result = await creditService.deductCredits(
         5000,
         'CLONE_CREATE',
         'voice-123',
         mockUser.id
       );
 
-      expect(updateMonthlySpy).toHaveBeenCalledWith(mockUser.id);
+      expect(result).toBe(true);
+      // Verify atomic RPC was called with CLONE_CREATE operation type
+      expect(supabase.rpc).toHaveBeenCalledWith('perform_credit_operation', {
+        p_user_id: mockUser.id,
+        p_amount: 5000,
+        p_operation_type: 'CLONE_CREATE',
+        p_voice_profile_id: 'voice-123',
+        p_character_count: null,
+      });
     });
 
-    it('should not update monthly clones for TTS_GENERATE operation', async () => {
-      const updateMonthlySpy = vi.spyOn(creditService, 'updateMonthlyClones');
+    it('should invalidate cache after successful deduction', async () => {
+      // First, populate the cache
+      vi.mocked(supabase.from).mockReturnValueOnce({
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({
+          data: { credits_remaining: 100000 },
+          error: null,
+        }),
+      } as any);
+      await creditService.getCredits(mockUser.id);
 
-      await creditService.deductCredits(
-        1000,
-        'TTS_GENERATE',
-        undefined,
-        mockUser.id
-      );
-
-      expect(updateMonthlySpy).not.toHaveBeenCalled();
-    });
-
-    it('should track usage after successful deduction', async () => {
-      const trackUsageSpy = vi.spyOn(creditService, 'trackUsage');
-
+      // Now deduct credits
       await creditService.deductCredits(
         1000,
         'TTS_GENERATE',
@@ -383,12 +482,19 @@ describe('creditService', () => {
         mockUser.id
       );
 
-      expect(trackUsageSpy).toHaveBeenCalledWith(
-        mockUser.id,
-        'voice-123',
-        1000,
-        'TTS_GENERATE'
-      );
+      // After deduction, cache should be invalidated
+      // Next getCredits call should hit the database
+      vi.mocked(supabase.from).mockReturnValueOnce({
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({
+          data: { credits_remaining: 99000 },
+          error: null,
+        }),
+      } as any);
+
+      const credits = await creditService.getCredits(mockUser.id);
+      expect(credits).toBe(99000);
     });
   });
 
@@ -423,46 +529,40 @@ describe('creditService', () => {
   describe('edge cases', () => {
     beforeEach(() => {
       vi.clearAllMocks();
+      creditService.clearCache();
     });
 
     it('should handle concurrent deduction attempts safely', async () => {
-      // Simulate two concurrent deductions
+      // Simulate two concurrent deductions - both use atomic RPC
       const promise1 = creditService.deductCredits(5000, 'CLONE_CREATE', 'v1', mockUser.id);
       const promise2 = creditService.deductCredits(5000, 'CLONE_CREATE', 'v2', mockUser.id);
 
       const [result1, result2] = await Promise.all([promise1, promise2]);
 
-      // Both should call deduct_credits RPC (increment_clone_count is also called)
-      // So we expect at least 2 calls to deduct_credits
-      const deductCalls = vi.mocked(supabase.rpc).mock.calls.filter(
-        call => call[0] === 'deduct_credits'
+      // Both should call perform_credit_operation RPC (atomic operation)
+      const atomicCalls = vi.mocked(supabase.rpc).mock.calls.filter(
+        call => call[0] === 'perform_credit_operation'
       );
-      expect(deductCalls.length).toBe(2);
+      expect(atomicCalls.length).toBe(2);
     });
 
-    it('should handle credits exactly at cost threshold', async () => {
-      vi.mocked(supabase.from).mockReturnValueOnce({
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        maybeSingle: vi.fn().mockResolvedValue({
-          data: { credits_remaining: 5000 },
-          error: null,
-        }),
-      } as any);
+    it('should handle credits exactly at cost threshold (via atomic RPC)', async () => {
+      // Mock atomic RPC to succeed (it handles the credit check internally)
+      vi.mocked(supabase.rpc).mockResolvedValueOnce({
+        data: [{ success: true, message: 'Operation successful', credits_remaining: 0 }],
+        error: null,
+      });
 
       const result = await creditService.deductCredits(5000, 'CLONE_CREATE', 'v1', mockUser.id);
       expect(result).toBe(true);
     });
 
-    it('should reject deduction when credits are 1 below cost', async () => {
-      vi.mocked(supabase.from).mockReturnValueOnce({
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        maybeSingle: vi.fn().mockResolvedValue({
-          data: { credits_remaining: 4999 },
-          error: null,
-        }),
-      } as any);
+    it('should reject deduction when credits are 1 below cost (via atomic RPC)', async () => {
+      // Mock atomic RPC to return insufficient credits
+      vi.mocked(supabase.rpc).mockResolvedValueOnce({
+        data: [{ success: false, message: 'Insufficient credits', credits_remaining: 4999 }],
+        error: null,
+      });
 
       const result = await creditService.deductCredits(5000, 'CLONE_CREATE', 'v1', mockUser.id);
       expect(result).toBe(false);

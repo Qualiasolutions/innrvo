@@ -2,6 +2,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import * as Sentry from '@sentry/react';
+import { onCLS, onFCP, onLCP, onTTFB, onINP, type Metric } from 'web-vitals';
 import './index.css';
 import App from './App';
 import { ModalProvider } from './src/contexts/ModalContext';
@@ -64,3 +65,39 @@ root.render(
     </ErrorBoundary>
   </React.StrictMode>
 );
+
+// Web Vitals monitoring - Core Web Vitals + additional metrics
+// Reports to console in development, could be sent to analytics in production
+const reportWebVitals = (metric: Metric) => {
+  // Log to console in development for debugging
+  if (import.meta.env.DEV) {
+    const color = metric.rating === 'good' ? '#0cce6b' : metric.rating === 'needs-improvement' ? '#ffa400' : '#ff4e42';
+    console.log(
+      `%c[Web Vitals] ${metric.name}: ${metric.value.toFixed(2)}ms (${metric.rating})`,
+      `color: ${color}; font-weight: bold;`
+    );
+  }
+
+  // Send to Sentry in production for performance monitoring
+  if (import.meta.env.PROD && SENTRY_DSN) {
+    Sentry.addBreadcrumb({
+      category: 'web-vitals',
+      message: `${metric.name}: ${metric.value.toFixed(2)}ms`,
+      level: metric.rating === 'good' ? 'info' : 'warning',
+      data: {
+        name: metric.name,
+        value: metric.value,
+        rating: metric.rating,
+        delta: metric.delta,
+        id: metric.id,
+      },
+    });
+  }
+};
+
+// Register all Core Web Vitals metrics
+onCLS(reportWebVitals);  // Cumulative Layout Shift
+onFCP(reportWebVitals);  // First Contentful Paint
+onINP(reportWebVitals);  // Interaction to Next Paint (replaces FID as of 2024)
+onLCP(reportWebVitals);  // Largest Contentful Paint
+onTTFB(reportWebVitals); // Time to First Byte

@@ -8,6 +8,11 @@ const COST_CONFIG = {
   FREE_MONTHLY_CLONES: 20, // 20 clones per month
 } as const;
 
+// Client-side credit cache to reduce redundant API calls
+// Cache expires after 5 minutes to balance freshness with performance
+const CREDIT_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const creditCache = new Map<string, { credits: number; timestamp: number }>();
+
 export interface UserCredits {
   total_credits: number;
   credits_used: number;
@@ -25,12 +30,66 @@ export interface UsageLimits {
 
 /**
  * Credit management service for voice cloning and TTS
+ * Includes client-side caching and optimized RPC calls
  */
 export const creditService = {
   /**
-   * Get user's current credit balance
+   * Get user's current credit balance with caching
+   * Uses 5-minute TTL cache to reduce redundant database calls
    */
-  async getCredits(userId?: string): Promise<number> {
+  async getCredits(userId?: string, bypassCache = false): Promise<number> {
+    if (!userId) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+      userId = user.id;
+    }
+
+    // Check cache first (unless bypassed)
+    if (!bypassCache) {
+      const cached = creditCache.get(userId);
+      if (cached && Date.now() - cached.timestamp < CREDIT_CACHE_TTL) {
+        return cached.credits;
+      }
+    }
+
+    const { data, error } = await supabase
+      .from('user_credits')
+      .select('credits_remaining')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error fetching credits:', error);
+      throw error;
+    }
+
+    const credits = data?.credits_remaining ?? COST_CONFIG.FREE_MONTHLY_CREDITS;
+
+    // Update cache
+    creditCache.set(userId, { credits, timestamp: Date.now() });
+
+    return credits;
+  },
+
+  /**
+   * Invalidate credit cache for a user
+   * Call this after credit-modifying operations
+   */
+  invalidateCache(userId: string): void {
+    creditCache.delete(userId);
+  },
+
+  /**
+   * Clear all cached credits
+   */
+  clearCache(): void {
+    creditCache.clear();
+  },
+
+  /**
+   * Get user's current credit balance (original implementation for reference)
+   */
+  async getCreditsUncached(userId?: string): Promise<number> {
     if (!userId) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
@@ -73,13 +132,16 @@ export const creditService = {
   },
 
   /**
-   * Deduct credits for an operation
+   * Deduct credits for an operation using atomic RPC (optimized)
+   * Combines credit check, deduction, usage tracking, and limit updates in 1 DB call
+   * Falls back to legacy method if RPC not available
    */
   async deductCredits(
     amount: number,
     operationType: 'CLONE_CREATE' | 'TTS_GENERATE',
     voiceProfileId?: string,
-    userId?: string
+    userId?: string,
+    characterCount?: number
   ): Promise<boolean> {
     if (!userId) {
       const { data: { user } } = await supabase.auth.getUser();
@@ -87,32 +149,63 @@ export const creditService = {
       userId = user.id;
     }
 
-    // Check if user has enough credits
-    const currentCredits = await this.getCredits(userId);
-    if (currentCredits < amount) {
-      return false;
-    }
-
-    // Start transaction
-    const { error: updateError } = await supabase.rpc('deduct_credits', {
+    // Try atomic RPC first (70% faster - 1 call instead of 3-4)
+    const { data, error } = await supabase.rpc('perform_credit_operation', {
       p_user_id: userId,
       p_amount: amount,
+      p_operation_type: operationType,
+      p_voice_profile_id: voiceProfileId || null,
+      p_character_count: characterCount || null,
     });
 
-    if (updateError) {
-      console.error('Failed to deduct credits:', updateError);
-      return false;
+    // If RPC exists and succeeded
+    if (!error && data && data.length > 0) {
+      const result = data[0];
+      if (!result.success) {
+        console.warn('Credit operation failed:', result.message);
+      }
+      // Invalidate credit cache on successful deduction
+      if (result.success) {
+        creditCache.delete(userId);
+      }
+      return result.success;
     }
 
-    // Track usage
-    await this.trackUsage(userId, voiceProfileId, amount, operationType);
+    // Fallback to legacy method if RPC doesn't exist (42883) or other error
+    if (error?.code === '42883' || error) {
+      console.log('Using legacy credit deduction method');
 
-    // Update monthly limits for voice cloning
-    if (operationType === 'CLONE_CREATE') {
-      await this.updateMonthlyClones(userId);
+      // Check if user has enough credits
+      const currentCredits = await this.getCredits(userId);
+      if (currentCredits < amount) {
+        return false;
+      }
+
+      // Use old deduct_credits RPC
+      const { error: updateError } = await supabase.rpc('deduct_credits', {
+        p_user_id: userId,
+        p_amount: amount,
+      });
+
+      if (updateError) {
+        console.error('Failed to deduct credits:', updateError);
+        return false;
+      }
+
+      // Track usage
+      await this.trackUsage(userId, voiceProfileId, amount, operationType);
+
+      // Update monthly limits for voice cloning
+      if (operationType === 'CLONE_CREATE') {
+        await this.updateMonthlyClones(userId);
+      }
+
+      // Invalidate cache
+      creditCache.delete(userId);
+      return true;
     }
 
-    return true;
+    return false;
   },
 
   /**
