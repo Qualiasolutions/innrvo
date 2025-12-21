@@ -80,6 +80,10 @@ const App: React.FC = () => {
   const [selectedSubgroup, setSelectedSubgroup] = useState<string | null>(null);
   const [selectedBackgroundTrack, setSelectedBackgroundTrack] = useState<BackgroundTrack>(BACKGROUND_TRACKS[0]);
 
+  // Music preview state
+  const [previewingTrackId, setPreviewingTrackId] = useState<string | null>(null);
+  const previewAudioRef = useRef<HTMLAudioElement | null>(null);
+
   // Audio tags states
   const [selectedAudioTags, setSelectedAudioTags] = useState<string[]>([]);
   const [audioTagsEnabled, setAudioTagsEnabled] = useState(false);
@@ -911,6 +915,64 @@ const App: React.FC = () => {
       backgroundAudioRef.current = null;
     }
   };
+
+  // Preview track toggle
+  const togglePreviewTrack = (track: BackgroundTrack) => {
+    // If already previewing this track, stop it
+    if (previewingTrackId === track.id) {
+      if (previewAudioRef.current) {
+        previewAudioRef.current.pause();
+        previewAudioRef.current = null;
+      }
+      setPreviewingTrackId(null);
+      return;
+    }
+
+    // Stop any current preview
+    if (previewAudioRef.current) {
+      previewAudioRef.current.pause();
+      previewAudioRef.current = null;
+    }
+
+    // No audio URL for this track
+    if (!track.audioUrl) {
+      setPreviewingTrackId(null);
+      return;
+    }
+
+    // Start new preview
+    const audio = new Audio(track.audioUrl);
+    audio.volume = 0.5;
+    audio.loop = false;
+
+    audio.onended = () => {
+      setPreviewingTrackId(null);
+      previewAudioRef.current = null;
+    };
+
+    audio.onerror = () => {
+      console.error('[Preview] Failed to load track:', track.name);
+      setPreviewingTrackId(null);
+      previewAudioRef.current = null;
+    };
+
+    audio.play().then(() => {
+      previewAudioRef.current = audio;
+      setPreviewingTrackId(track.id);
+    }).catch((err) => {
+      console.error('[Preview] Failed to play:', err);
+      setPreviewingTrackId(null);
+    });
+  };
+
+  // Stop preview when modal closes
+  const stopPreview = useCallback(() => {
+    if (previewAudioRef.current) {
+      previewAudioRef.current.pause();
+      previewAudioRef.current = null;
+    }
+    setPreviewingTrackId(null);
+  }, []);
 
   // Update background volume
   const updateBackgroundVolume = (volume: number) => {
@@ -1995,7 +2057,10 @@ const App: React.FC = () => {
             <Starfield />
 
             <button
-              onClick={() => setShowMusicModal(false)}
+              onClick={() => {
+                stopPreview();
+                setShowMusicModal(false);
+              }}
               className="fixed top-4 left-4 md:top-6 md:left-6 text-slate-600 hover:text-white transition-all flex items-center gap-3 group btn-press focus-ring rounded-full z-[100]"
             >
               <div className="w-10 h-10 md:w-12 md:h-12 min-w-[40px] min-h-[40px] rounded-full border border-white/5 flex items-center justify-center group-hover:bg-white/10 group-hover:scale-110 transition-all">
@@ -2022,28 +2087,61 @@ const App: React.FC = () => {
                       </h3>
                       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3">
                         {tracks.map((track) => (
-                          <button
+                          <div
                             key={track.id}
-                            onClick={() => {
-                              setSelectedBackgroundTrack(track);
-                              // Start playing the selected music immediately
-                              startBackgroundMusic(track);
-                              setShowMusicModal(false);
-                            }}
-                            className={`p-3 md:p-4 rounded-xl text-left transition-all ${
+                            className={`p-3 md:p-4 rounded-xl text-left transition-all relative group ${
                               selectedBackgroundTrack.id === track.id
                                 ? `${config.bgColor} border-2 border-current ${config.color}`
                                 : 'bg-white/5 hover:bg-white/10 border border-transparent'
                             }`}
                           >
-                            <div className="flex items-center gap-2 mb-1">
-                              <ICONS.Music className={`w-4 h-4 ${selectedBackgroundTrack.id === track.id ? config.color : 'text-slate-500'}`} />
-                              <span className={`font-medium text-sm truncate ${selectedBackgroundTrack.id === track.id ? 'text-white' : 'text-slate-300'}`}>
-                                {track.name}
-                              </span>
+                            <div className="flex items-center justify-between gap-2 mb-1">
+                              <div className="flex items-center gap-2 min-w-0 flex-1">
+                                <ICONS.Music className={`w-4 h-4 flex-shrink-0 ${selectedBackgroundTrack.id === track.id ? config.color : 'text-slate-500'}`} />
+                                <span className={`font-medium text-sm truncate ${selectedBackgroundTrack.id === track.id ? 'text-white' : 'text-slate-300'}`}>
+                                  {track.name}
+                                </span>
+                              </div>
+                              {/* Preview button - only show if track has audioUrl */}
+                              {track.audioUrl && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    togglePreviewTrack(track);
+                                  }}
+                                  className={`w-7 h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center transition-all flex-shrink-0 ${
+                                    previewingTrackId === track.id
+                                      ? 'bg-emerald-500 text-white scale-110 shadow-lg shadow-emerald-500/30'
+                                      : 'bg-white/10 text-slate-400 hover:bg-white/20 hover:text-white hover:scale-105'
+                                  }`}
+                                  title={previewingTrackId === track.id ? 'Stop preview' : 'Preview track'}
+                                >
+                                  {previewingTrackId === track.id ? (
+                                    <ICONS.Pause className="w-3 h-3 md:w-3.5 md:h-3.5" />
+                                  ) : (
+                                    <ICONS.Player className="w-3 h-3 md:w-3.5 md:h-3.5" />
+                                  )}
+                                </button>
+                              )}
                             </div>
-                            <p className="text-xs text-slate-500 line-clamp-2">{track.description}</p>
-                          </button>
+                            <p className="text-xs text-slate-500 line-clamp-2 mb-2">{track.description}</p>
+                            {/* Select button */}
+                            <button
+                              onClick={() => {
+                                stopPreview();
+                                setSelectedBackgroundTrack(track);
+                                startBackgroundMusic(track);
+                                setShowMusicModal(false);
+                              }}
+                              className={`w-full py-1.5 px-3 rounded-lg text-xs font-medium transition-all ${
+                                selectedBackgroundTrack.id === track.id
+                                  ? 'bg-white/20 text-white'
+                                  : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'
+                              }`}
+                            >
+                              {selectedBackgroundTrack.id === track.id ? '✓ Selected' : 'Select'}
+                            </button>
+                          </div>
                         ))}
                       </div>
                     </div>
