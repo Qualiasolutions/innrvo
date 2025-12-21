@@ -196,12 +196,12 @@ const MeditationPanel = memo<MeditationPanelProps>(({
   const estimatedDuration = Math.ceil(wordCount / 100);
 
   return (
-    <div className="fixed inset-0 z-50 animate-in fade-in duration-300 bg-[#0a0a12]">
-      {/* Full screen meditation editor */}
+    <div className="fixed inset-0 z-50 animate-in fade-in duration-300">
+      {/* Full screen meditation editor - transparent to show stars */}
       <div className="h-full flex flex-col">
 
-        {/* Header */}
-        <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-white/10 bg-[#0a0a12]/95 backdrop-blur-sm">
+        {/* Header - frosted glass effect */}
+        <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-white/10 bg-black/30 backdrop-blur-md">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
               <SparkleIcon className="w-4 h-4 text-white" />
@@ -219,20 +219,21 @@ const MeditationPanel = memo<MeditationPanelProps>(({
           </button>
         </div>
 
-        {/* Scrollable Script Area */}
+        {/* Scrollable Script Area - transparent with text shadow for readability */}
         <div className="flex-1 overflow-y-auto">
           <textarea
             value={editedScript}
             onChange={(e) => setEditedScript(e.target.value)}
-            className="w-full min-h-full bg-transparent text-white/90 text-base leading-relaxed
+            className="w-full min-h-full bg-transparent text-white text-base leading-relaxed
                        resize-none outline-none p-5 pb-32
-                       placeholder:text-white/30"
+                       placeholder:text-white/30
+                       [text-shadow:0_1px_2px_rgba(0,0,0,0.8),0_0_20px_rgba(0,0,0,0.5)]"
             placeholder="Your meditation script..."
           />
         </div>
 
-        {/* Fixed Bottom Bar */}
-        <div className="flex-shrink-0 fixed bottom-0 left-0 right-0 bg-[#0a0a12] border-t border-white/10 p-4 space-y-3">
+        {/* Fixed Bottom Bar - frosted glass effect */}
+        <div className="flex-shrink-0 fixed bottom-0 left-0 right-0 bg-black/40 backdrop-blur-md border-t border-white/10 p-4 space-y-3">
 
           {/* Options Row */}
           <div className="flex items-center gap-2">
@@ -277,7 +278,7 @@ const MeditationPanel = memo<MeditationPanelProps>(({
 
           {/* Expandable Controls */}
           {showControls && (
-            <div className="animate-in slide-in-from-bottom-2 duration-200 bg-white/5 rounded-xl p-3">
+            <div className="animate-in slide-in-from-bottom-2 duration-200 bg-white/10 backdrop-blur-sm rounded-xl p-3">
               {/* Tab Buttons */}
               <div className="flex gap-1 mb-3">
                 <button
