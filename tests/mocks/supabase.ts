@@ -8,12 +8,12 @@ export const mockUser = {
   role: 'authenticated',
 };
 
-// Default mock data
+// Default mock data - matches COST_CONFIG in credits.ts
 export const mockCreditsData = {
   user_id: mockUser.id,
-  total_credits: 10000,
+  total_credits: 100000,
   credits_used: 0,
-  credits_remaining: 10000,
+  credits_remaining: 100000,
   last_updated: new Date().toISOString(),
 };
 
@@ -21,10 +21,19 @@ export const mockUsageLimits = {
   user_id: mockUser.id,
   month_start: new Date().toISOString().slice(0, 7),
   credits_used: 0,
-  credits_limit: 10000,
+  credits_limit: 100000,
   clones_created: 0,
-  clones_limit: 2,
+  clones_limit: 20,
 };
+
+// Mock response for check_user_credits_status RPC
+export const mockCreditsStatusResponse = [{
+  credits_remaining: 100000,
+  clones_created: 0,
+  clones_limit: 20,
+  can_clone: true,
+  clone_cost: 5000,
+}];
 
 // Create mock query builder
 const createMockQueryBuilder = (mockData: any = null, mockError: any = null) => ({
@@ -35,6 +44,7 @@ const createMockQueryBuilder = (mockData: any = null, mockError: any = null) => 
   delete: vi.fn().mockReturnThis(),
   eq: vi.fn().mockReturnThis(),
   single: vi.fn().mockResolvedValue({ data: mockData, error: mockError }),
+  maybeSingle: vi.fn().mockResolvedValue({ data: mockData, error: mockError }),
   order: vi.fn().mockReturnThis(),
   limit: vi.fn().mockReturnThis(),
   then: vi.fn((resolve) => resolve({ data: mockData, error: mockError })),
@@ -65,7 +75,13 @@ export const createMockSupabase = (overrides: Partial<typeof mockCreditsData> = 
       }
       return createMockQueryBuilder(null);
     }),
-    rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
+    rpc: vi.fn().mockImplementation((fnName: string) => {
+      if (fnName === 'check_user_credits_status') {
+        return Promise.resolve({ data: mockCreditsStatusResponse, error: null });
+      }
+      // Default for other RPC calls (deduct_credits, increment_clone_count)
+      return Promise.resolve({ data: null, error: null });
+    }),
   };
 };
 

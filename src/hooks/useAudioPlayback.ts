@@ -1,11 +1,14 @@
-import React, { useState, useRef, useCallback, useEffect, RefObject } from 'react';
+import { useState, useRef, useCallback, useEffect, RefObject } from 'react';
 import { ScriptTimingMap } from '../../types';
 import { buildTimingMap, getCurrentWordIndex } from '../lib/textSync';
+import { BackgroundTrack, BACKGROUND_TRACKS } from '../../constants';
 
 interface UseAudioPlaybackOptions {
   onProgress?: (currentTime: number, duration: number) => void;
   onEnded?: () => void;
   onError?: (error: Error) => void;
+  defaultBackgroundVolume?: number;
+  defaultBackgroundTrack?: BackgroundTrack;
 }
 
 interface UseAudioPlaybackReturn {
@@ -15,6 +18,10 @@ interface UseAudioPlaybackReturn {
   duration: number;
   currentWordIndex: number;
   timingMap: ScriptTimingMap | null;
+
+  // Background music state
+  backgroundVolume: number;
+  selectedBackgroundTrack: BackgroundTrack;
 
   // Refs
   audioContextRef: RefObject<AudioContext | null>;
@@ -28,6 +35,12 @@ interface UseAudioPlaybackReturn {
   seek: (time: number) => void;
   stop: () => void;
 
+  // Background music actions
+  startBackgroundMusic: (track?: BackgroundTrack) => Promise<void>;
+  stopBackgroundMusic: () => void;
+  updateBackgroundVolume: (volume: number) => void;
+  setSelectedBackgroundTrack: (track: BackgroundTrack) => void;
+
   // Utilities
   formatTime: (seconds: number) => string;
 }
@@ -35,7 +48,13 @@ interface UseAudioPlaybackReturn {
 export function useAudioPlayback(
   options: UseAudioPlaybackOptions = {}
 ): UseAudioPlaybackReturn {
-  const { onProgress, onEnded, onError } = options;
+  const {
+    onProgress,
+    onEnded,
+    onError,
+    defaultBackgroundVolume = 0.3,
+    defaultBackgroundTrack = BACKGROUND_TRACKS[0]
+  } = options;
 
   // State
   const [isPlaying, setIsPlaying] = useState(false);
@@ -44,6 +63,10 @@ export function useAudioPlayback(
   const [currentWordIndex, setCurrentWordIndex] = useState(-1);
   const [timingMap, setTimingMap] = useState<ScriptTimingMap | null>(null);
 
+  // Background music state
+  const [backgroundVolume, setBackgroundVolume] = useState(defaultBackgroundVolume);
+  const [selectedBackgroundTrack, setSelectedBackgroundTrack] = useState<BackgroundTrack>(defaultBackgroundTrack);
+
   // Refs
   const audioContextRef = useRef<AudioContext | null>(null);
   const audioSourceRef = useRef<AudioBufferSourceNode | null>(null);
@@ -51,6 +74,7 @@ export function useAudioPlayback(
   const playbackStartTimeRef = useRef(0);
   const pauseOffsetRef = useRef(0);
   const animationFrameRef = useRef<number | null>(null);
+  const backgroundAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // Format time helper
   const formatTime = useCallback((seconds: number): string => {
@@ -290,6 +314,63 @@ export function useAudioPlayback(
     audioBufferRef.current = null;
   }, []);
 
+  // Stop background music
+  const stopBackgroundMusic = useCallback(() => {
+    if (backgroundAudioRef.current) {
+      backgroundAudioRef.current.pause();
+      backgroundAudioRef.current.currentTime = 0;
+      backgroundAudioRef.current = null;
+    }
+  }, []);
+
+  // Start background music
+  const startBackgroundMusic = useCallback(async (track?: BackgroundTrack) => {
+    const trackToPlay = track || selectedBackgroundTrack;
+
+    // Stop any existing background music
+    stopBackgroundMusic();
+
+    if (trackToPlay.id === 'none' || !trackToPlay.audioUrl) {
+      return;
+    }
+
+    try {
+      const audio = new Audio();
+      audio.crossOrigin = 'anonymous';
+      audio.preload = 'auto';
+      audio.loop = true;
+      audio.volume = backgroundVolume;
+
+      audio.src = trackToPlay.audioUrl;
+      backgroundAudioRef.current = audio;
+
+      await audio.play();
+    } catch (error) {
+      // Try without crossOrigin as fallback
+      try {
+        const trackUrl = trackToPlay.audioUrl;
+        if (trackUrl) {
+          const audio = new Audio(trackUrl);
+          audio.loop = true;
+          audio.volume = backgroundVolume;
+          backgroundAudioRef.current = audio;
+          await audio.play();
+        }
+      } catch (fallbackError) {
+        console.error('Failed to play background music:', fallbackError);
+        onError?.(fallbackError as Error);
+      }
+    }
+  }, [selectedBackgroundTrack, backgroundVolume, stopBackgroundMusic, onError]);
+
+  // Update background volume
+  const updateBackgroundVolume = useCallback((volume: number) => {
+    setBackgroundVolume(volume);
+    if (backgroundAudioRef.current) {
+      backgroundAudioRef.current.volume = volume;
+    }
+  }, []);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -303,23 +384,45 @@ export function useAudioPlayback(
           // Ignore
         }
       }
+      // Also cleanup background music
+      if (backgroundAudioRef.current) {
+        backgroundAudioRef.current.pause();
+        backgroundAudioRef.current = null;
+      }
     };
   }, []);
 
   return {
+    // State
     isPlaying,
     currentTime,
     duration,
     currentWordIndex,
     timingMap,
+
+    // Background music state
+    backgroundVolume,
+    selectedBackgroundTrack,
+
+    // Refs
     audioContextRef,
     audioSourceRef,
+
+    // Actions
     loadAndPlay,
     play,
     pause,
     togglePlayback,
     seek,
     stop,
+
+    // Background music actions
+    startBackgroundMusic,
+    stopBackgroundMusic,
+    updateBackgroundVolume,
+    setSelectedBackgroundTrack,
+
+    // Utilities
     formatTime,
   };
 }

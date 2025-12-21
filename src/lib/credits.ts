@@ -116,7 +116,55 @@ export const creditService = {
   },
 
   /**
-   * Check if user can clone a voice
+   * Check user credits status in a single RPC call (optimized)
+   * Replaces 2-3 sequential queries with 1 database call
+   */
+  async checkCreditsStatus(userId?: string): Promise<{
+    creditsRemaining: number;
+    clonesCreated: number;
+    clonesLimit: number;
+    canClone: boolean;
+    cloneCost: number;
+  }> {
+    if (!userId) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+      userId = user.id;
+    }
+
+    const { data, error } = await supabase.rpc('check_user_credits_status', {
+      p_user_id: userId
+    });
+
+    if (error) {
+      console.error('Error checking credits status:', error);
+      // Fallback to old method if RPC doesn't exist yet
+      if (error.code === '42883') { // Function does not exist
+        const credits = await this.getCredits(userId);
+        const limits = await this.getMonthlyUsageLimits(userId);
+        return {
+          creditsRemaining: credits,
+          clonesCreated: limits.clones_created,
+          clonesLimit: limits.clones_limit,
+          canClone: credits >= COST_CONFIG.VOICE_CLONE && limits.clones_created < limits.clones_limit,
+          cloneCost: COST_CONFIG.VOICE_CLONE
+        };
+      }
+      throw error;
+    }
+
+    const row = data?.[0];
+    return {
+      creditsRemaining: row?.credits_remaining ?? COST_CONFIG.FREE_MONTHLY_CREDITS,
+      clonesCreated: row?.clones_created ?? 0,
+      clonesLimit: row?.clones_limit ?? COST_CONFIG.FREE_MONTHLY_CLONES,
+      canClone: row?.can_clone ?? false,
+      cloneCost: row?.clone_cost ?? COST_CONFIG.VOICE_CLONE
+    };
+  },
+
+  /**
+   * Check if user can clone a voice (uses optimized RPC when available)
    */
   async canClone(userId?: string): Promise<{ can: boolean; reason?: string }> {
     if (!userId) {
@@ -125,25 +173,28 @@ export const creditService = {
       userId = user.id;
     }
 
-    // Check credit balance
-    const credits = await this.getCredits(userId);
-    if (credits < COST_CONFIG.VOICE_CLONE) {
-      return {
-        can: false,
-        reason: `Insufficient credits. Need ${COST_CONFIG.VOICE_CLONE} credits, have ${credits}`
-      };
-    }
+    try {
+      const status = await this.checkCreditsStatus(userId);
 
-    // Check monthly clone limit
-    const limits = await this.getMonthlyUsageLimits(userId);
-    if (limits.clones_created >= limits.clones_limit) {
-      return {
-        can: false,
-        reason: `Monthly clone limit reached (${limits.clones_created}/${limits.clones_limit})`
-      };
-    }
+      if (status.creditsRemaining < status.cloneCost) {
+        return {
+          can: false,
+          reason: `Insufficient credits. Need ${status.cloneCost} credits, have ${status.creditsRemaining}`
+        };
+      }
 
-    return { can: true };
+      if (status.clonesCreated >= status.clonesLimit) {
+        return {
+          can: false,
+          reason: `Monthly clone limit reached (${status.clonesCreated}/${status.clonesLimit})`
+        };
+      }
+
+      return { can: true };
+    } catch (error) {
+      console.error('Error in canClone:', error);
+      return { can: false, reason: 'Failed to check credits status' };
+    }
   },
 
   /**
