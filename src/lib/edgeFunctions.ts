@@ -5,6 +5,7 @@
  */
 
 import { supabase } from '../../lib/supabase';
+import { VoiceMetadata } from '../../types';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
@@ -112,30 +113,34 @@ export async function elevenLabsTTS(
 /**
  * Clone a voice using ElevenLabs via Edge Function
  * API key is stored server-side
+ * Now supports metadata for improved voice accuracy
  */
 export async function elevenLabsCloneVoice(
   audioBlob: Blob,
   name: string,
-  description?: string
+  description?: string,
+  metadata?: VoiceMetadata
 ): Promise<string> {
   const token = await getAuthToken();
 
-  // Create form data for multipart upload
-  const formData = new FormData();
-  formData.append('name', name);
-  formData.append('files', audioBlob, 'voice_sample.wav');
-  if (description) {
-    formData.append('description', description);
-  }
+  // Convert blob to base64 for JSON body (process-voice uses JSON, not FormData)
+  const base64Audio = await blobToBase64(audioBlob);
 
-  const url = `${SUPABASE_URL}/functions/v1/elevenlabs-clone`;
+  const url = `${SUPABASE_URL}/functions/v1/process-voice`;
 
   const response = await fetch(url, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
     },
-    body: formData,
+    body: JSON.stringify({
+      audioBase64: base64Audio,
+      voiceName: name,
+      description: description || 'Meditation voice clone created with INrVO',
+      metadata: metadata || undefined,
+      removeBackgroundNoise: metadata?.hasBackgroundNoise || false,
+    }),
   });
 
   const data = await response.json();
@@ -144,11 +149,26 @@ export async function elevenLabsCloneVoice(
     throw new Error(data.error || `Voice cloning failed: ${response.status}`);
   }
 
-  if (!data.voice_id) {
+  if (!data.elevenlabsVoiceId) {
     throw new Error('No voice_id returned from cloning service');
   }
 
-  return data.voice_id;
+  return data.elevenlabsVoiceId;
+}
+
+/**
+ * Helper to convert Blob to base64
+ */
+async function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = (reader.result as string).split(',')[1];
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
 }
 
 /**

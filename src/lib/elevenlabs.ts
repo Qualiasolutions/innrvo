@@ -111,7 +111,12 @@ export const elevenlabsService = {
 
     // Use Edge Functions (secure, API key server-side)
     console.log('Uploading voice via Edge Function...');
-    const voiceId = await elevenLabsCloneVoice(audioFile, options.name, options.description);
+    const voiceId = await elevenLabsCloneVoice(
+      audioFile,
+      options.name,
+      options.description,
+      options.metadata
+    );
     console.log(`Voice cloned successfully! Voice ID: ${voiceId}`);
     return voiceId;
   },

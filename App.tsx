@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
-import { View, VoiceProfile, ScriptTimingMap, CloningStatus, CreditInfo } from './types';
+import { View, VoiceProfile, ScriptTimingMap, CloningStatus, CreditInfo, VoiceMetadata } from './types';
 import { TEMPLATE_CATEGORIES, VOICE_PROFILES, ICONS, BACKGROUND_TRACKS, BackgroundTrack, AUDIO_TAG_CATEGORIES } from './constants';
 import { useModals } from './src/contexts/ModalContext';
 import GlassCard from './components/GlassCard';
@@ -652,7 +652,8 @@ const App: React.FC = () => {
   }, [user]);
 
   // Handle recording complete from SimpleVoiceClone
-  const handleCloneRecordingComplete = useCallback(async (blob: Blob, name: string) => {
+  // Now accepts VoiceMetadata for improved clone accuracy
+  const handleCloneRecordingComplete = useCallback(async (blob: Blob, name: string, metadata?: VoiceMetadata) => {
     if (!user) {
       setCloningStatus({ state: 'error', message: 'Please sign in to clone your voice', canRetry: false });
       return;
@@ -673,11 +674,12 @@ const App: React.FC = () => {
 
       setCloningStatus({ state: 'uploading_to_elevenlabs' });
 
-      // Clone with ElevenLabs
+      // Clone with ElevenLabs - now includes metadata for better accuracy
       try {
         elevenlabsVoiceId = await elevenlabsService.cloneVoice(blob, {
           name,
-          description: 'Voice clone created with INrVO',
+          description: 'Meditation voice clone created with INrVO',
+          metadata: metadata,
         });
         console.log('Voice cloned successfully with ID:', elevenlabsVoiceId);
       } catch (cloneError: any) {
