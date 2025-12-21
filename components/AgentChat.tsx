@@ -309,13 +309,13 @@ export const AgentChat: React.FC<AgentChatProps> = ({
 
       {/* Input Area - Fixed at bottom */}
       <div className="flex-shrink-0 px-4 pb-6 pt-2">
-        <div className="max-w-2xl mx-auto">
+        <div className="max-w-3xl mx-auto">
           <form onSubmit={handleSubmit}>
             {/* Unified Input Container */}
             <div className="relative flex items-center bg-white/[0.06] border border-white/10
-                          rounded-full px-5 py-2
+                          rounded-full px-4 md:px-6 py-2.5
                           focus-within:border-indigo-500/40 focus-within:bg-white/[0.08]
-                          transition-all duration-200">
+                          transition-all duration-200 shadow-lg shadow-black/10">
               <textarea
                 ref={inputRef}
                 value={inputValue}

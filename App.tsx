@@ -274,6 +274,18 @@ const App: React.FC = () => {
     return () => document.removeEventListener('keydown', handleEscape);
   }, [showPromptMenu]);
 
+  // Lock body scroll when sidebar is open on mobile
+  useEffect(() => {
+    if (showBurgerMenu) {
+      document.body.classList.add('sidebar-open');
+    } else {
+      document.body.classList.remove('sidebar-open');
+    }
+    return () => {
+      document.body.classList.remove('sidebar-open');
+    };
+  }, [showBurgerMenu]);
+
   const checkUser = async () => {
     const currentUser = await getCurrentUser();
     setUser(currentUser);
@@ -1459,11 +1471,11 @@ const App: React.FC = () => {
     <>
       {isLoading && <LoadingScreen onComplete={() => setIsLoading(false)} />}
 
-      <div className={`relative h-[100dvh] w-full flex flex-col transition-all duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'} ${isInlineMode ? 'overflow-y-auto' : 'overflow-hidden'} ${showBurgerMenu ? 'ml-[280px] md:ml-[320px]' : 'ml-0'}`}>
+      <div className={`relative h-[100dvh] w-full flex flex-col transition-all duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'} ${isInlineMode ? 'overflow-y-auto' : 'overflow-hidden'}`}>
         <Starfield />
 
         {/* Simple Navigation - Mobile Optimized */}
-        <nav className={`fixed top-0 right-0 z-50 p-3 md:p-6 flex justify-between items-center bg-gradient-to-b from-[#020617]/80 to-transparent transition-all duration-300 ${showBurgerMenu ? 'left-[280px] md:left-[320px]' : 'left-0'}`}>
+        <nav className="fixed top-0 left-0 right-0 z-50 p-3 md:p-6 flex justify-between items-center bg-gradient-to-b from-[#020617]/80 to-transparent">
           <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">
             {/* Sidebar Toggle Button - Only show when sidebar is closed */}
             {!showBurgerMenu && (
@@ -2256,8 +2268,16 @@ const App: React.FC = () => {
           />
         </Suspense>
 
-        {/* Sidebar Drawer - Slides in and pushes content */}
-        <div className={`fixed inset-y-0 left-0 z-[95] w-[280px] md:w-[320px] h-screen bg-[#0a0f1a] border-r border-white/10 flex flex-col overflow-hidden transition-transform duration-300 ${showBurgerMenu ? 'translate-x-0' : '-translate-x-full'}`}>
+        {/* Sidebar Overlay - covers content on mobile */}
+        {showBurgerMenu && (
+          <div
+            className="fixed inset-0 z-[90] bg-black/60 backdrop-blur-sm md:hidden"
+            onClick={() => setShowBurgerMenu(false)}
+          />
+        )}
+
+        {/* Sidebar Drawer - Slides in from left */}
+        <div className={`fixed inset-y-0 left-0 z-[95] w-[280px] md:w-[320px] h-[100dvh] bg-[#0a0f1a] border-r border-white/10 flex flex-col overflow-hidden transition-transform duration-300 ${showBurgerMenu ? 'translate-x-0' : '-translate-x-full'}`}>
               {/* Sidebar Header with Logo and Close Button */}
               <div className="flex-shrink-0 p-3 md:p-4 border-b border-white/5 flex items-center justify-between">
                 {/* Logo */}

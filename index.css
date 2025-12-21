@@ -29,6 +29,21 @@
     color: #f1f5f9;
     min-height: 100dvh;
     overflow-x: hidden;
+    position: relative;
+    width: 100%;
+    max-width: 100vw;
+  }
+
+  /* Lock body scroll when sidebar is open on mobile */
+  body.sidebar-open {
+    overflow: hidden;
+  }
+
+  @media (max-width: 768px) {
+    body.sidebar-open {
+      position: fixed;
+      width: 100%;
+    }
   }
 }
 
