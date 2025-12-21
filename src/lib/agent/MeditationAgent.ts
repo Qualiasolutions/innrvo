@@ -373,34 +373,35 @@ Guide:`;
     };
 
     // Check if response indicates readiness to generate meditation
-    // Must have BOTH a creation phrase AND a confirmation/review phrase to indicate
-    // the agent has gathered enough information and is ready to create
-    const readyPhrases = [
+    // Updated: More flexible detection - check for ANY phrase indicating meditation generation
+    const generationTriggerPhrases = [
+      // Crafting/creation phrases
       "i'll craft",
       "let me craft",
       "i'll create a personalized",
+      "i'll create a",
       "creating your personalized",
       "crafting a personalized",
+      "crafting your",
+      // Review phrases (these indicate agent is ready to generate)
       "you'll be able to review",
       "review and customize",
-    ];
-
-    // Also check for explicit confirmation that info gathering is complete
-    const confirmationPhrases = [
-      "you'll be able to review",
-      "review and customize",
-      "before we generate",
-      "does that feel right",
+      "before we generate the audio",
       "ready to create",
+      // Direct generation indicators
+      "let's create your meditation",
+      "i've crafted your",
+      "i've created your",
+      "your meditation is ready",
     ];
 
     const lowerResponse = responseText.toLowerCase();
-    const hasReadyPhrase = readyPhrases.some(phrase => lowerResponse.includes(phrase));
-    const hasConfirmation = confirmationPhrases.some(phrase => lowerResponse.includes(phrase));
+    const shouldGenerate = generationTriggerPhrases.some(phrase => lowerResponse.includes(phrase));
 
-    // Only trigger generation when the agent explicitly indicates readiness
-    // AND mentions the review/customize step
-    if (hasReadyPhrase && hasConfirmation) {
+    // Trigger generation when agent uses any generation phrase
+    // This is more flexible and doesn't require the LLM to use exact phrase combinations
+    console.log("[MeditationAgent] shouldGenerate:", shouldGenerate, "| meditationType:", requestedMeditation);
+    if (shouldGenerate) {
       response.shouldGenerateMeditation = true;
       response.meditationType = requestedMeditation || this.inferMeditationType(responseText);
     }

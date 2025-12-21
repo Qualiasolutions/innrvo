@@ -261,6 +261,7 @@ export function useMeditationAgent(): UseMeditationAgentReturn {
       };
 
       setCurrentMeditation(meditation);
+      console.log("[useMeditationAgent] Setting meditation:", { script: meditation.script.substring(0, 50) + "...", readyForReview: meditation.readyForReview });
 
       // Add a brief message - the ScriptEditor modal will handle the full preview
       const meditationMessage: ChatMessage = {

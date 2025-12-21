@@ -223,10 +223,11 @@ export const AgentChat: React.FC<AgentChatProps> = ({
 
   // Show ScriptEditor when meditation is ready for review
   useEffect(() => {
+    console.log("[AgentChat] Meditation state:", { readyForReview: currentMeditation?.readyForReview, hasScript: !!currentMeditation?.script });
     if (currentMeditation?.readyForReview && currentMeditation?.script) {
       setShowScriptEditor(true);
     }
-  }, [currentMeditation?.readyForReview, currentMeditation?.script]);
+  }, [currentMeditation]);
 
   // Handle generating audio from the script editor
   const handleGenerateFromEditor = useCallback((script: string, selectedTags: string[]) => {
