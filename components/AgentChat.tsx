@@ -150,16 +150,15 @@ const QuickPromptChip = memo<QuickPromptChipProps>(({ label, icon, onClick }) =>
   return (
     <button
       onClick={onClick}
-      className="flex items-center gap-2 px-4 py-2.5 rounded-2xl
-                 bg-white/[0.04] hover:bg-white/[0.08]
-                 border border-white/10 hover:border-indigo-500/40
-                 text-white/70 hover:text-white transition-all duration-300
-                 text-sm group
-                 hover:shadow-[0_0_25px_-10px_rgba(99,102,241,0.5)]
-                 active:scale-[0.98]"
+      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full
+                 bg-white/[0.05] hover:bg-white/[0.10]
+                 border border-white/10 hover:border-indigo-500/30
+                 text-white/60 hover:text-white transition-all duration-200
+                 text-xs group whitespace-nowrap
+                 active:scale-[0.97]"
     >
       {IconComponent && (
-        <IconComponent className="w-4 h-4 text-indigo-400/80 group-hover:text-indigo-300 transition-colors" />
+        <IconComponent className="w-3 h-3 text-indigo-400/70 group-hover:text-indigo-300 transition-colors" />
       )}
       <span>{label}</span>
     </button>
@@ -199,7 +198,6 @@ export const AgentChat: React.FC<AgentChatProps> = ({
     isGeneratingMeditation,
     currentMeditation,
     sendMessage,
-    greeting,
     quickPrompts,
   } = useMeditationAgent();
 
@@ -292,38 +290,7 @@ export const AgentChat: React.FC<AgentChatProps> = ({
 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto px-4 md:px-6 py-6">
-        <div className="max-w-2xl mx-auto">
-          {/* Welcome State */}
-          {!hasMessages && (
-            <div className="flex flex-col items-center justify-center min-h-[50vh] text-center animate-in fade-in duration-500">
-              {/* Agent Avatar */}
-              <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600
-                            flex items-center justify-center mb-6 shadow-xl shadow-indigo-500/30">
-                <SparkleIcon className="w-8 h-8 md:w-10 md:h-10 text-white" />
-              </div>
-
-              {/* Greeting */}
-              <h2 className="text-xl md:text-2xl font-light text-white mb-2">
-                {greeting || "How are you feeling today?"}
-              </h2>
-              <p className="text-white/50 text-sm md:text-base mb-8 max-w-md">
-                I'm here to guide you through a personalized meditation journey.
-              </p>
-
-              {/* Quick Prompts */}
-              <div className="flex flex-wrap gap-2 md:gap-3 justify-center max-w-lg">
-                {quickPrompts.slice(0, 6).map((prompt, index) => (
-                  <QuickPromptChip
-                    key={index}
-                    label={prompt.label}
-                    icon={prompt.icon}
-                    onClick={() => handleQuickPrompt(prompt.label)}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-
+        <div className="max-w-xl mx-auto">
           {/* Message List */}
           {hasMessages && (
             <div className="space-y-1">
@@ -341,75 +308,65 @@ export const AgentChat: React.FC<AgentChatProps> = ({
       </div>
 
       {/* Input Area - Fixed at bottom */}
-      <div className="flex-shrink-0 p-4 md:p-6">
-        <div className="max-w-2xl mx-auto">
-          <form onSubmit={handleSubmit} className="flex items-end gap-3">
+      <div className="flex-shrink-0 px-4 pb-6 pt-2">
+        <div className="max-w-xl mx-auto">
+          {/* Quick Prompts - show above input when no messages */}
+          {!hasMessages && (
+            <div className="flex justify-center gap-2 mb-3">
+              {quickPrompts.slice(0, 3).map((prompt, index) => (
+                <QuickPromptChip
+                  key={index}
+                  label={prompt.label}
+                  icon={prompt.icon}
+                  onClick={() => handleQuickPrompt(prompt.label)}
+                />
+              ))}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="flex items-center gap-2">
             {/* Input Field */}
-            <div className="flex-1 relative">
+            <div className="flex-1">
               <textarea
                 ref={inputRef}
                 value={inputValue}
                 onChange={handleInputChange}
                 onKeyDown={handleKeyDown}
-                placeholder={hasMessages ? "Share more or ask anything..." : "Tell me how you're feeling..."}
+                placeholder={hasMessages ? "Share more..." : "How are you feeling?"}
                 rows={1}
-                className="w-full px-4 py-3 md:py-3.5 rounded-2xl
+                className="w-full px-4 py-3 rounded-2xl
                          bg-white/[0.06] border border-white/10
                          focus:border-indigo-500/50 focus:bg-white/[0.08]
-                         text-white text-sm md:text-base
+                         text-white text-sm
                          placeholder:text-white/30
-                         outline-none resize-none transition-all duration-200
-                         focus:ring-2 focus:ring-indigo-500/20"
+                         outline-none resize-none transition-all duration-200"
                 style={{ maxHeight: '120px' }}
                 disabled={isProcessing}
               />
-
-              {/* Voice indicator inside input */}
-              {selectedVoice && (
-                <button
-                  type="button"
-                  onClick={onRequestVoiceSelection}
-                  className="absolute right-3 top-1/2 -translate-y-1/2
-                           flex items-center gap-1.5 px-2 py-1 rounded-full
-                           bg-indigo-500/20 text-indigo-300 text-[10px] font-medium
-                           hover:bg-indigo-500/30 transition-colors"
-                >
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                          d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                  </svg>
-                  <span className="hidden md:inline">{selectedVoice.name}</span>
-                </button>
-              )}
             </div>
 
-            {/* Send Button */}
+            {/* Send Button - matches input height */}
             <button
               type="submit"
               disabled={isProcessing || !inputValue.trim()}
               className={`
-                flex-shrink-0 w-11 h-11 md:w-12 md:h-12 rounded-xl
+                flex-shrink-0 h-[46px] w-[46px] rounded-2xl
                 flex items-center justify-center transition-all duration-200
                 ${isProcessing
                   ? 'bg-indigo-500/50 cursor-not-allowed'
                   : inputValue.trim()
-                    ? 'bg-indigo-500 hover:bg-indigo-400 active:scale-95 shadow-lg shadow-indigo-500/30'
-                    : 'bg-white/[0.06] text-white/30'
+                    ? 'bg-indigo-500 hover:bg-indigo-400 active:scale-95'
+                    : 'bg-white/[0.06] text-white/30 border border-white/10'
                 }
               `}
             >
               {isProcessing ? (
-                <div className="animate-spin rounded-full h-5 w-5 border-2 border-white/30 border-t-white" />
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white" />
               ) : (
                 <SendIcon />
               )}
             </button>
           </form>
-
-          {/* Subtle hint */}
-          <p className="text-center text-white/20 text-[10px] mt-3">
-            Press Enter to send • Shift+Enter for new line
-          </p>
         </div>
       </div>
     </div>
