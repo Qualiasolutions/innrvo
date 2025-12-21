@@ -150,62 +150,65 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="w-full max-w-3xl max-h-[90vh] overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900/95 via-indigo-950/90 to-slate-900/95 border border-white/20 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-sm">
+      <div className="w-full max-w-3xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-br from-slate-900/95 via-indigo-950/90 to-slate-900/95 border border-white/20 shadow-2xl flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-white/10 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/30 shrink-0">
               <SparkleIcon />
             </div>
-            <div>
-              <h2 className="text-lg font-medium text-white">Review Your Meditation</h2>
-              <p className="text-sm text-white/50">{formatMeditationType(meditationType)}</p>
+            <div className="min-w-0">
+              <h2 className="text-base sm:text-lg font-medium text-white truncate">Review Your Meditation</h2>
+              <p className="text-xs sm:text-sm text-white/50 truncate">{formatMeditationType(meditationType)}</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-full hover:bg-white/10 text-white/60 hover:text-white transition-colors"
+            className="p-2 rounded-full hover:bg-white/10 text-white/60 hover:text-white transition-colors shrink-0 ml-2"
           >
             <CloseIcon />
           </button>
         </div>
 
-        {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
-          {/* Stats Bar */}
-          <div className="flex items-center gap-4 mb-4 text-sm">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
-              <span className="text-white/50">Words:</span>
+        {/* Content - Scrollable */}
+        <div className="p-3 sm:p-6 overflow-y-auto flex-1 min-h-0">
+          {/* Stats Bar - Responsive grid on mobile */}
+          <div className="grid grid-cols-3 gap-2 sm:flex sm:items-center sm:gap-4 mb-3 sm:mb-4 text-xs sm:text-sm">
+            <div className="flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
+              <span className="text-white/50 hidden sm:inline">Words:</span>
               <span className="text-white font-medium">{wordCount}</span>
+              <span className="text-white/50 sm:hidden">w</span>
             </div>
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
-              <span className="text-white/50">Duration:</span>
-              <span className="text-white font-medium">~{estimatedMinutes} min</span>
+            <div className="flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
+              <span className="text-white/50 hidden sm:inline">Duration:</span>
+              <span className="text-white font-medium">~{estimatedMinutes}</span>
+              <span className="text-white/50 sm:hidden">m</span>
+              <span className="text-white/50 hidden sm:inline">min</span>
             </div>
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
+            <div className="flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
               <TagIcon />
-              <span className="text-white/50">Tags:</span>
               <span className="text-white font-medium">{tagCount}</span>
+              <span className="text-white/50 hidden sm:inline">Tags</span>
             </div>
           </div>
 
           {/* Quick Tag Buttons */}
-          <div className="mb-4">
+          <div className="mb-3 sm:mb-4">
             <div className="flex items-center gap-2 mb-2">
               <TagIcon />
-              <span className="text-sm text-white/70">Quick Insert Audio Cues:</span>
+              <span className="text-xs sm:text-sm text-white/70">Quick Insert:</span>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1.5 sm:gap-2">
               {QUICK_TAGS.map(({ tag, label, description }) => (
                 <button
                   key={tag}
                   onClick={() => insertTag(tag)}
-                  className="group flex items-center gap-1.5 px-3 py-1.5 rounded-full
+                  className="group flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full
                            bg-gradient-to-r from-indigo-500/20 to-purple-500/20
                            hover:from-indigo-500/30 hover:to-purple-500/30
                            border border-indigo-500/30 hover:border-indigo-400/50
-                           text-indigo-200 text-xs font-medium transition-all duration-200
+                           text-indigo-200 text-[10px] sm:text-xs font-medium transition-all duration-200
                            hover:shadow-[0_0_15px_-5px_rgba(99,102,241,0.5)]"
                   title={description}
                 >
@@ -218,64 +221,66 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
 
           {/* Script Editor */}
           <div className="relative">
-            <div className="absolute top-3 right-3 flex items-center gap-1 text-xs text-white/40">
+            <div className="absolute top-2 sm:top-3 right-2 sm:right-3 flex items-center gap-1 text-[10px] sm:text-xs text-white/40">
               <EditIcon />
-              <span>Edit script below</span>
+              <span className="hidden sm:inline">Edit script below</span>
+              <span className="sm:hidden">Edit</span>
             </div>
             <textarea
               ref={textareaRef}
               value={editableScript}
               onChange={(e) => setEditableScript(e.target.value)}
-              className="w-full h-80 p-4 pt-10 rounded-2xl bg-white/5 border border-white/10
-                       text-white/90 text-sm leading-relaxed resize-none
+              className="w-full h-48 sm:h-64 md:h-80 p-3 sm:p-4 pt-8 sm:pt-10 rounded-xl sm:rounded-2xl bg-white/5 border border-white/10
+                       text-white/90 text-xs sm:text-sm leading-relaxed resize-none
                        focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20
                        placeholder:text-white/30 transition-all duration-200"
               placeholder="Your meditation script will appear here..."
             />
           </div>
 
-          {/* Audio Tag Tips */}
-          <div className="mt-4 p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20">
-            <h4 className="text-sm font-medium text-indigo-300 mb-2">Tips for a Better Meditation</h4>
-            <ul className="text-xs text-white/60 space-y-1">
-              <li>Add [pause] after important phrases for reflection</li>
-              <li>Use [deep breath] to guide the listener's breathing</li>
-              <li>Place [long pause] between major sections</li>
+          {/* Audio Tag Tips - Hidden on very small screens, collapsed on mobile */}
+          <div className="mt-3 sm:mt-4 p-3 sm:p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20">
+            <h4 className="text-xs sm:text-sm font-medium text-indigo-300 mb-1 sm:mb-2">Tips for a Better Meditation</h4>
+            <ul className="text-[10px] sm:text-xs text-white/60 space-y-0.5 sm:space-y-1">
+              <li className="hidden sm:list-item">Add [pause] after important phrases for reflection</li>
+              <li className="hidden sm:list-item">Use [deep breath] to guide the listener's breathing</li>
+              <li className="sm:hidden">Use [pause], [deep breath], [long pause] for natural flow</li>
+              <li className="hidden sm:list-item">Place [long pause] between major sections</li>
               <li>These tags create natural silences in the audio</li>
             </ul>
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-white/10 bg-white/5">
+        {/* Footer - Stacked on mobile */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 sm:px-6 py-3 sm:py-4 border-t border-white/10 bg-white/5 shrink-0">
           {/* Voice Selection */}
           <button
             onClick={onRequestVoiceSelection}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl
+            className="flex items-center justify-center sm:justify-start gap-2 px-4 py-2.5 sm:py-2 rounded-xl
                      bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20
-                     text-white/70 hover:text-white transition-all duration-200"
+                     text-white/70 hover:text-white transition-all duration-200 w-full sm:w-auto"
           >
             <VoiceIcon />
             {selectedVoice ? (
-              <span className="text-sm">{selectedVoice.name}</span>
+              <span className="text-sm truncate max-w-[200px]">{selectedVoice.name}</span>
             ) : (
               <span className="text-sm text-amber-400">Select Voice</span>
             )}
           </button>
 
-          {/* Action Buttons */}
-          <div className="flex items-center gap-3">
+          {/* Action Buttons - Full width on mobile */}
+          <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
             <button
               onClick={onClose}
-              className="px-4 py-2 rounded-xl text-white/60 hover:text-white
-                       hover:bg-white/10 transition-all duration-200"
+              className="flex-1 sm:flex-initial px-4 py-2.5 sm:py-2 rounded-xl text-white/60 hover:text-white
+                       hover:bg-white/10 border border-white/10 sm:border-transparent transition-all duration-200"
             >
               Cancel
             </button>
             <button
               onClick={handleGenerate}
               disabled={isGenerating || !editableScript.trim()}
-              className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-medium
+              className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 rounded-xl font-medium
                        transition-all duration-200
                        ${isGenerating || !editableScript.trim()
                          ? 'bg-white/10 text-white/40 cursor-not-allowed'
@@ -287,17 +292,20 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
               {isGenerating ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white" />
-                  <span>Generating...</span>
+                  <span className="hidden sm:inline">Generating...</span>
+                  <span className="sm:hidden">...</span>
                 </>
               ) : selectedVoice ? (
                 <>
                   <PlayIcon />
-                  <span>Generate Audio</span>
+                  <span className="hidden sm:inline">Generate Audio</span>
+                  <span className="sm:hidden">Generate</span>
                 </>
               ) : (
                 <>
                   <VoiceIcon />
-                  <span>Select Voice First</span>
+                  <span className="hidden sm:inline">Select Voice First</span>
+                  <span className="sm:hidden">Select Voice</span>
                 </>
               )}
             </button>
