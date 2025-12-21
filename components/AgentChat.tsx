@@ -22,15 +22,15 @@ const SendIcon = () => (
 );
 
 const WavesIcon = () => (
-  <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round">
-    <path d="M3 12c1-2 2.5-2 4 0s3 2 4 0 2.5-2 4 0 3 2 4 0 2.5-2 3.5 0" stroke="url(#waveGrad)" />
-    <defs>
-      <linearGradient id="waveGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-        <stop offset="0%" stopColor="#818cf8" stopOpacity="0.4" />
-        <stop offset="50%" stopColor="#818cf8" />
-        <stop offset="100%" stopColor="#c084fc" stopOpacity="0.6" />
-      </linearGradient>
-    </defs>
+  <svg className="w-7 h-7" viewBox="0 0 24 24" fill="none" strokeLinecap="round">
+    <path d="M2 12h0" stroke="#818cf8" strokeWidth="2.5" strokeOpacity="0.5" />
+    <path d="M5 9v6" stroke="#818cf8" strokeWidth="2.5" strokeOpacity="0.6" />
+    <path d="M8 7v10" stroke="#818cf8" strokeWidth="2.5" strokeOpacity="0.8" />
+    <path d="M11 4v16" stroke="#9333ea" strokeWidth="2.5" />
+    <path d="M14 6v12" stroke="#a855f7" strokeWidth="2.5" strokeOpacity="0.9" />
+    <path d="M17 8v8" stroke="#c084fc" strokeWidth="2.5" strokeOpacity="0.7" />
+    <path d="M20 10v4" stroke="#c084fc" strokeWidth="2.5" strokeOpacity="0.5" />
+    <path d="M23 12h0" stroke="#c084fc" strokeWidth="2.5" strokeOpacity="0.4" />
   </svg>
 );
 
