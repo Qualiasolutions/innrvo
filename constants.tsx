@@ -382,6 +382,14 @@ export const ICONS = {
     </svg>
   ),
 
+  // Sidebar toggle icon (rectangle with line on left - like ChatGPT)
+  SidebarToggle: ({ className = "w-6 h-6" }: { className?: string }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.5">
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <line x1="9" y1="3" x2="9" y2="21" />
+    </svg>
+  ),
+
   // Waveform icon for voice/audio
   Waveform: ({ className = "w-6 h-6" }: { className?: string }) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className={`${className} icon-glow`}>

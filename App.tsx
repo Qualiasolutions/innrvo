@@ -1465,17 +1465,17 @@ const App: React.FC = () => {
         {/* Simple Navigation - Mobile Optimized */}
         <nav className={`fixed top-0 right-0 z-50 p-3 md:p-6 flex justify-between items-center bg-gradient-to-b from-[#020617]/80 to-transparent transition-all duration-300 ${showBurgerMenu ? 'left-[280px] md:left-[320px]' : 'left-0'}`}>
           <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">
-            {/* Burger Menu Button */}
+            {/* Sidebar Toggle Button */}
             <button
-              onClick={() => setShowBurgerMenu(true)}
+              onClick={() => setShowBurgerMenu(!showBurgerMenu)}
               className="p-2 md:p-2.5 min-w-[40px] min-h-[40px] md:min-w-[44px] md:min-h-[44px]
                          rounded-lg md:rounded-xl bg-white/5 hover:bg-white/10
                          text-slate-400 hover:text-white transition-all flex items-center justify-center
                          border border-white/5 hover:border-indigo-500/30
                          hover:shadow-[0_0_20px_-8px_rgba(99,102,241,0.5)]"
-              title="Menu"
+              title="Toggle sidebar"
             >
-              <ICONS.Menu className="w-5 h-5" />
+              <ICONS.SidebarToggle className="w-5 h-5" />
             </button>
 
             {/* Logo */}
@@ -2262,35 +2262,10 @@ const App: React.FC = () => {
           />
         </Suspense>
 
-        {/* Burger Menu Drawer - Slides in and pushes content */}
+        {/* Sidebar Drawer - Slides in and pushes content */}
         <div className={`fixed top-0 left-0 bottom-0 z-[95] w-[280px] md:w-[320px] bg-[#0a0f1a] border-r border-white/10 flex flex-col transition-transform duration-300 ${showBurgerMenu ? 'translate-x-0' : '-translate-x-full'}`}>
-              {/* Header */}
-              <div className="flex items-center justify-between p-4 border-b border-white/5">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center">
-                    <svg className="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <span className="font-semibold text-white">History</span>
-                </div>
-                <button
-                  onClick={() => setShowBurgerMenu(false)}
-                  className="p-2 rounded-lg bg-white/5 hover:bg-white/10
-                             text-slate-400 hover:text-white transition-all
-                             border border-white/5 hover:border-indigo-500/30
-                             hover:shadow-[0_0_20px_-8px_rgba(99,102,241,0.5)]"
-                >
-                  <ICONS.Close className="w-5 h-5" />
-                </button>
-              </div>
-
               {/* History Content */}
-              <div className="flex-1 overflow-y-auto p-4">
-                <div className="mb-4">
-                  <h3 className="text-lg font-bold text-white mb-1">Meditation History</h3>
-                  <p className="text-xs text-slate-500">Your recent meditations</p>
-                </div>
+              <div className="flex-1 overflow-y-auto p-4 pt-20">
 
                 {user ? (
                   <>
