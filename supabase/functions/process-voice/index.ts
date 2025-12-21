@@ -137,19 +137,16 @@ serve(async (req) => {
       );
     }
 
-    // Build labels object for ElevenLabs API
-    const labels: Record<string, string> = {
-      use_case: 'meditation',
-      descriptive: 'calm',
-    };
+    // Build labels object for ElevenLabs API (max 5 labels allowed)
+    const labels: Record<string, string> = {};
 
-    if (metadata) {
-      if (metadata.language) labels.language = metadata.language;
-      if (metadata.accent) labels.accent = metadata.accent;
-      if (metadata.gender) labels.gender = metadata.gender;
-      if (metadata.ageRange) labels.age = metadata.ageRange;
-      if (metadata.useCase) labels.use_case = metadata.useCase;
-      if (metadata.descriptive) labels.descriptive = metadata.descriptive;
+    // Priority order: use_case, gender, accent, language, descriptive (max 5)
+    labels.use_case = metadata?.useCase || 'meditation';
+    if (metadata?.gender) labels.gender = metadata.gender;
+    if (metadata?.accent) labels.accent = metadata.accent;
+    if (metadata?.language) labels.language = metadata.language;
+    if (Object.keys(labels).length < 5) {
+      labels.descriptive = metadata?.descriptive || 'calm';
     }
 
     // Create voice with ElevenLabs IVC (Instant Voice Cloning) API
