@@ -238,17 +238,6 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
             />
           </div>
 
-          {/* Audio Tag Tips - Hidden on very small screens, collapsed on mobile */}
-          <div className="mt-3 sm:mt-4 p-3 sm:p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20">
-            <h4 className="text-xs sm:text-sm font-medium text-indigo-300 mb-1 sm:mb-2">Tips for a Better Meditation</h4>
-            <ul className="text-[10px] sm:text-xs text-white/60 space-y-0.5 sm:space-y-1">
-              <li className="hidden sm:list-item">Add [pause] after important phrases for reflection</li>
-              <li className="hidden sm:list-item">Use [deep breath] to guide the listener's breathing</li>
-              <li className="sm:hidden">Use [pause], [deep breath], [long pause] for natural flow</li>
-              <li className="hidden sm:list-item">Place [long pause] between major sections</li>
-              <li>These tags create natural silences in the audio</li>
-            </ul>
-          </div>
         </div>
 
         {/* Footer - Stacked on mobile */}
