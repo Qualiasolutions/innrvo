@@ -5,9 +5,14 @@
  * before generating audio. Includes audio tag insertion and voice selection.
  */
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import type { VoiceProfile } from '../types';
 import { AUDIO_TAG_CATEGORIES } from '../constants';
+
+// ============================================================================
+// AUDIO TAG REGEX - matches [tag name] patterns
+// ============================================================================
+const AUDIO_TAG_REGEX = /\[([^\]]+)\]/g;
 
 // ============================================================================
 // ICONS
@@ -89,8 +94,96 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
   const [editableScript, setEditableScript] = useState(script);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [showTagMenu, setShowTagMenu] = useState(false);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const editorRef = useRef<HTMLDivElement>(null);
   const [cursorPosition, setCursorPosition] = useState<number | null>(null);
+
+  // Save and restore cursor position in contenteditable
+  const saveCursorPosition = useCallback(() => {
+    const selection = window.getSelection();
+    if (!selection || !selection.rangeCount || !editorRef.current) return null;
+
+    const range = selection.getRangeAt(0);
+    const preCaretRange = range.cloneRange();
+    preCaretRange.selectNodeContents(editorRef.current);
+    preCaretRange.setEnd(range.startContainer, range.startOffset);
+    return preCaretRange.toString().length;
+  }, []);
+
+  const restoreCursorPosition = useCallback((pos: number) => {
+    if (!editorRef.current) return;
+
+    const selection = window.getSelection();
+    if (!selection) return;
+
+    let charCount = 0;
+    const nodeStack: Node[] = [editorRef.current];
+    let foundNode: Node | null = null;
+    let foundOffset = 0;
+
+    while (nodeStack.length > 0) {
+      const node = nodeStack.pop()!;
+
+      if (node.nodeType === Node.TEXT_NODE) {
+        const textLength = node.textContent?.length || 0;
+        if (charCount + textLength >= pos) {
+          foundNode = node;
+          foundOffset = pos - charCount;
+          break;
+        }
+        charCount += textLength;
+      } else {
+        const children = node.childNodes;
+        for (let i = children.length - 1; i >= 0; i--) {
+          nodeStack.push(children[i]);
+        }
+      }
+    }
+
+    if (foundNode) {
+      const range = document.createRange();
+      range.setStart(foundNode, foundOffset);
+      range.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }
+  }, []);
+
+  // Render script with styled audio tags
+  const renderStyledContent = useMemo(() => {
+    const parts: React.ReactNode[] = [];
+    let lastIndex = 0;
+    let match;
+
+    const regex = new RegExp(AUDIO_TAG_REGEX.source, 'g');
+
+    while ((match = regex.exec(editableScript)) !== null) {
+      // Add text before the tag
+      if (match.index > lastIndex) {
+        parts.push(editableScript.slice(lastIndex, match.index));
+      }
+
+      // Add styled tag
+      parts.push(
+        <span
+          key={match.index}
+          className="audio-tag"
+          contentEditable={false}
+          data-tag={match[0]}
+        >
+          {match[0]}
+        </span>
+      );
+
+      lastIndex = match.index + match[0].length;
+    }
+
+    // Add remaining text
+    if (lastIndex < editableScript.length) {
+      parts.push(editableScript.slice(lastIndex));
+    }
+
+    return parts;
+  }, [editableScript]);
 
   // Calculate word count and estimated duration
   const wordCount = editableScript.split(/\s+/).filter(w => !w.startsWith('[')).length;
@@ -101,16 +194,14 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
 
   // Insert tag at cursor position
   const insertTag = useCallback((tag: string) => {
-    if (!textareaRef.current) return;
+    const pos = saveCursorPosition();
+    const insertPos = pos ?? editableScript.length;
 
-    const textarea = textareaRef.current;
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
     const text = editableScript;
+    const before = text.substring(0, insertPos);
+    const after = text.substring(insertPos);
 
     // Add space before and after if needed
-    const before = text.substring(0, start);
-    const after = text.substring(end);
     const needSpaceBefore = before.length > 0 && !before.endsWith(' ') && !before.endsWith('\n');
     const needSpaceAfter = after.length > 0 && !after.startsWith(' ') && !after.startsWith('\n');
 
@@ -118,19 +209,19 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
     setEditableScript(newText);
 
     // Update cursor position after tag
-    const newCursorPos = start + tag.length + (needSpaceBefore ? 1 : 0) + (needSpaceAfter ? 1 : 0);
+    const newCursorPos = insertPos + tag.length + (needSpaceBefore ? 1 : 0) + (needSpaceAfter ? 1 : 0);
     setCursorPosition(newCursorPos);
     setShowTagMenu(false);
-  }, [editableScript]);
+  }, [editableScript, saveCursorPosition]);
 
   // Restore cursor position after state update
   useEffect(() => {
-    if (cursorPosition !== null && textareaRef.current) {
-      textareaRef.current.focus();
-      textareaRef.current.setSelectionRange(cursorPosition, cursorPosition);
+    if (cursorPosition !== null && editorRef.current) {
+      editorRef.current.focus();
+      restoreCursorPosition(cursorPosition);
       setCursorPosition(null);
     }
-  }, [cursorPosition]);
+  }, [cursorPosition, restoreCursorPosition]);
 
   // Handle generate button click
   const handleGenerate = () => {
@@ -221,21 +312,48 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
 
           {/* Script Editor */}
           <div className="relative">
-            <div className="absolute top-2 sm:top-3 right-2 sm:right-3 flex items-center gap-1 text-[10px] sm:text-xs text-white/40">
+            <div className="absolute top-2 sm:top-3 right-2 sm:right-3 flex items-center gap-1 text-[10px] sm:text-xs text-white/40 z-10">
               <EditIcon />
               <span className="hidden sm:inline">Edit script below</span>
               <span className="sm:hidden">Edit</span>
             </div>
-            <textarea
-              ref={textareaRef}
-              value={editableScript}
-              onChange={(e) => setEditableScript(e.target.value)}
+            <div
+              ref={editorRef}
+              contentEditable
+              suppressContentEditableWarning
+              onInput={(e) => {
+                const target = e.currentTarget;
+                // Extract text content, preserving the actual tag text
+                const text = target.innerText;
+                setEditableScript(text);
+              }}
+              onKeyDown={(e) => {
+                // Prevent default behavior for backspace on tag spans
+                if (e.key === 'Backspace' || e.key === 'Delete') {
+                  const selection = window.getSelection();
+                  if (selection && selection.rangeCount > 0) {
+                    const range = selection.getRangeAt(0);
+                    const node = range.startContainer;
+                    // Check if we're at the edge of a tag span
+                    if (node.parentElement?.hasAttribute('data-tag')) {
+                      // Let default behavior handle it
+                    }
+                  }
+                }
+              }}
               className="w-full h-48 sm:h-64 md:h-80 p-3 sm:p-4 pt-8 sm:pt-10 rounded-xl sm:rounded-2xl bg-white/5 border border-white/10
-                       text-white/90 text-xs sm:text-sm leading-relaxed resize-none
-                       focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20
-                       placeholder:text-white/30 transition-all duration-200"
-              placeholder="Your meditation script will appear here..."
-            />
+                       text-white/90 text-xs sm:text-sm leading-relaxed overflow-y-auto
+                       focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20
+                       transition-all duration-200 whitespace-pre-wrap"
+              style={{ minHeight: '12rem' }}
+            >
+              {renderStyledContent}
+            </div>
+            {!editableScript && (
+              <div className="absolute top-8 sm:top-10 left-3 sm:left-4 text-white/30 text-xs sm:text-sm pointer-events-none">
+                Your meditation script will appear here...
+              </div>
+            )}
           </div>
 
         </div>
