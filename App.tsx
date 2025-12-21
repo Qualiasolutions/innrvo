@@ -1496,18 +1496,6 @@ const App: React.FC = () => {
               >
                 Library
               </button>
-              <button
-                onClick={() => setShowPricing(true)}
-                className="px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors rounded-lg hover:bg-white/5"
-              >
-                Pricing
-              </button>
-              <button
-                onClick={() => setShowAboutUs(true)}
-                className="px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors rounded-lg hover:bg-white/5"
-              >
-                About Us
-              </button>
             </div>
           </div>
 
@@ -1580,7 +1568,7 @@ const App: React.FC = () => {
               )}
 
               {/* Fixed bottom: Prompt box OR Inline Player */}
-              <div className={`fixed bottom-0 right-0 z-40 px-2 md:px-6 pb-[max(1rem,env(safe-area-inset-bottom))] md:pb-[max(1.5rem,env(safe-area-inset-bottom))] transition-all duration-300 ${showBurgerMenu ? 'left-[280px] md:left-[320px]' : 'left-0'}`}>
+              <div className="fixed bottom-0 left-0 right-0 z-40 px-2 md:px-6 pb-[max(1rem,env(safe-area-inset-bottom))] md:pb-[max(1.5rem,env(safe-area-inset-bottom))]">
                 <div className="w-full max-w-4xl mx-auto">
                   {micError && !isInlineMode && (
                     <div className="mb-4 text-center">
@@ -2346,81 +2334,6 @@ const App: React.FC = () => {
                 )}
               </div>
 
-              {/* Navigation Links - Clean Row Layout */}
-              <div className="border-t border-white/5">
-                <button
-                  onClick={() => { setShowBurgerMenu(false); setShowHowItWorks(true); }}
-                  className="w-full flex items-center gap-4 px-4 py-3.5 hover:bg-white/5 text-slate-300 hover:text-white transition-all group"
-                >
-                  <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center group-hover:bg-indigo-500/20 transition-colors">
-                    <svg className="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
-                    </svg>
-                  </div>
-                  <div className="flex-1 text-left">
-                    <span className="text-sm font-medium">How It Works</span>
-                    <p className="text-[11px] text-slate-500">Learn how to create meditations</p>
-                  </div>
-                  <svg className="w-4 h-4 text-slate-600 group-hover:text-slate-400 group-hover:translate-x-0.5 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-
-                <button
-                  onClick={() => { setShowBurgerMenu(false); setShowLibrary(true); }}
-                  className="w-full flex items-center gap-4 px-4 py-3.5 hover:bg-white/5 text-slate-300 hover:text-white transition-all group"
-                >
-                  <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center group-hover:bg-purple-500/20 transition-colors">
-                    <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
-                    </svg>
-                  </div>
-                  <div className="flex-1 text-left">
-                    <span className="text-sm font-medium">Sound Library</span>
-                    <p className="text-[11px] text-slate-500">Browse ambient sounds</p>
-                  </div>
-                  <svg className="w-4 h-4 text-slate-600 group-hover:text-slate-400 group-hover:translate-x-0.5 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-
-                <button
-                  onClick={() => { setShowBurgerMenu(false); setShowPricing(true); }}
-                  className="w-full flex items-center gap-4 px-4 py-3.5 hover:bg-white/5 text-slate-300 hover:text-white transition-all group"
-                >
-                  <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center group-hover:bg-emerald-500/20 transition-colors">
-                    <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
-                    </svg>
-                  </div>
-                  <div className="flex-1 text-left">
-                    <span className="text-sm font-medium">Pricing</span>
-                    <p className="text-[11px] text-slate-500">View plans & credits</p>
-                  </div>
-                  <svg className="w-4 h-4 text-slate-600 group-hover:text-slate-400 group-hover:translate-x-0.5 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-
-                <button
-                  onClick={() => { setShowBurgerMenu(false); setShowAboutUs(true); }}
-                  className="w-full flex items-center gap-4 px-4 py-3.5 hover:bg-white/5 text-slate-300 hover:text-white transition-all group"
-                >
-                  <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center group-hover:bg-amber-500/20 transition-colors">
-                    <svg className="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
-                    </svg>
-                  </div>
-                  <div className="flex-1 text-left">
-                    <span className="text-sm font-medium">About Us</span>
-                    <p className="text-[11px] text-slate-500">Meet the team</p>
-                  </div>
-                  <svg className="w-4 h-4 text-slate-600 group-hover:text-slate-400 group-hover:translate-x-0.5 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-              </div>
-
               {/* Sign Out Button */}
               {user && (
                 <div className="p-3 border-t border-white/5">
@@ -2442,6 +2355,13 @@ const App: React.FC = () => {
               {/* Footer */}
               <div className="p-4 border-t border-white/5 space-y-2">
                 <div className="flex items-center justify-center gap-4 text-[10px] text-slate-600 uppercase tracking-widest">
+                  <button
+                    onClick={() => { setShowBurgerMenu(false); setShowAboutUs(true); }}
+                    className="hover:text-slate-400 transition-colors"
+                  >
+                    About
+                  </button>
+                  <span className="text-slate-700">•</span>
                   <button
                     onClick={() => { setShowBurgerMenu(false); setShowTerms(true); }}
                     className="hover:text-slate-400 transition-colors"
