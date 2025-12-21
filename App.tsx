@@ -19,6 +19,7 @@ import { geminiService, decodeAudioBuffer, blobToBase64 } from './geminiService'
 import { voiceService } from './src/lib/voiceService';
 import { elevenlabsService, base64ToBlob } from './src/lib/elevenlabs';
 import { creditService } from './src/lib/credits';
+import { throttleLeading } from './src/utils/debounce';
 import { supabase, getCurrentUser, signOut, createVoiceProfile, getUserVoiceProfiles, VoiceProfile as DBVoiceProfile, createVoiceClone, saveMeditationHistory, getMeditationHistory, deleteMeditationHistory, MeditationHistory, getAudioTagPreferences, updateAudioTagPreferences, AudioTagPreference } from './lib/supabase';
 
 // Rotating taglines - one shown randomly per session
@@ -1347,6 +1348,18 @@ const App: React.FC = () => {
     }
   };
 
+  // Throttled versions of generate functions to prevent duplicate API calls from rapid clicks
+  // Using useMemo to create stable function references
+  const throttledGenerateAndPlay = useMemo(
+    () => throttleLeading(handleGenerateAndPlay, 2000),
+    [handleGenerateAndPlay]
+  );
+
+  const throttledPlayEditedScript = useMemo(
+    () => throttleLeading(handlePlayEditedScript, 2000),
+    [handlePlayEditedScript]
+  );
+
   const handleSelectTemplate = (prompt: string) => {
     setScript(prompt);
     setShowTemplatesModal(false);
@@ -1698,7 +1711,7 @@ const App: React.FC = () => {
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
                             e.preventDefault();
-                            handleGenerateAndPlay();
+                            throttledGenerateAndPlay();
                           }
                         }}
                       />
@@ -1727,7 +1740,7 @@ const App: React.FC = () => {
 
                       {/* Send Button */}
                       <button
-                        onClick={handleGenerateAndPlay}
+                        onClick={throttledGenerateAndPlay}
                         disabled={isGenerating || !script.trim()}
                         className={`
                           flex-shrink-0 p-1.5 md:p-2 rounded-full transition-all flex items-center justify-center border
@@ -2326,7 +2339,7 @@ const App: React.FC = () => {
                     Extend
                   </button>
                   <button
-                    onClick={handlePlayEditedScript}
+                    onClick={throttledPlayEditedScript}
                     disabled={!editableScript.trim() || isGenerating || isExtending}
                     className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-sm font-medium transition-all hover:shadow-lg hover:shadow-indigo-500/25 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
