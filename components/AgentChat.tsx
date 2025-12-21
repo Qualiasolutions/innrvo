@@ -585,28 +585,31 @@ export const AgentChat: React.FC<AgentChatProps> = ({
 
   return (
     <div className={`flex flex-col h-full ${className}`}>
-      {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto px-4 md:px-6 py-6">
-        <div className="max-w-xl mx-auto">
-          {/* Message List */}
-          {hasMessages && (
-            <div className="space-y-1">
-              {messages.map((message, index) => (
-                <MessageBubble
-                  key={message.id}
-                  message={message}
-                  isLast={index === messages.length - 1 && !showMeditationPanel}
-                />
-              ))}
-            </div>
-          )}
+      {/* Messages Area - hidden when meditation panel is open */}
+      {!showMeditationPanel && (
+        <div className="flex-1 overflow-y-auto px-4 md:px-6 py-6">
+          <div className="max-w-xl mx-auto">
+            {/* Message List */}
+            {hasMessages && (
+              <div className="space-y-1">
+                {messages.map((message, index) => (
+                  <MessageBubble
+                    key={message.id}
+                    message={message}
+                    isLast={index === messages.length - 1 && !showMeditationPanel}
+                  />
+                ))}
+              </div>
+            )}
 
-          <div ref={messagesEndRef} />
+            <div ref={messagesEndRef} />
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Input Area - Fixed at bottom */}
-      <div className="flex-shrink-0 px-4 pb-6 pt-2">
+      {/* Input Area - Fixed at bottom, hidden when meditation panel is open */}
+      {!showMeditationPanel && (
+        <div className="flex-shrink-0 px-4 pb-6 pt-2">
         <div className="max-w-3xl mx-auto">
           <form onSubmit={handleSubmit}>
             <div className={`relative flex items-center bg-white/[0.06] border
@@ -662,6 +665,7 @@ export const AgentChat: React.FC<AgentChatProps> = ({
           </form>
         </div>
       </div>
+      )}
 
       {/* Meditation Panel - Full screen on mobile, inline on desktop */}
       {showMeditationPanel && currentMeditation?.script && (
