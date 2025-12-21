@@ -47,6 +47,17 @@
   }
 }
 
+@layer utilities {
+  /* Hide scrollbar utility */
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 @layer components {
   /* Glass morphism - optimized blur values for performance */
   .glass {
