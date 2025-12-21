@@ -1468,10 +1468,14 @@ const App: React.FC = () => {
             {/* Burger Menu Button */}
             <button
               onClick={() => setShowBurgerMenu(true)}
-              className="p-2 md:p-2.5 min-w-[40px] min-h-[40px] md:min-w-[44px] md:min-h-[44px] rounded-lg md:rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all flex items-center justify-center"
+              className="p-2 md:p-2.5 min-w-[40px] min-h-[40px] md:min-w-[44px] md:min-h-[44px]
+                         rounded-lg md:rounded-xl bg-white/5 hover:bg-white/10
+                         text-slate-400 hover:text-white transition-all flex items-center justify-center
+                         border border-white/5 hover:border-indigo-500/30
+                         hover:shadow-[0_0_20px_-8px_rgba(99,102,241,0.5)]"
               title="Menu"
             >
-              <ICONS.Menu className="w-4 h-4 md:w-5 md:h-5" />
+              <ICONS.Menu className="w-5 h-5" />
             </button>
 
             {/* Logo */}
@@ -2272,7 +2276,10 @@ const App: React.FC = () => {
                 </div>
                 <button
                   onClick={() => setShowBurgerMenu(false)}
-                  className="p-2 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-all"
+                  className="p-2 rounded-lg bg-white/5 hover:bg-white/10
+                             text-slate-400 hover:text-white transition-all
+                             border border-white/5 hover:border-indigo-500/30
+                             hover:shadow-[0_0_20px_-8px_rgba(99,102,241,0.5)]"
                 >
                   <ICONS.Close className="w-5 h-5" />
                 </button>

@@ -106,19 +106,20 @@ const MessageBubble = memo<MessageBubbleProps>(({ message, onActionClick, isLast
         className={`
           max-w-[90%] rounded-2xl px-4 py-2.5
           ${isUser
-            ? 'bg-indigo-600/80 text-white'
-            : 'bg-white/10 backdrop-blur-sm text-white/90 border border-white/10'
+            ? 'bg-gradient-to-br from-indigo-600/90 to-indigo-700/80 text-white shadow-[0_0_25px_-8px_rgba(99,102,241,0.6)]'
+            : 'bg-white/[0.08] backdrop-blur-sm text-white/90 border border-white/10 shadow-[0_0_20px_-10px_rgba(99,102,241,0.2)]'
           }
           ${message.isLoading ? 'animate-pulse' : ''}
           ${isLast ? 'animate-in fade-in slide-in-from-bottom-2 duration-300' : ''}
+          transition-shadow duration-300 hover:shadow-[0_0_30px_-8px_rgba(99,102,241,0.4)]
         `}
       >
         {message.isLoading ? (
           <div className="flex items-center gap-2">
             <div className="flex gap-1">
-              <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-              <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-              <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce shadow-[0_0_8px_rgba(99,102,241,0.6)]" style={{ animationDelay: '0ms' }} />
+              <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce shadow-[0_0_8px_rgba(99,102,241,0.6)]" style={{ animationDelay: '150ms' }} />
+              <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce shadow-[0_0_8px_rgba(99,102,241,0.6)]" style={{ animationDelay: '300ms' }} />
             </div>
             <span className="text-white/50 text-xs">Contemplating...</span>
           </div>
@@ -130,7 +131,7 @@ const MessageBubble = memo<MessageBubbleProps>(({ message, onActionClick, isLast
         {message.quote && (
           <div className="mt-2 pt-2 border-t border-white/10">
             <p className="italic text-white/60 text-xs">"{message.quote.quote}"</p>
-            <p className="text-indigo-400 text-[10px] mt-1">— {message.quote.teacher}</p>
+            <p className="text-indigo-400 text-[10px] mt-1 glow-text-subtle">— {message.quote.teacher}</p>
           </div>
         )}
 
@@ -141,10 +142,15 @@ const MessageBubble = memo<MessageBubbleProps>(({ message, onActionClick, isLast
               <button
                 key={index}
                 onClick={() => onActionClick(action)}
-                className="px-2.5 py-1 text-[10px] rounded-full bg-indigo-500/30 hover:bg-indigo-500/50
-                           text-indigo-200 transition-colors flex items-center gap-1"
+                className="px-2.5 py-1 text-[10px] rounded-full
+                           bg-gradient-to-r from-indigo-500/30 to-purple-500/30
+                           hover:from-indigo-500/50 hover:to-purple-500/50
+                           border border-indigo-500/20 hover:border-indigo-400/40
+                           text-indigo-200 transition-all duration-300 flex items-center gap-1
+                           hover:shadow-[0_0_15px_-5px_rgba(99,102,241,0.5)]
+                           active:scale-95"
               >
-                <SparkleIcon className="w-2.5 h-2.5" />
+                <SparkleIcon className="w-2.5 h-2.5 drop-shadow-[0_0_4px_rgba(99,102,241,0.5)]" />
                 {action.label}
               </button>
             ))}
@@ -169,14 +175,20 @@ const QuickPromptChip = memo<QuickPromptChipProps>(({ label, icon, onClick }) =>
   return (
     <button
       onClick={onClick}
-      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10
-                 border border-white/10 text-white/60 hover:text-white transition-all
-                 text-xs whitespace-nowrap group"
+      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full
+                 bg-gradient-to-r from-white/5 to-white/[0.02]
+                 border border-white/10 hover:border-indigo-500/30
+                 text-white/60 hover:text-white transition-all duration-300
+                 text-xs whitespace-nowrap group
+                 hover:shadow-[0_0_20px_-8px_rgba(99,102,241,0.5)]
+                 hover:bg-gradient-to-r hover:from-indigo-500/10 hover:to-purple-500/10
+                 active:scale-95"
     >
       {IconComponent && (
-        <IconComponent className="w-3.5 h-3.5 text-indigo-400/70 group-hover:text-indigo-300 transition-colors" />
+        <IconComponent className="w-3.5 h-3.5 text-indigo-400/70 group-hover:text-indigo-300
+                                   transition-all duration-300 group-hover:drop-shadow-[0_0_6px_rgba(99,102,241,0.5)]" />
       )}
-      <span>{label}</span>
+      <span className="group-hover:text-shadow-glow">{label}</span>
     </button>
   );
 });
