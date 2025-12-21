@@ -22,20 +22,15 @@ const SendIcon = () => (
 
 const WavesIcon = () => (
   <svg className="w-7 h-7" viewBox="0 0 24 24" fill="none" strokeLinecap="round">
-    <path d="M2 12h0" stroke="#818cf8" strokeWidth="2.5" strokeOpacity="0.5" />
-    <path d="M5 9v6" stroke="#818cf8" strokeWidth="2.5" strokeOpacity="0.6" />
-    <path d="M8 7v10" stroke="#818cf8" strokeWidth="2.5" strokeOpacity="0.8" />
-    <path d="M11 4v16" stroke="#9333ea" strokeWidth="2.5" />
-    <path d="M14 6v12" stroke="#a855f7" strokeWidth="2.5" strokeOpacity="0.9" />
-    <path d="M17 8v8" stroke="#c084fc" strokeWidth="2.5" strokeOpacity="0.7" />
-    <path d="M20 10v4" stroke="#c084fc" strokeWidth="2.5" strokeOpacity="0.5" />
-    <path d="M23 12h0" stroke="#c084fc" strokeWidth="2.5" strokeOpacity="0.4" />
+    <path d="M6 9v6" stroke="#38bdf8" strokeWidth="3" strokeOpacity="0.8" />
+    <path d="M12 4v16" stroke="#3b82f6" strokeWidth="3" />
+    <path d="M18 8v8" stroke="#38bdf8" strokeWidth="3" strokeOpacity="0.8" />
   </svg>
 );
 
 const WaveIcon = () => (
-  <svg className="w-4 h-4 md:w-5 md:h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M2 12h2M6 8v8M10 5v14M14 8v8M18 10v4M22 12h0" strokeLinecap="round" />
+  <svg className="w-4 h-4 md:w-5 md:h-5" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2.5">
+    <path d="M6 9v6M12 5v14M18 8v8" strokeLinecap="round" />
   </svg>
 );
 
@@ -83,6 +78,18 @@ const ChevronIcon = ({ className = "w-4 h-4", direction = "down" }: { className?
 const CheckIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <path d="M20 6L9 17l-5-5" />
+  </svg>
+);
+
+const PlusIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <path d="M12 5v14M5 12h14" />
+  </svg>
+);
+
+const CloseIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <path d="M18 6L6 18M6 6l12 12" />
   </svg>
 );
 
