@@ -309,10 +309,13 @@ export const AgentChat: React.FC<AgentChatProps> = ({
 
       {/* Input Area - Fixed at bottom */}
       <div className="flex-shrink-0 px-4 pb-6 pt-2">
-        <div className="max-w-xl mx-auto">
-          <form onSubmit={handleSubmit} className="flex items-center gap-2">
-            {/* Input Field */}
-            <div className="flex-1">
+        <div className="max-w-2xl mx-auto">
+          <form onSubmit={handleSubmit}>
+            {/* Unified Input Container */}
+            <div className="relative flex items-center bg-white/[0.06] border border-white/10
+                          rounded-full px-5 py-2
+                          focus-within:border-indigo-500/40 focus-within:bg-white/[0.08]
+                          transition-all duration-200">
               <textarea
                 ref={inputRef}
                 value={inputValue}
@@ -320,38 +323,35 @@ export const AgentChat: React.FC<AgentChatProps> = ({
                 onKeyDown={handleKeyDown}
                 placeholder={hasMessages ? "Share more..." : "How are you feeling?"}
                 rows={1}
-                className="w-full px-4 py-3 rounded-2xl
-                         bg-white/[0.06] border border-white/10
-                         focus:border-indigo-500/50 focus:bg-white/[0.08]
-                         text-white text-sm
+                className="flex-1 bg-transparent text-white text-sm md:text-base
                          placeholder:text-white/30
-                         outline-none resize-none transition-all duration-200"
+                         outline-none resize-none py-2"
                 style={{ maxHeight: '120px' }}
                 disabled={isProcessing}
               />
-            </div>
 
-            {/* Send Button - matches input height */}
-            <button
-              type="submit"
-              disabled={isProcessing || !inputValue.trim()}
-              className={`
-                flex-shrink-0 h-[46px] w-[46px] rounded-2xl
-                flex items-center justify-center transition-all duration-200
-                ${isProcessing
-                  ? 'bg-indigo-500/50 cursor-not-allowed'
-                  : inputValue.trim()
-                    ? 'bg-indigo-500 hover:bg-indigo-400 active:scale-95'
-                    : 'bg-white/[0.06] text-white/30 border border-white/10'
-                }
-              `}
-            >
-              {isProcessing ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white" />
-              ) : (
-                <SendIcon />
-              )}
-            </button>
+              {/* Send Button - Inside input */}
+              <button
+                type="submit"
+                disabled={isProcessing || !inputValue.trim()}
+                className={`
+                  flex-shrink-0 h-10 w-10 rounded-full ml-2
+                  flex items-center justify-center transition-all duration-200
+                  ${isProcessing
+                    ? 'bg-indigo-500/50 cursor-not-allowed'
+                    : inputValue.trim()
+                      ? 'bg-indigo-500 hover:bg-indigo-400 active:scale-95 text-white'
+                      : 'bg-transparent text-white/30'
+                  }
+                `}
+              >
+                {isProcessing ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white" />
+                ) : (
+                  <SendIcon />
+                )}
+              </button>
+            </div>
           </form>
         </div>
       </div>
