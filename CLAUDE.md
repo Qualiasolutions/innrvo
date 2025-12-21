@@ -230,6 +230,69 @@ const suggestions = suggestMeditation('anxious', 10); // 10 minutes available
 const quote = getWisdomQuote('Rumi', 'love');
 ```
 
+### AgentChat Component
+
+The `AgentChat` component replaces the original prompt input in `App.tsx`. It provides:
+- Expandable chat area with message history
+- Quick prompt chips with elegant SVG icons
+- Integration with voice selection, templates, music, and audio tags modals
+
+```tsx
+<AgentChat
+  onMeditationReady={(script, type, prompt) => { /* handle meditation */ }}
+  onRequestVoiceSelection={() => setShowVoiceManager(true)}
+  onOpenTemplates={() => setShowTemplatesModal(true)}
+  selectedVoice={selectedVoice}
+  isGenerating={isGenerating}
+/>
+```
+
+### Quick Prompt Icons
+
+Custom SVG icons for emotional states:
+| Icon | Meaning | Style |
+|------|---------|-------|
+| waves | Anxious | Flowing wave lines |
+| moon | Can't sleep | Crescent moon |
+| lotus | Need calm | Lotus flower |
+| heart | Grateful | Heart outline |
+| cloud | Work stress | Soft cloud |
+| target | Need focus | Concentric circles |
+| sparkle | Self-love | 4-point star |
+| star | Manifest | 5-point star |
+
+### Meditation Types
+
+Supported types in `knowledgeBase.ts`:
+- `guided_visualization` - Visual journeys
+- `breathwork` - Breathing exercises (box, 4-7-8)
+- `body_scan` - Progressive relaxation
+- `loving_kindness` - Metta meditation
+- `sleep_story` - Sleep induction
+- `affirmations` - Positive affirmations
+- `walking_meditation` - Movement practice
+- `shadow_work` - Inner child healing
+- `gratitude` - Appreciation practice
+- `manifestation` - Intention setting
+- `presence` - Mindfulness/awareness
+- `inquiry` - Self-examination
+- `surrender` - Letting go
+
+### Core Principles
+
+Embedded in all agent responses:
+1. Human beings are more than their conditioning
+2. Beliefs shape reality
+3. Love and gratitude are transformative forces
+4. Healing the self heals the world
+5. Consciousness evolution is humanity's next step
+
 ### Database
 
-Agent conversations stored in `agent_conversations` table (migration `008_agent_conversations.sql`)
+Agent conversations stored in `agent_conversations` table (migration `008_agent_conversations.sql`):
+- `id` - Conversation ID
+- `user_id` - User reference
+- `messages` - JSONB array of messages
+- `preferences` - User preferences (traditions, teachers)
+- `session_state` - Current mood, selected meditation
+- `summary` - Auto-generated conversation summary
