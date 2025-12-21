@@ -189,6 +189,49 @@ const MeditationPanel = memo<MeditationPanelProps>(({
   const [showControls, setShowControls] = useState(false);
   const [activeTab, setActiveTab] = useState<'voice' | 'music' | 'tags'>('voice');
   const [editedScript, setEditedScript] = useState(script);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [cursorPosition, setCursorPosition] = useState<number>(script.length);
+
+  // Insert audio tag at cursor position
+  const insertTagAtCursor = useCallback((tagLabel: string) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart ?? cursorPosition;
+    const end = textarea.selectionEnd ?? cursorPosition;
+    const text = editedScript;
+
+    // Add space before tag if needed (not at start, not after space/newline)
+    const needSpaceBefore = start > 0 && !/[\s\n]$/.test(text.substring(0, start));
+    // Add space after tag if needed (not at end, not before space/newline)
+    const needSpaceAfter = end < text.length && !/^[\s\n]/.test(text.substring(end));
+
+    const tagWithSpacing = (needSpaceBefore ? ' ' : '') + tagLabel + (needSpaceAfter ? ' ' : '');
+    const newText = text.substring(0, start) + tagWithSpacing + text.substring(end);
+    const newCursorPos = start + tagWithSpacing.length;
+
+    setEditedScript(newText);
+    setCursorPosition(newCursorPos);
+
+    // Restore focus and cursor position after state update
+    requestAnimationFrame(() => {
+      if (textarea) {
+        textarea.focus();
+        textarea.setSelectionRange(newCursorPos, newCursorPos);
+      }
+    });
+  }, [editedScript, cursorPosition]);
+
+  // Track cursor position when user types or clicks in textarea
+  const handleTextareaChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setEditedScript(e.target.value);
+    setCursorPosition(e.target.selectionStart ?? e.target.value.length);
+  }, []);
+
+  const handleTextareaSelect = useCallback((e: React.SyntheticEvent<HTMLTextAreaElement>) => {
+    const textarea = e.currentTarget;
+    setCursorPosition(textarea.selectionStart ?? textarea.value.length);
+  }, []);
 
   // Calculate stats
   const wordCount = editedScript.replace(/\[.*?\]/g, '').split(/\s+/).filter(Boolean).length;
@@ -221,8 +264,12 @@ const MeditationPanel = memo<MeditationPanelProps>(({
         {/* Scrollable Script Area - transparent with text shadow for readability */}
         <div className="flex-1 overflow-y-auto">
           <textarea
+            ref={textareaRef}
             value={editedScript}
-            onChange={(e) => setEditedScript(e.target.value)}
+            onChange={handleTextareaChange}
+            onSelect={handleTextareaSelect}
+            onClick={handleTextareaSelect}
+            onKeyUp={handleTextareaSelect}
             className="w-full min-h-full bg-transparent text-white leading-relaxed
                        resize-none outline-none p-5 pb-32
                        placeholder:text-white/30
@@ -266,11 +313,6 @@ const MeditationPanel = memo<MeditationPanelProps>(({
               {selectedMusic && selectedMusic.id !== 'none' && (
                 <span className="flex-shrink-0 px-3 py-1.5 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-medium border border-emerald-500/30">
                   🎵 {selectedMusic.name}
-                </span>
-              )}
-              {selectedTags.length > 0 && (
-                <span className="flex-shrink-0 px-3 py-1.5 rounded-full bg-violet-500/20 text-violet-300 text-xs font-medium border border-violet-500/30">
-                  {selectedTags.length} tags
                 </span>
               )}
             </div>
@@ -338,16 +380,20 @@ const MeditationPanel = memo<MeditationPanelProps>(({
 
                 {activeTab === 'tags' && (
                   <div className="flex flex-wrap gap-1.5">
-                    {availableTags.flatMap(cat => cat.tags).slice(0, 8).map((tag) => (
+                    {availableTags.flatMap(cat => cat.tags).slice(0, 10).map((tag) => (
                       <button
                         key={tag.id}
-                        onClick={() => onTagToggle(tag.id)}
-                        className={`px-2.5 py-1 rounded-md text-xs transition-all ${
-                          selectedTags.includes(tag.id)
-                            ? 'bg-violet-500/30 text-violet-300'
-                            : 'bg-white/5 text-white/50 hover:bg-white/10'
-                        }`}
+                        onClick={() => insertTagAtCursor(tag.label)}
+                        className="px-2.5 py-1 rounded-md text-xs transition-all
+                          bg-gradient-to-r from-violet-500/20 to-purple-500/20
+                          hover:from-violet-500/30 hover:to-purple-500/30
+                          border border-violet-500/30 hover:border-violet-400/50
+                          text-violet-200 font-medium
+                          hover:shadow-[0_0_12px_-4px_rgba(139,92,246,0.5)]
+                          active:scale-95"
+                        title={`Insert ${tag.label} at cursor`}
                       >
+                        <span className="text-violet-400 mr-1">+</span>
                         {tag.label}
                       </button>
                     ))}
