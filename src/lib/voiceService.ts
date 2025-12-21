@@ -49,12 +49,28 @@ export const voiceService = {
   /**
    * Decodes ElevenLabs MP3 audio to AudioBuffer
    * ElevenLabs returns MP3, need to decode it
+   * Uses Blob + Object URL for better memory efficiency (avoids data URL overhead)
    */
   async decodeElevenLabsAudio(base64: string, audioContext: AudioContext): Promise<AudioBuffer> {
-    const response = await fetch(`data:audio/mpeg;base64,${base64}`);
-    const arrayBuffer = await response.arrayBuffer();
+    // Convert base64 to binary using atob (avoids data URL memory bloat)
+    const binaryString = atob(base64);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
 
-    return audioContext.decodeAudioData(arrayBuffer);
+    // Create blob and object URL (more memory efficient than data URL)
+    const blob = new Blob([bytes], { type: 'audio/mpeg' });
+    const objectUrl = URL.createObjectURL(blob);
+
+    try {
+      const response = await fetch(objectUrl);
+      const arrayBuffer = await response.arrayBuffer();
+      return audioContext.decodeAudioData(arrayBuffer);
+    } finally {
+      // Clean up object URL to free memory
+      URL.revokeObjectURL(objectUrl);
+    }
   },
 
   /**

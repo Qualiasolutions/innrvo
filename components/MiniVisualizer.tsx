@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, memo } from 'react';
+import React, { useEffect, useRef, memo, useMemo } from 'react';
 import * as d3 from 'd3';
 
 interface MiniVisualizerProps {
@@ -11,7 +11,30 @@ const MiniVisualizer: React.FC<MiniVisualizerProps> = memo(({
   size = 40
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
+  const pathRef = useRef<d3.Selection<SVGPathElement, { angle: number; r: number }[], null, undefined> | null>(null);
+  const path2Ref = useRef<d3.Selection<SVGPathElement, { angle: number; r: number }[], null, undefined> | null>(null);
+  const isActiveRef = useRef(isActive);
 
+  // Update ref when isActive changes (no re-render needed)
+  isActiveRef.current = isActive;
+
+  const numPoints = 32;
+  const angleStep = (Math.PI * 2) / numPoints;
+  const radius = size * 0.28;
+
+  // Memoize line generator and base points
+  const { line, points } = useMemo(() => ({
+    line: d3.lineRadial<{ angle: number; r: number }>()
+      .angle(d => d.angle)
+      .radius(d => d.r)
+      .curve(d3.curveBasisClosed),
+    points: d3.range(numPoints).map(i => ({
+      angle: i * angleStep,
+      r: radius
+    }))
+  }), [numPoints, angleStep, radius]);
+
+  // Setup SVG structure only when size changes
   useEffect(() => {
     if (!svgRef.current) return;
 
@@ -19,46 +42,45 @@ const MiniVisualizer: React.FC<MiniVisualizerProps> = memo(({
       .attr('viewBox', `0 0 ${size} ${size}`)
       .style('overflow', 'visible');
 
-    svg.selectAll('*').remove();
+    // Only clear and rebuild if paths don't exist
+    const existingG = svg.select<SVGGElement>('g.vis-group');
+    let g: d3.Selection<SVGGElement, unknown, null, undefined>;
 
-    const g = svg.append('g')
-      .attr('transform', `translate(${size / 2}, ${size / 2})`);
+    if (existingG.empty()) {
+      svg.selectAll('g.vis-group').remove();
+      g = svg.append('g')
+        .attr('class', 'vis-group')
+        .attr('transform', `translate(${size / 2}, ${size / 2})`);
 
-    const numPoints = 32;
-    const angleStep = (Math.PI * 2) / numPoints;
-    const radius = size * 0.28;
+      pathRef.current = g.append('path')
+        .datum(points)
+        .attr('d', line)
+        .attr('fill', 'none')
+        .attr('stroke', 'url(#miniAuraGrad)')
+        .attr('stroke-width', 1.5);
 
-    const points = d3.range(numPoints).map(i => ({
-      angle: i * angleStep,
-      r: radius
-    }));
+      path2Ref.current = g.append('path')
+        .datum(points)
+        .attr('d', line)
+        .attr('fill', 'url(#miniCenterGrad)')
+        .attr('opacity', 0.5);
+    } else {
+      g = existingG;
+      g.attr('transform', `translate(${size / 2}, ${size / 2})`);
+    }
+  }, [size, line, points]);
 
-    const line = d3.lineRadial<{ angle: number; r: number }>()
-      .angle(d => d.angle)
-      .radius(d => d.r)
-      .curve(d3.curveBasisClosed);
-
-    const path = g.append('path')
-      .datum(points)
-      .attr('d', line)
-      .attr('fill', 'none')
-      .attr('stroke', 'url(#miniAuraGrad)')
-      .attr('stroke-width', 1.5);
-
-    const path2 = g.append('path')
-      .datum(points)
-      .attr('d', line)
-      .attr('fill', 'url(#miniCenterGrad)')
-      .attr('opacity', 0.5);
-
+  // Animation loop - separate from SVG setup
+  useEffect(() => {
     let t = 0;
     let animId: number;
 
     const animate = () => {
-      t += isActive ? 0.025 : 0.008;
+      const active = isActiveRef.current;
+      t += active ? 0.025 : 0.008;
 
-      const noiseMultiplier = isActive ? 5 : 1.5;
-      const swellMultiplier = isActive ? 3 : 1;
+      const noiseMultiplier = active ? 5 : 1.5;
+      const swellMultiplier = active ? 3 : 1;
 
       const newPoints = points.map((p, i) => {
         const noise = Math.sin(t + i * 0.25) * noiseMultiplier;
@@ -69,15 +91,19 @@ const MiniVisualizer: React.FC<MiniVisualizerProps> = memo(({
         };
       });
 
-      path.attr('d', line(newPoints));
-      path2.attr('d', line(newPoints));
+      if (pathRef.current) {
+        pathRef.current.attr('d', line(newPoints));
+      }
+      if (path2Ref.current) {
+        path2Ref.current.attr('d', line(newPoints));
+      }
 
       animId = requestAnimationFrame(animate);
     };
 
     animId = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(animId);
-  }, [isActive, size]);
+  }, [points, radius, line]);
 
   return (
     <svg

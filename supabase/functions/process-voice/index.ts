@@ -73,32 +73,26 @@ serve(async (req) => {
       );
     }
 
-    // Check user credits
-    const { data: userCredits } = await supabase
-      .from('user_credits')
-      .select('credits_remaining')
-      .eq('user_id', userId)
-      .single();
+    // Check user credits and clone limit in single RPC call (replaces 2 queries)
+    const { data: creditStatus, error: creditError } = await supabase
+      .rpc('check_user_credits_status', { p_user_id: userId });
 
-    if (!userCredits || userCredits.credits_remaining < 5000) {
+    if (creditError) {
+      console.error('Credit check error:', creditError);
       return new Response(
-        JSON.stringify({ error: 'Insufficient credits' }),
-        { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Failed to check credits' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Check monthly clone limit
-    const { data: monthlyUsage } = await supabase
-      .from('voice_usage_limits')
-      .select('clones_created, clones_limit')
-      .eq('user_id', userId)
-      .eq('month_start', new Date().toISOString().slice(0, 7))
-      .single();
-
-    if (monthlyUsage && monthlyUsage.clones_created >= monthlyUsage.clones_limit) {
+    const status = creditStatus?.[0];
+    if (!status || !status.can_clone) {
+      const errorMessage = status?.credits_remaining < 5000
+        ? 'Insufficient credits'
+        : 'Monthly clone limit reached';
       return new Response(
-        JSON.stringify({ error: 'Monthly clone limit reached' }),
-        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: errorMessage }),
+        { status: status?.credits_remaining < 5000 ? 402 : 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -205,30 +199,22 @@ serve(async (req) => {
 
     if (profileError) throw profileError;
 
-    // Deduct credits
-    await supabase.rpc('deduct_credits', {
-      p_user_id: userId,
-      p_amount: 5000,
-    });
-
-    // Update monthly usage
-    await supabase.rpc('increment_clone_count', {
-      p_user_id: userId,
-    });
-
-    // Track usage
-    await supabase
-      .from('voice_cloning_usage')
-      .insert({
-        user_id: userId,
-        voice_profile_id: voiceProfile.id,
-        credits_consumed: 5000,
-        operation_type: 'CLONE_CREATE',
-        metadata: {
-          duration: duration,
-          processed_in_edge: true,
-        },
+    // Perform credit deduction, usage tracking, and clone count update atomically
+    // Replaces 3 separate queries with 1 atomic RPC call
+    const { data: operationResult, error: operationError } = await supabase
+      .rpc('perform_credit_operation', {
+        p_user_id: userId,
+        p_amount: 5000,
+        p_operation_type: 'CLONE_CREATE',
+        p_voice_profile_id: voiceProfile.id,
+        p_character_count: null,
       });
+
+    if (operationError) {
+      console.error('Credit operation error:', operationError);
+      // Don't fail the entire operation if credit tracking fails
+      // Voice is already cloned - log for manual reconciliation
+    }
 
     const response: ProcessVoiceResponse = {
       success: true,

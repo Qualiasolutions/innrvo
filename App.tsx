@@ -187,6 +187,7 @@ const App: React.FC = () => {
   const playbackStartTimeRef = useRef(0);
   const pauseOffsetRef = useRef(0);
   const animationFrameRef = useRef<number | null>(null);
+  const lastWordIndexRef = useRef(-1); // Track last word index to avoid unnecessary state updates
 
   // Background music refs
   const backgroundAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -906,6 +907,8 @@ const App: React.FC = () => {
   };
 
   // Progress tracking for inline player
+  // Optimized: Only update currentTime on RAF, but only update wordIndex when it changes
+  // This reduces state updates from 60x/sec to only when words actually change (~2-5x/sec)
   const updateProgress = useCallback(() => {
     if (!audioContextRef.current || !isPlaying) return;
 
@@ -914,10 +917,13 @@ const App: React.FC = () => {
 
     setCurrentTime(newCurrentTime);
 
-    // Update word index based on timing map
+    // Update word index only when it actually changes (reduces ~60x/sec to ~2-5x/sec)
     if (timingMap) {
       const wordIndex = getCurrentWordIndex(timingMap, newCurrentTime);
-      setCurrentWordIndex(wordIndex);
+      if (wordIndex !== lastWordIndexRef.current) {
+        lastWordIndexRef.current = wordIndex;
+        setCurrentWordIndex(wordIndex);
+      }
     }
 
     if (newCurrentTime < duration && isPlaying) {
@@ -1067,6 +1073,7 @@ const App: React.FC = () => {
     }
 
     pauseOffsetRef.current = 0;
+    lastWordIndexRef.current = -1; // Reset word index tracking ref
     setIsPlaying(false);
     setIsInlineMode(false);
     setEnhancedScript('');
@@ -1266,6 +1273,7 @@ const App: React.FC = () => {
       audioBufferRef.current = audioBuffer;
       setDuration(audioBuffer.duration);
       setCurrentTime(0);
+      lastWordIndexRef.current = 0; // Reset word index tracking ref
       setCurrentWordIndex(0);
       pauseOffsetRef.current = 0;
 
