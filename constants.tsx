@@ -212,6 +212,7 @@ export const AUDIO_TAG_CATEGORIES: { id: string; name: string; color: string; bg
     color: 'text-cyan-400',
     bgColor: 'bg-cyan-500/10',
     tags: [
+      { id: 'pause', label: '[pause]', description: 'A natural 2-3 second pause' },
       { id: 'short_pause', label: '[short pause]', description: 'A brief 1-2 second pause' },
       { id: 'long_pause', label: '[long pause]', description: 'A longer 3-5 second pause' },
       { id: 'silence', label: '[silence]', description: 'A moment of complete silence' },
@@ -223,9 +224,10 @@ export const AUDIO_TAG_CATEGORIES: { id: string; name: string; color: string; bg
     color: 'text-emerald-400',
     bgColor: 'bg-emerald-500/10',
     tags: [
+      { id: 'deep_breath', label: '[deep breath]', description: 'A full deep breath cycle' },
       { id: 'inhale', label: '[inhale]', description: 'Sound of breathing in deeply' },
       { id: 'exhale', label: '[exhale]', description: 'Sound of breathing out slowly' },
-      { id: 'deep_breath', label: '[deep breath]', description: 'A full deep breath cycle' },
+      { id: 'exhale_slowly', label: '[exhale slowly]', description: 'A slow, relaxing exhale' },
     ]
   },
   {

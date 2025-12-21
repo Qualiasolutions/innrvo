@@ -109,21 +109,20 @@ const MessageBubble = memo<MessageBubbleProps>(({ message, isLast }) => {
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4`}>
       {!isUser && (
         <div className="flex-shrink-0 mr-3 mt-1">
-          <div className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600
                         flex items-center justify-center shadow-lg shadow-indigo-500/30">
-            <SparkleIcon className="w-4 h-4 md:w-5 md:h-5 text-white" />
+            <SparkleIcon className="w-4 h-4 text-white" />
           </div>
         </div>
       )}
 
       <div
         className={`
-          max-w-[85%] md:max-w-[75%] rounded-2xl px-4 py-3
+          max-w-[85%] rounded-2xl px-4 py-3
           ${isUser
             ? 'bg-gradient-to-br from-indigo-600 to-indigo-700 text-white shadow-lg shadow-indigo-500/20'
-            : 'bg-white/[0.06] backdrop-blur-sm text-white/90 border border-white/10'
+            : 'bg-white/[0.08] text-white/90 border border-white/10'
           }
-          ${isLast && !message.isLoading ? 'animate-in fade-in slide-in-from-bottom-2 duration-300' : ''}
         `}
       >
         {message.isLoading ? (
@@ -136,7 +135,7 @@ const MessageBubble = memo<MessageBubbleProps>(({ message, isLast }) => {
             <span className="text-white/50 text-sm">Contemplating...</span>
           </div>
         ) : (
-          <div className="text-sm md:text-base leading-relaxed whitespace-pre-wrap">{message.content}</div>
+          <div className="text-base leading-relaxed whitespace-pre-wrap">{message.content}</div>
         )}
 
         {message.quote && (
@@ -224,10 +223,11 @@ const MeditationPanel = memo<MeditationPanelProps>(({
           <textarea
             value={editedScript}
             onChange={(e) => setEditedScript(e.target.value)}
-            className="w-full min-h-full bg-transparent text-white text-base leading-relaxed
+            className="w-full min-h-full bg-transparent text-white leading-relaxed
                        resize-none outline-none p-5 pb-32
                        placeholder:text-white/30
                        [text-shadow:0_1px_2px_rgba(0,0,0,0.8),0_0_20px_rgba(0,0,0,0.5)]"
+            style={{ fontSize: '16px' }}
             placeholder="Your meditation script..."
           />
         </div>
@@ -623,10 +623,10 @@ export const AgentChat: React.FC<AgentChatProps> = ({
                 onKeyDown={handleKeyDown}
                 placeholder={isRecording ? "Listening..." : (hasMessages ? "Share more..." : "How are you feeling?")}
                 rows={1}
-                className={`flex-1 bg-transparent text-sm md:text-base
+                className={`flex-1 bg-transparent text-base
                          outline-none resize-none py-2
                          ${isRecording ? 'text-white/70 italic' : 'text-white placeholder:text-white/30'}`}
-                style={{ maxHeight: '120px' }}
+                style={{ maxHeight: '120px', fontSize: '16px' }}
                 disabled={isProcessing || isRecording}
                 readOnly={isRecording}
               />

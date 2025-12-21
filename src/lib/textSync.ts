@@ -4,15 +4,28 @@ import { TextSegment, ScriptTimingMap } from '../../types';
 // NOTE: Set to 0 because TTS services (ElevenLabs/Gemini) don't actually create pauses
 // They either speak the tag literally or skip it - no actual audio pause is added
 // If TTS is updated to support SSML breaks, these values should be restored
+//
+// IMPORTANT: Any text in brackets [like this] is recognized as an audio tag
+// via the isAudioTag() function which uses regex /^\[.+\]$/
+// This dictionary provides specific durations for known tags (all 0 for now)
+// Unknown tags also get duration 0 via the getAudioTagDuration fallback
 const AUDIO_TAG_DURATIONS: Record<string, number> = {
+  // Pauses
+  '[pause]': 0,
   '[short pause]': 0,
   '[long pause]': 0,
   '[silence]': 0,
+  // Breathing
   '[inhale]': 0,
   '[exhale]': 0,
+  '[exhale slowly]': 0,
   '[deep breath]': 0,
+  '[breathe in]': 0,
+  '[breathe out]': 0,
+  // Voice modifiers
   '[whisper]': 0,
   '[soft voice]': 0,
+  // Sounds
   '[gentle giggle]': 0,
   '[sigh]': 0,
   '[hum]': 0,
