@@ -1,0 +1,432 @@
+/**
+ * Conversation Store for INrVO Meditation Agent
+ *
+ * Manages conversation history with:
+ * - Local session storage for current conversation
+ * - Supabase persistence for conversation history
+ * - Context window management for token limits
+ */
+
+import { supabase, getCurrentUser } from '../../../lib/supabase';
+import type { ConversationMessage, UserPreferences, SessionState } from './MeditationAgent';
+
+// ============================================================================
+// TYPES
+// ============================================================================
+
+export interface StoredConversation {
+  id: string;
+  userId: string;
+  messages: ConversationMessage[];
+  preferences: UserPreferences;
+  sessionState: SessionState;
+  createdAt: Date;
+  updatedAt: Date;
+  summary?: string;
+}
+
+export interface ConversationSummary {
+  id: string;
+  preview: string;
+  messageCount: number;
+  createdAt: Date;
+  mood?: string;
+}
+
+// ============================================================================
+// LOCAL STORAGE KEYS
+// ============================================================================
+
+const STORAGE_KEYS = {
+  CURRENT_CONVERSATION: 'inrvo_current_conversation',
+  USER_PREFERENCES: 'inrvo_user_preferences',
+  CONVERSATION_HISTORY: 'inrvo_conversation_history',
+};
+
+// ============================================================================
+// CONVERSATION STORE CLASS
+// ============================================================================
+
+export class ConversationStore {
+  private currentConversation: StoredConversation | null = null;
+  private maxMessagesInContext = 20; // Keep last 20 messages for context
+
+  constructor() {
+    this.loadFromLocalStorage();
+  }
+
+  /**
+   * Load current conversation from local storage
+   */
+  private loadFromLocalStorage(): void {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.CURRENT_CONVERSATION);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        this.currentConversation = {
+          ...parsed,
+          createdAt: new Date(parsed.createdAt),
+          updatedAt: new Date(parsed.updatedAt),
+          messages: parsed.messages.map((m: any) => ({
+            ...m,
+            timestamp: new Date(m.timestamp),
+          })),
+        };
+      }
+    } catch (error) {
+      console.error('Error loading conversation from local storage:', error);
+    }
+  }
+
+  /**
+   * Save current conversation to local storage
+   */
+  private saveToLocalStorage(): void {
+    try {
+      if (this.currentConversation) {
+        localStorage.setItem(
+          STORAGE_KEYS.CURRENT_CONVERSATION,
+          JSON.stringify(this.currentConversation)
+        );
+      }
+    } catch (error) {
+      console.error('Error saving conversation to local storage:', error);
+    }
+  }
+
+  /**
+   * Start a new conversation
+   */
+  async startNewConversation(): Promise<StoredConversation> {
+    // Save previous conversation if exists
+    if (this.currentConversation && this.currentConversation.messages.length > 0) {
+      await this.saveConversationToDatabase(this.currentConversation);
+    }
+
+    const user = await getCurrentUser();
+    const now = new Date();
+
+    this.currentConversation = {
+      id: `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      userId: user?.id || 'anonymous',
+      messages: [],
+      preferences: this.loadPreferences(),
+      sessionState: {
+        conversationStarted: now,
+        messageCount: 0,
+      },
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    this.saveToLocalStorage();
+    return this.currentConversation;
+  }
+
+  /**
+   * Get current conversation
+   */
+  getCurrentConversation(): StoredConversation | null {
+    return this.currentConversation;
+  }
+
+  /**
+   * Add a message to the current conversation
+   */
+  addMessage(message: ConversationMessage): void {
+    if (!this.currentConversation) {
+      // Start a new conversation if none exists
+      this.currentConversation = {
+        id: `conv_${Date.now()}`,
+        userId: 'anonymous',
+        messages: [],
+        preferences: {},
+        sessionState: {
+          conversationStarted: new Date(),
+          messageCount: 0,
+        },
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+    }
+
+    this.currentConversation.messages.push(message);
+    this.currentConversation.sessionState.messageCount++;
+    this.currentConversation.updatedAt = new Date();
+
+    // Update session state based on message metadata
+    if (message.metadata?.emotionalState) {
+      this.currentConversation.sessionState.currentMood = message.metadata.emotionalState;
+    }
+    if (message.metadata?.suggestedMeditation) {
+      this.currentConversation.sessionState.selectedMeditation = message.metadata.suggestedMeditation;
+    }
+
+    this.saveToLocalStorage();
+  }
+
+  /**
+   * Get messages for context (last N messages)
+   */
+  getContextMessages(): ConversationMessage[] {
+    if (!this.currentConversation) return [];
+
+    const messages = this.currentConversation.messages;
+    if (messages.length <= this.maxMessagesInContext) {
+      return messages;
+    }
+
+    return messages.slice(-this.maxMessagesInContext);
+  }
+
+  /**
+   * Update user preferences
+   */
+  updatePreferences(preferences: Partial<UserPreferences>): void {
+    const currentPrefs = this.loadPreferences();
+    const updatedPrefs = { ...currentPrefs, ...preferences };
+
+    localStorage.setItem(STORAGE_KEYS.USER_PREFERENCES, JSON.stringify(updatedPrefs));
+
+    if (this.currentConversation) {
+      this.currentConversation.preferences = updatedPrefs;
+      this.saveToLocalStorage();
+    }
+  }
+
+  /**
+   * Load user preferences from local storage
+   */
+  loadPreferences(): UserPreferences {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.USER_PREFERENCES);
+      if (stored) {
+        return JSON.parse(stored);
+      }
+    } catch (error) {
+      console.error('Error loading preferences:', error);
+    }
+    return {};
+  }
+
+  /**
+   * Save conversation to Supabase database
+   */
+  async saveConversationToDatabase(conversation: StoredConversation): Promise<boolean> {
+    if (!supabase) return false;
+
+    try {
+      const user = await getCurrentUser();
+      if (!user) return false;
+
+      // Create a summary of the conversation
+      const summary = this.generateConversationSummary(conversation);
+
+      const { error } = await supabase
+        .from('agent_conversations')
+        .upsert({
+          id: conversation.id,
+          user_id: user.id,
+          messages: conversation.messages,
+          preferences: conversation.preferences,
+          session_state: conversation.sessionState,
+          summary,
+          created_at: conversation.createdAt.toISOString(),
+          updated_at: new Date().toISOString(),
+        });
+
+      if (error) {
+        console.error('Error saving conversation to database:', error);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error saving conversation:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Load conversation history from Supabase
+   */
+  async loadConversationHistory(limit: number = 10): Promise<ConversationSummary[]> {
+    if (!supabase) return [];
+
+    try {
+      const user = await getCurrentUser();
+      if (!user) return [];
+
+      const { data, error } = await supabase
+        .from('agent_conversations')
+        .select('id, summary, messages, session_state, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (error) {
+        console.error('Error loading conversation history:', error);
+        return [];
+      }
+
+      return (data || []).map(item => ({
+        id: item.id,
+        preview: item.summary || this.extractPreview(item.messages),
+        messageCount: item.messages?.length || 0,
+        createdAt: new Date(item.created_at),
+        mood: item.session_state?.currentMood,
+      }));
+    } catch (error) {
+      console.error('Error loading conversation history:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Load a specific conversation by ID
+   */
+  async loadConversation(conversationId: string): Promise<StoredConversation | null> {
+    if (!supabase) return null;
+
+    try {
+      const user = await getCurrentUser();
+      if (!user) return null;
+
+      const { data, error } = await supabase
+        .from('agent_conversations')
+        .select('*')
+        .eq('id', conversationId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (error || !data) {
+        console.error('Error loading conversation:', error);
+        return null;
+      }
+
+      const conversation: StoredConversation = {
+        id: data.id,
+        userId: data.user_id,
+        messages: (data.messages || []).map((m: any) => ({
+          ...m,
+          timestamp: new Date(m.timestamp),
+        })),
+        preferences: data.preferences || {},
+        sessionState: data.session_state || { conversationStarted: new Date(), messageCount: 0 },
+        createdAt: new Date(data.created_at),
+        updatedAt: new Date(data.updated_at),
+        summary: data.summary,
+      };
+
+      // Set as current conversation
+      this.currentConversation = conversation;
+      this.saveToLocalStorage();
+
+      return conversation;
+    } catch (error) {
+      console.error('Error loading conversation:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Delete a conversation
+   */
+  async deleteConversation(conversationId: string): Promise<boolean> {
+    if (!supabase) return false;
+
+    try {
+      const user = await getCurrentUser();
+      if (!user) return false;
+
+      const { error } = await supabase
+        .from('agent_conversations')
+        .delete()
+        .eq('id', conversationId)
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('Error deleting conversation:', error);
+        return false;
+      }
+
+      // Clear from local storage if it's the current conversation
+      if (this.currentConversation?.id === conversationId) {
+        this.currentConversation = null;
+        localStorage.removeItem(STORAGE_KEYS.CURRENT_CONVERSATION);
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error deleting conversation:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Generate a summary of the conversation
+   */
+  private generateConversationSummary(conversation: StoredConversation): string {
+    const userMessages = conversation.messages
+      .filter(m => m.role === 'user')
+      .map(m => m.content);
+
+    if (userMessages.length === 0) return 'Empty conversation';
+
+    // Use the first user message as the main topic
+    const firstMessage = userMessages[0].slice(0, 100);
+    const mood = conversation.sessionState.currentMood;
+
+    let summary = firstMessage;
+    if (mood) {
+      summary = `[${mood}] ${summary}`;
+    }
+
+    return summary + (firstMessage.length < userMessages[0].length ? '...' : '');
+  }
+
+  /**
+   * Extract a preview from messages
+   */
+  private extractPreview(messages: any[]): string {
+    if (!messages || messages.length === 0) return 'Empty conversation';
+
+    const firstUserMessage = messages.find(m => m.role === 'user');
+    if (firstUserMessage) {
+      return firstUserMessage.content.slice(0, 80) + '...';
+    }
+
+    return 'Conversation';
+  }
+
+  /**
+   * Clear current conversation
+   */
+  clearCurrentConversation(): void {
+    this.currentConversation = null;
+    localStorage.removeItem(STORAGE_KEYS.CURRENT_CONVERSATION);
+  }
+
+  /**
+   * Export conversation for sharing or backup
+   */
+  exportConversation(): string {
+    if (!this.currentConversation) return '';
+
+    return JSON.stringify({
+      messages: this.currentConversation.messages.map(m => ({
+        role: m.role,
+        content: m.content,
+        timestamp: m.timestamp.toISOString(),
+      })),
+      sessionState: this.currentConversation.sessionState,
+      exportedAt: new Date().toISOString(),
+    }, null, 2);
+  }
+}
+
+// ============================================================================
+// SINGLETON INSTANCE
+// ============================================================================
+
+export const conversationStore = new ConversationStore();

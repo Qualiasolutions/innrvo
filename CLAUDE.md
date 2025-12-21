@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 npm install          # Install dependencies
-npm run dev          # Start Vite dev server (port 5173)
+npm run dev          # Start Vite dev server (port 3000)
 npm run build        # Production build to /dist
 npm run preview      # Preview production build locally
 
@@ -14,115 +14,222 @@ npm run test         # Run Vitest in watch mode
 npm run test:run     # Run tests once
 npm run test:ui      # Interactive test UI
 npm run test:coverage # Run tests with coverage report
+
+# Run single test file
+vitest run tests/lib/credits.test.ts
 ```
 
 ## Project Overview
 
-**INrVO - Digital Zen Wellness** is a React + TypeScript web app for AI-powered personalized meditation generation. Users describe their emotional state, the app generates custom meditation scripts via Google Gemini, synthesizes audio via ElevenLabs/Gemini TTS, and provides real-time playback with synchronized text highlighting.
+**INrVO - Digital Zen Wellness** is a React + TypeScript SPA for AI-powered personalized meditation generation. Users describe their emotional state, the app generates custom meditation scripts via Google Gemini, synthesizes audio via ElevenLabs TTS, and provides real-time playback with synchronized text highlighting.
 
 **Stack**: React 19 + TypeScript + Vite + Tailwind CSS 4 + Supabase + Vercel
 
 ## Architecture
 
 ### Voice Generation Pipeline
+
+```
+User prompt → Gemini 2.0 Flash (script) → ElevenLabs TTS → AudioBuffer → ScriptReader sync
+```
+
 1. User enters prompt describing emotional state
-2. **Gemini 2.0 Flash** generates meditation script (100-150 words, optimized for 5-10s generation)
+2. **Gemini 2.0 Flash** generates meditation script (100-180 words)
 3. Audio tags like `[long pause]`, `[deep breath]` are injected for pacing
-4. **ElevenLabs** (cloned voices) or **Gemini TTS** (prebuilt voices) synthesizes audio
+4. **ElevenLabs** synthesizes cloned voice audio (only cloned voices supported)
 5. **ScriptReader** provides real-time word-by-word highlighting during playback
 
 ### Key Files
-- `App.tsx` - Main component handling all views and state (large file, candidate for refactoring)
-- `geminiService.ts` - Google Generative AI integration for script generation
-- `src/lib/voiceService.ts` - Voice generation routing (Gemini vs ElevenLabs)
-- `src/lib/elevenlabs.ts` - ElevenLabs TTS & voice cloning API
-- `src/lib/textSync.ts` - Audio-text synchronization logic
-- `src/lib/credits.ts` - Credit management & usage tracking
-- `src/contexts/ModalContext.tsx` - Centralized state for 14 modal types
-- `components/ScriptReader.tsx` - Real-time word highlighting during playback
-- `components/InlinePlayer.tsx` - Compact audio player with seek functionality
 
-### Voice Cloning Flow
-1. User records 30+ seconds of voice in `SimpleVoiceClone.tsx`
-2. Audio uploaded to ElevenLabs `/v1/voices/add` endpoint
-3. Returns `voice_id` stored in Supabase
-4. Costs 5,000 credits per clone with duplicate detection
+| File | Purpose |
+|------|---------|
+| `App.tsx` | Main component (~1800 lines, manages all views and state) |
+| `geminiService.ts` | Google Generative AI integration for script generation |
+| `src/lib/voiceService.ts` | Voice generation routing (cloned voices only) |
+| `src/lib/elevenlabs.ts` | ElevenLabs TTS & voice cloning API |
+| `src/lib/edgeFunctions.ts` | Edge Function client wrappers |
+| `src/lib/textSync.ts` | Audio-text synchronization logic |
+| `src/lib/credits.ts` | Credit management & usage tracking |
+| `src/contexts/ModalContext.tsx` | Centralized state for 14 modal types |
+| `components/ScriptReader.tsx` | Real-time word highlighting during playback |
+| `components/InlinePlayer.tsx` | Compact audio player with seek functionality |
+| `components/SimpleVoiceClone.tsx` | Voice recording and cloning UI |
+| `lib/supabase.ts` | Supabase client and database operations |
+
+### Edge Functions (Supabase)
+
+All API keys are server-side. Frontend sends JWT for authentication.
+
+| Function | Purpose |
+|----------|---------|
+| `elevenlabs-voice-ops/` | Voice operations (delete, status check) |
+| `elevenlabs-clone/` | Voice cloning via ElevenLabs |
+| `elevenlabs-tts/` | Text-to-speech generation |
+| `gemini-script/` | Script generation and extension |
+| `gemini-tts/` | Gemini TTS (unused - only cloned voices) |
+| `generate-speech/` | Legacy TTS with credit deduction |
 
 ### Credit System
-- Monthly free allowance: 10,000 credits
+
+- Monthly free allowance: 100,000 credits
 - TTS generation: 280 credits per 1K characters
 - Voice cloning: 5,000 credits per clone
-- Database-backed tracking with RLS policies
+- Monthly clone limit: 20 clones
+
+Database tables: `user_credits`, `voice_usage_limits`, `voice_cloning_usage`
 
 ## Database (Supabase)
 
 Migrations in `supabase/migrations/`:
-- `001_add_voice_cloning.sql` - Voice storage schema
+- `001_add_voice_cloning.sql` - Voice storage schema, credits tables
 - `002_credit_functions.sql` - Credit increment functions
 - `003_audio_tags.sql` - Audio tag configuration
 - `004_secure_credit_functions.sql` - Secured credit operations
+- `005_credit_check_rpc.sql` - Credit status RPC
+- `006_perform_credit_operation.sql` - Atomic credit operations
+- `007_performance_indexes.sql` - Query optimization indexes
 
-Edge Functions in `supabase/functions/` - Deno-based serverless
+Key tables with RLS: `voice_profiles`, `user_credits`, `voice_usage_limits`, `voice_cloning_usage`, `meditation_history`
 
 ## Environment Variables
 
-Required in `.env.local`:
+Frontend (`.env.local`):
 ```
-VITE_GEMINI_API_KEY=...
-VITE_ELEVENLABS_API_KEY=...
-VITE_SUPABASE_URL=...
-VITE_SUPABASE_ANON_KEY=...
+VITE_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJ...
+VITE_SENTRY_DSN=https://...  # Optional
 ```
 
-## Testing
-
-Uses Vitest + Happy DOM + MSW for mocking. Tests located in `tests/` directory.
-
-```bash
-npm run test             # Watch mode
-npm run test:run         # Single run
-vitest run src/lib/credits.test.ts  # Run single test file
+Edge Functions (Supabase secrets - NOT in .env.local):
+```
+ELEVENLABS_API_KEY=sk_...
+GEMINI_API_KEY=AI...
+SUPABASE_SERVICE_ROLE_KEY=...  # Auto-provided
 ```
 
 ## Security Architecture
 
-### ⚠️ KNOWN ISSUE: API Key Exposure
+- CORS restricted to allowed origins in Edge Functions
+- JWT validation on all Edge Functions
+- User identity derived from JWT, not request body
+- RLS enabled on all user data tables
+- CSP headers configured in `vercel.json`
 
-**Current State**: Frontend code (`elevenlabs.ts`, `geminiService.ts`) calls third-party APIs directly using `VITE_*` environment variables. These keys are exposed to the browser and could be extracted by users.
+## Testing
 
-**Mitigation in Place**:
-- Edge Functions exist in `supabase/functions/` with server-side keys
-- Edge Functions have CORS restricted to allowed origins only
-- Edge Functions validate JWT tokens from Authorization header
-- User identity derived from JWT, not from request body (prevents spoofing)
+Uses Vitest + Happy DOM + MSW for mocking. Tests in `tests/` directory.
 
-**Recommended Fix** (requires architecture change):
-1. Move all API calls from frontend to Edge Functions
-2. Remove `VITE_ELEVENLABS_API_KEY` and `VITE_GEMINI_API_KEY` from frontend
-3. Update frontend to call Edge Functions instead of APIs directly
-4. Add rate limiting per user at Edge Function level
+Coverage thresholds for critical paths:
+- `src/lib/credits.ts`: 90% statements, 85% branches, 90% functions
 
-**Edge Functions Status**:
-- `generate-speech/` - Ready with JWT validation & CORS
-- `process-voice/` - Ready with JWT validation & CORS
-- Both use `SUPABASE_SERVICE_ROLE_KEY` + `ELEVENLABS_API_KEY` + `GEMINI_API_KEY` (server-side only)
+## Code Patterns
 
-### Production Audit Fixes (Dec 2024)
-- ✅ CORS restricted to allowed origins (not wildcard)
-- ✅ JWT validation on all Edge Functions
-- ✅ React ErrorBoundary for crash recovery
-- ✅ RLS enabled on all user data tables
-- ✅ Background images compressed (7.7MB → 200KB)
+### Modal Management
+Use `useModals()` hook from `src/contexts/ModalContext.tsx`:
+```typescript
+const { openModal, closeModal, showCloneModal } = useModals();
+openModal('clone');
+```
 
-## Deployment
+### Voice Generation
+```typescript
+import { voiceService } from './src/lib/voiceService';
+const { audioBuffer, base64 } = await voiceService.generateSpeech(text, voice, audioContext);
+```
 
-Deployed to Vercel with security headers configured in `vercel.json` (CSP, HSTS, X-Frame-Options).
-
-Code splitting configured in `vite.config.ts` with separate chunks for React, D3, Supabase, and Google GenAI.
+### Credit Operations
+```typescript
+import { creditService } from './src/lib/credits';
+await creditService.deductCredits(amount, 'TTS_GENERATE', voiceProfileId);
+const status = await creditService.checkCreditsStatus();
+```
 
 ## UI Patterns
 
 - **Glass morphism** effects throughout (see `index.css`)
 - **GPU-optimized animations** with transform3d, respects `prefers-reduced-motion`
 - **Mobile-first responsive** with iOS safe area support
-- **ModalContext** for centralized modal state management
+- Lazy-loaded components for bundle optimization (~400KB saved)
+
+## Bundle Optimization
+
+Configured in `vite.config.ts`:
+- Code splitting: react-vendor, d3-vendor, supabase-vendor, sentry-vendor
+- `@google/genai` dynamically imported (not in initial bundle)
+- Target: ES2020 for modern browsers
+
+## AI Meditation Agent
+
+### Overview
+
+The app includes a conversational AI agent (`src/lib/agent/`) that guides users through personalized meditation experiences. It draws from 35+ wisdom teachers across multiple traditions.
+
+### Agent Architecture
+
+```
+User message → MeditationAgent → Gemini 2.0 Flash → Response + Actions
+                    ↓
+              Knowledge Base (teachers, traditions, meditations)
+                    ↓
+              Agent Tools (generateScript, synthesizeAudio, etc.)
+```
+
+### Key Agent Files
+
+| File | Purpose |
+|------|---------|
+| `src/lib/agent/knowledgeBase.ts` | 35+ wisdom teachers, meditation types, emotional states |
+| `src/lib/agent/MeditationAgent.ts` | Core agent with system prompt and conversation logic |
+| `src/lib/agent/agentTools.ts` | Tools: generateScript, synthesizeAudio, suggestMeditation |
+| `src/lib/agent/conversationStore.ts` | Conversation history and persistence |
+| `src/hooks/useMeditationAgent.ts` | React hook for chat interface |
+| `components/AgentChat.tsx` | Chat UI component |
+
+### Wisdom Traditions
+
+The agent embodies teachings from:
+- **Modern Consciousness**: Joe Dispenza, Bruce Lipton, Deepak Chopra, Eckhart Tolle
+- **Ancient Wisdom**: Buddha, Lao Tzu, Rumi, Marcus Aurelius, Yogananda
+- **Psychology**: Carl Jung, Viktor Frankl, Gabor Maté, Richard Schwartz
+- **Mindfulness**: Thich Nhat Hanh, Ram Dass, Byron Katie, Louise Hay
+- **Science**: Einstein, Tesla, Rupert Sheldrake
+
+### Using the Agent
+
+```typescript
+import { useMeditationAgent } from './src/hooks/useMeditationAgent';
+
+function ChatComponent() {
+  const { messages, sendMessage, isLoading, greeting } = useMeditationAgent();
+
+  return (
+    <div>
+      <p>{greeting}</p>
+      {messages.map(msg => <Message key={msg.id} {...msg} />)}
+      <input onSubmit={(e) => sendMessage(e.target.value)} />
+    </div>
+  );
+}
+```
+
+### Agent Tools
+
+```typescript
+import { generateMeditationScript, suggestMeditation, getWisdomQuote } from './src/lib/agent';
+
+// Generate a meditation
+const result = await generateMeditationScript('I feel anxious', 'breathwork', {
+  duration: 'medium',
+  teacherInfluence: 'Thich Nhat Hanh'
+});
+
+// Get meditation suggestions
+const suggestions = suggestMeditation('anxious', 10); // 10 minutes available
+
+// Get a wisdom quote
+const quote = getWisdomQuote('Rumi', 'love');
+```
+
+### Database
+
+Agent conversations stored in `agent_conversations` table (migration `008_agent_conversations.sql`)

@@ -16,6 +16,7 @@ const VoiceManager = lazy(() => import('./components/VoiceManager'));
 const SimpleVoiceClone = lazy(() => import('./components/SimpleVoiceClone').then(m => ({ default: m.SimpleVoiceClone })));
 import InlinePlayer from './components/InlinePlayer';
 import ScriptReader from './components/ScriptReader';
+import { AgentChat } from './components/AgentChat';
 import { buildTimingMap, getCurrentWordIndex } from './src/lib/textSync';
 import { geminiService, decodeAudioBuffer, blobToBase64 } from './geminiService';
 import { voiceService } from './src/lib/voiceService';
@@ -1600,172 +1601,31 @@ const App: React.FC = () => {
                       onBackgroundVolumeChange={updateBackgroundVolume}
                     />
                   ) : (
-                    // Original Prompt Box
-                    <>
-                      {micError && (
-                        <div className="mb-4 text-center hidden">
-                          <span className="px-4 py-1.5 rounded-full bg-rose-500/10 text-rose-400 text-[10px] font-bold uppercase tracking-widest border border-rose-500/20">
-                            {micError}
-                          </span>
-                        </div>
-                      )}
-
-                  <div className="glass glass-prompt rounded-2xl md:rounded-[32px] p-1.5 md:p-2 shadow-2xl shadow-indigo-900/20 border border-white/30">
-                    <div className="flex items-center gap-2 md:gap-3 px-1 md:px-2 overflow-visible">
-                      {/* Plus Menu Button */}
-                      <div className="relative flex-shrink-0">
-                          <button
-                            onClick={() => setShowPromptMenu(!showPromptMenu)}
-                            className={`p-1.5 md:p-2 rounded-full transition-all flex items-center justify-center border ${
-                              showPromptMenu
-                                ? 'bg-indigo-500/20 text-indigo-400 border-indigo-400/60'
-                                : 'text-slate-300 hover:text-white border-white/40 hover:border-white/60 hover:bg-white/5'
-                            }`}
-                            title="Open menu"
-                          >
-                            <ICONS.Plus className={`w-4 h-4 md:w-5 md:h-5 transition-transform duration-200 ${showPromptMenu ? 'rotate-45' : ''}`} />
-                          </button>
-
-                          {/* Popup Menu */}
-                          {showPromptMenu && (
-                            <>
-                              {/* Backdrop to close menu */}
-                              <div
-                                className="fixed inset-0 z-40"
-                                onClick={() => setShowPromptMenu(false)}
-                              />
-
-                              {/* Menu Container */}
-                              <div className="absolute bottom-full left-0 mb-3 z-50 glass rounded-2xl p-2 border border-white/10 shadow-xl shadow-black/20 animate-in fade-in slide-in-from-bottom-2 min-w-[160px]">
-                                <div className="grid grid-cols-2 gap-2 w-full">
-                                  {/* Voice Selection */}
-                                  <button
-                                    onClick={() => {
-                                      setShowVoiceManager(true);
-                                      setShowPromptMenu(false);
-                                    }}
-                                    className={`p-3 rounded-xl transition-all btn-press focus-ring flex flex-col items-center gap-1.5 ${
-                                      selectedVoice
-                                        ? 'bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30'
-                                        : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-cyan-400'
-                                    }`}
-                                    title={selectedVoice ? `Voice: ${selectedVoice.name}` : 'Select voice'}
-                                  >
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                                    </svg>
-                                    <span className="text-[10px] font-medium">Voice</span>
-                                  </button>
-
-                                  {/* Templates */}
-                                  <button
-                                    onClick={() => {
-                                      setShowTemplatesModal(true);
-                                      setShowPromptMenu(false);
-                                    }}
-                                    className="p-3 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-purple-400 transition-all btn-press focus-ring flex flex-col items-center gap-1.5"
-                                    title="Browse templates"
-                                  >
-                                    <ICONS.Sparkle className="w-5 h-5" />
-                                    <span className="text-[10px] font-medium">Templates</span>
-                                  </button>
-
-                                  {/* Music */}
-                                  <button
-                                    onClick={() => {
-                                      setShowMusicModal(true);
-                                      setShowPromptMenu(false);
-                                    }}
-                                    className={`p-3 rounded-xl transition-all btn-press focus-ring flex flex-col items-center gap-1.5 ${
-                                      selectedBackgroundTrack.id !== 'none'
-                                        ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30'
-                                        : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-emerald-400'
-                                    }`}
-                                    title={`Background: ${selectedBackgroundTrack.name}`}
-                                  >
-                                    <ICONS.Music className="w-5 h-5" />
-                                    <span className="text-[10px] font-medium">Music</span>
-                                  </button>
-
-                                  {/* Audio Tags */}
-                                  <button
-                                    onClick={() => {
-                                      // Calculate smart suggestions based on current prompt
-                                      setSuggestedAudioTags(getSuggestedTags(script));
-                                      setShowAudioTagsModal(true);
-                                      setShowPromptMenu(false);
-                                    }}
-                                    className={`p-3 rounded-xl transition-all btn-press focus-ring flex flex-col items-center gap-1.5 ${
-                                      selectedAudioTags.length > 0
-                                        ? 'bg-violet-500/20 text-violet-400 hover:bg-violet-500/30'
-                                        : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-violet-400'
-                                    }`}
-                                    title={selectedAudioTags.length > 0 ? `${selectedAudioTags.length} tags selected` : 'Add audio tags'}
-                                  >
-                                    <ICONS.Tags className="w-5 h-5" />
-                                    <span className="text-[10px] font-medium">Tags</span>
-                                  </button>
-                                </div>
-                              </div>
-                            </>
-                          )}
-                      </div>
-
-                      {/* Input Field */}
-                      <input
-                        type="text"
-                        placeholder="e.g., 'calm my anxiety', 'help me sleep'..."
-                        className="flex-1 bg-transparent py-2.5 md:py-3 text-sm md:text-base text-slate-200 placeholder:text-slate-500 outline-none min-w-0 w-0"
-                        value={script}
-                        onChange={(e) => setScript(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            throttledGenerateAndPlay();
-                          }
-                        }}
-                      />
-
-                      {/* Voice Input Button - only show when input is empty */}
-                      {!script.trim() && (
-                        <button
-                          onClick={() => {
-                            if (isRecording) {
-                              stopRecording();
-                            } else {
-                              startRecording();
-                            }
-                          }}
-                          className={`
-                            flex-shrink-0 p-1.5 md:p-2 rounded-full transition-all flex items-center justify-center
-                            ${isRecording
-                              ? 'bg-rose-500/90 text-white animate-pulse'
-                              : 'text-slate-400/60 hover:text-slate-300 hover:bg-white/5'}
-                          `}
-                          title={isRecording ? 'Stop recording' : 'Voice input'}
-                        >
-                          <ICONS.Waveform className="w-4 h-4 md:w-5 md:h-5" />
-                        </button>
-                      )}
-
-                      {/* Send Button */}
-                      <button
-                        onClick={throttledGenerateAndPlay}
-                        disabled={isGenerating || !script.trim()}
-                        className={`
-                          flex-shrink-0 p-1.5 md:p-2 rounded-full transition-all flex items-center justify-center border
-                          ${isGenerating ? 'bg-indigo-500/50 border-indigo-400/60 cursor-not-allowed text-white/70' : script.trim() ? 'bg-indigo-500 border-indigo-300 hover:bg-indigo-400 active:scale-95 text-white' : 'text-slate-300 border-white/40'}
-                        `}
-                      >
-                        {isGenerating ? (
-                          <div className="animate-spin rounded-full h-3.5 w-3.5 md:h-4 md:w-4 border-2 border-white/30 border-t-white"></div>
-                        ) : (
-                          <ICONS.Send className="w-3.5 h-3.5 md:w-4 md:h-4" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                    </>
+                    // AI Agent Chat Interface
+                    <AgentChat
+                      onMeditationReady={(generatedScript, meditationType, userPrompt) => {
+                        // Set the user's original prompt for display
+                        setScript(userPrompt);
+                        // Set the generated script as enhanced script
+                        setEnhancedScript(generatedScript);
+                        // If a voice is selected, automatically start synthesis
+                        if (selectedVoice) {
+                          handleGenerateAndPlay();
+                        } else {
+                          // Prompt user to select a voice
+                          setShowVoiceManager(true);
+                        }
+                      }}
+                      onRequestVoiceSelection={() => setShowVoiceManager(true)}
+                      onOpenTemplates={() => setShowTemplatesModal(true)}
+                      onOpenMusic={() => setShowMusicModal(true)}
+                      onOpenTags={() => {
+                        setSuggestedAudioTags(getSuggestedTags(script));
+                        setShowAudioTagsModal(true);
+                      }}
+                      selectedVoice={selectedVoice}
+                      isGenerating={isGenerating}
+                    />
                   )}
                 </div>
               </div>
