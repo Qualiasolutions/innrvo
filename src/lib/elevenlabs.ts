@@ -74,9 +74,9 @@ export const elevenlabsService = {
    * Uses Edge Functions for secure API key handling
    * @param audioBlob - Audio blob (recommended 30+ seconds for best quality)
    * @param options - Voice cloning options
-   * @returns Promise<string> - Voice ID
+   * @returns Promise<{ elevenlabsVoiceId: string, voiceProfileId: string }> - Voice ID and Profile ID
    */
-  async cloneVoice(audioBlob: Blob, options: VoiceCloningOptions): Promise<string> {
+  async cloneVoice(audioBlob: Blob, options: VoiceCloningOptions): Promise<{ elevenlabsVoiceId: string; voiceProfileId: string }> {
     // Validate audio duration first
     let duration = 0;
     try {
@@ -111,14 +111,14 @@ export const elevenlabsService = {
 
     // Use Edge Functions (secure, API key server-side)
     console.log('Uploading voice via Edge Function...');
-    const voiceId = await elevenLabsCloneVoice(
+    const result = await elevenLabsCloneVoice(
       audioFile,
       options.name,
       options.description,
       options.metadata
     );
-    console.log(`Voice cloned successfully! Voice ID: ${voiceId}`);
-    return voiceId;
+    console.log(`Voice cloned successfully! Voice ID: ${result.elevenlabsVoiceId}`);
+    return result;
   },
 
   /**

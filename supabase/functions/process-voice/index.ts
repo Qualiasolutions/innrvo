@@ -37,6 +37,7 @@ interface ProcessVoiceRequest {
 interface ProcessVoiceResponse {
   success: boolean;
   elevenlabsVoiceId?: string;
+  voiceProfileId?: string;
   error?: string;
   creditsUsed?: number;
 }
@@ -231,6 +232,7 @@ serve(async (req) => {
     const response: ProcessVoiceResponse = {
       success: true,
       elevenlabsVoiceId,
+      voiceProfileId: voiceProfile.id,
       creditsUsed: 5000,
     };
 

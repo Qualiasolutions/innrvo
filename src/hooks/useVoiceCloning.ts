@@ -142,8 +142,6 @@ export function useVoiceCloning(
 
     setCloningStatus({ state: 'validating' });
 
-    let elevenlabsVoiceId: string | null = null;
-    let creditsDeducted = false;
     const voiceMetadata = metadata || DEFAULT_VOICE_METADATA;
 
     try {
@@ -156,15 +154,17 @@ export function useVoiceCloning(
 
       setCloningStatus({ state: 'uploading_to_elevenlabs' });
 
-      // Clone with ElevenLabs - now includes metadata
+      // Clone with ElevenLabs - this creates BOTH the ElevenLabs voice AND the database profile
+      // The Edge Function handles everything atomically
+      let cloneResult: { elevenlabsVoiceId: string; voiceProfileId: string };
       try {
-        elevenlabsVoiceId = await elevenlabsService.cloneVoice(blob, {
+        cloneResult = await elevenlabsService.cloneVoice(blob, {
           name,
           description: 'Meditation voice clone created with INrVO',
           metadata: voiceMetadata,
         });
       } catch (cloneError: any) {
-        console.error('ElevenLabs cloning failed:', cloneError);
+        console.error('Voice cloning failed:', cloneError);
         setCloningStatus({
           state: 'error',
           message: cloneError.message || 'Voice cloning failed',
@@ -173,65 +173,17 @@ export function useVoiceCloning(
         return;
       }
 
-      // Deduct credits after successful clone
-      try {
-        const costConfig = creditService.getCostConfig();
-        await creditService.deductCredits(
-          costConfig.VOICE_CLONE,
-          'CLONE_CREATE',
-          undefined,
-          userId
-        );
-        creditsDeducted = true;
-      } catch (creditError: any) {
-        console.error('Failed to deduct credits:', creditError);
-        // Continue even if credit deduction fails
-      }
-
       setCloningStatus({ state: 'saving_to_database' });
 
-      // Save to database with rollback on failure
-      let savedVoice;
-      try {
-        savedVoice = await createVoiceProfile(
-          name,
-          'Cloned voice profile',
-          'en-US',
-          undefined,
-          elevenlabsVoiceId
-        );
-      } catch (dbError: any) {
-        console.error('Database save failed, rolling back:', dbError);
-
-        // Rollback: Delete voice from ElevenLabs
-        if (elevenlabsVoiceId) {
-          try {
-            await elevenlabsService.deleteVoice(elevenlabsVoiceId);
-          } catch (rollbackError) {
-            console.error('Failed to rollback ElevenLabs voice:', rollbackError);
-          }
-        }
-
-        if (creditsDeducted) {
-          console.warn('Credits were deducted but voice save failed. Manual refund may be needed.');
-        }
-
-        setCloningStatus({
-          state: 'error',
-          message: dbError.message || 'Failed to save voice profile',
-          canRetry: true,
-        });
-        return;
-      }
-
       // Save audio sample as backup (non-critical)
+      // The database profile was already created by the Edge Function
       try {
         const base64 = await blobToBase64(blob);
         await createVoiceClone(
-          savedVoice.name,
+          name,
           base64,
           'Voice sample for cloned voice',
-          { elevenlabsVoiceId }
+          { elevenlabsVoiceId: cloneResult.elevenlabsVoiceId }
         );
       } catch (e) {
         console.warn('Failed to save voice sample backup:', e);
@@ -239,13 +191,13 @@ export function useVoiceCloning(
 
       // Create voice profile for UI
       const newVoice: VoiceProfile = {
-        id: savedVoice.id,
-        name: savedVoice.name,
+        id: cloneResult.voiceProfileId,
+        name: name,
         provider: 'ElevenLabs',
-        voiceName: savedVoice.name,
+        voiceName: name,
         description: 'Your personalized cloned voice',
         isCloned: true,
-        elevenlabsVoiceId,
+        elevenlabsVoiceId: cloneResult.elevenlabsVoiceId,
       };
 
       // Update state
@@ -260,8 +212,8 @@ export function useVoiceCloning(
 
       setCloningStatus({
         state: 'success',
-        voiceId: savedVoice.id,
-        voiceName: savedVoice.name,
+        voiceId: cloneResult.voiceProfileId,
+        voiceName: name,
       });
     } catch (error: any) {
       console.error('Voice cloning failed:', error);

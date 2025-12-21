@@ -241,6 +241,24 @@ export const getUserVoiceProfiles = async (): Promise<VoiceProfile[]> => {
   return data || [];
 };
 
+export const getVoiceProfileById = async (id: string): Promise<VoiceProfile | null> => {
+  const user = await getCurrentUser();
+  if (!user || !supabase) return null;
+
+  const { data, error } = await supabase
+    .from('voice_profiles')
+    .select('*')
+    .eq('id', id)
+    .eq('user_id', user.id)
+    .single();
+
+  if (error) {
+    console.error('Error fetching voice profile:', error);
+    return null;
+  }
+  return data;
+};
+
 export const updateVoiceProfile = async (
   id: string,
   updates: Partial<VoiceProfile>

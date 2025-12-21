@@ -115,12 +115,17 @@ export async function elevenLabsTTS(
  * API key is stored server-side
  * Now supports metadata for improved voice accuracy
  */
+export interface CloneVoiceResult {
+  elevenlabsVoiceId: string;
+  voiceProfileId: string;
+}
+
 export async function elevenLabsCloneVoice(
   audioBlob: Blob,
   name: string,
   description?: string,
   metadata?: VoiceMetadata
-): Promise<string> {
+): Promise<CloneVoiceResult> {
   const token = await getAuthToken();
 
   // Convert blob to base64 for JSON body (process-voice uses JSON, not FormData)
@@ -153,7 +158,10 @@ export async function elevenLabsCloneVoice(
     throw new Error('No voice_id returned from cloning service');
   }
 
-  return data.elevenlabsVoiceId;
+  return {
+    elevenlabsVoiceId: data.elevenlabsVoiceId,
+    voiceProfileId: data.voiceProfileId,
+  };
 }
 
 /**

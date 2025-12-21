@@ -23,7 +23,7 @@ import { voiceService } from './src/lib/voiceService';
 import { elevenlabsService, base64ToBlob } from './src/lib/elevenlabs';
 import { creditService } from './src/lib/credits';
 import { throttleLeading } from './src/utils/debounce';
-import { supabase, getCurrentUser, signOut, createVoiceProfile, getUserVoiceProfiles, VoiceProfile as DBVoiceProfile, createVoiceClone, saveMeditationHistory, getMeditationHistory, deleteMeditationHistory, MeditationHistory, getAudioTagPreferences, updateAudioTagPreferences, AudioTagPreference } from './lib/supabase';
+import { supabase, getCurrentUser, signOut, createVoiceProfile, getUserVoiceProfiles, getVoiceProfileById, VoiceProfile as DBVoiceProfile, createVoiceClone, saveMeditationHistory, getMeditationHistory, deleteMeditationHistory, MeditationHistory, getAudioTagPreferences, updateAudioTagPreferences, AudioTagPreference } from './lib/supabase';
 
 // Rotating taglines - one shown randomly per session
 const TAGLINES = [
@@ -662,6 +662,7 @@ const App: React.FC = () => {
     setCloningStatus({ state: 'validating' });
 
     let elevenlabsVoiceId: string | null = null;
+    let voiceProfileId: string | null = null;
     let creditsDeducted = false;
 
     try {
@@ -675,13 +676,16 @@ const App: React.FC = () => {
       setCloningStatus({ state: 'uploading_to_elevenlabs' });
 
       // Clone with ElevenLabs - now includes metadata for better accuracy
+      // Edge Function creates both the ElevenLabs voice and the database profile
       try {
-        elevenlabsVoiceId = await elevenlabsService.cloneVoice(blob, {
+        const cloneResult = await elevenlabsService.cloneVoice(blob, {
           name,
           description: 'Meditation voice clone created with INrVO',
           metadata: metadata,
         });
-        console.log('Voice cloned successfully with ID:', elevenlabsVoiceId);
+        elevenlabsVoiceId = cloneResult.elevenlabsVoiceId;
+        voiceProfileId = cloneResult.voiceProfileId;
+        console.log('Voice cloned successfully! Voice ID:', elevenlabsVoiceId, 'Profile ID:', voiceProfileId);
       } catch (cloneError: any) {
         console.error('ElevenLabs cloning failed:', cloneError);
         setCloningStatus({
@@ -709,18 +713,18 @@ const App: React.FC = () => {
 
       setCloningStatus({ state: 'saving_to_database' });
 
-      // Save to database with rollback on failure
+      // Voice profile already created by Edge Function - fetch it
       let savedVoice;
       try {
-        savedVoice = await createVoiceProfile(
-          name,
-          'Cloned voice profile',
-          'en-US',
-          undefined,
-          elevenlabsVoiceId
-        );
+        if (!voiceProfileId) {
+          throw new Error('No voice profile ID returned from server');
+        }
+        savedVoice = await getVoiceProfileById(voiceProfileId);
+        if (!savedVoice) {
+          throw new Error('Voice profile not found after cloning');
+        }
       } catch (dbError: any) {
-        console.error('Database save failed, rolling back:', dbError);
+        console.error('Failed to fetch voice profile:', dbError);
 
         // Rollback: Delete voice from ElevenLabs
         if (elevenlabsVoiceId) {
@@ -732,15 +736,9 @@ const App: React.FC = () => {
           }
         }
 
-        // TODO: Refund credits if deducted
-        // For now, log the issue
-        if (creditsDeducted) {
-          console.warn('Credits were deducted but voice save failed. Manual refund may be needed.');
-        }
-
         setCloningStatus({
           state: 'error',
-          message: dbError.message || 'Failed to save voice profile',
+          message: dbError.message || 'Failed to fetch voice profile',
           canRetry: true,
         });
         return;
@@ -753,7 +751,7 @@ const App: React.FC = () => {
           savedVoice.name,
           base64,
           'Voice sample for cloned voice',
-          { elevenlabsVoiceId }
+          { elevenlabsVoiceId: savedVoice.elevenlabs_voice_id || elevenlabsVoiceId }
         );
       } catch (e) {
         console.warn('Failed to save voice sample backup:', e);
@@ -765,9 +763,9 @@ const App: React.FC = () => {
         name: savedVoice.name,
         provider: 'ElevenLabs',
         voiceName: savedVoice.name,
-        description: 'Your personalized cloned voice',
+        description: savedVoice.description || 'Your personalized cloned voice',
         isCloned: true,
-        elevenlabsVoiceId,
+        elevenlabsVoiceId: savedVoice.elevenlabs_voice_id || elevenlabsVoiceId,
       };
 
       // Update available voices
