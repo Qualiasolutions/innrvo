@@ -98,7 +98,7 @@ const ScriptReader: React.FC<ScriptReaderProps> = memo(({
                                bg-gradient-to-r from-cyan-500/15 to-purple-500/15
                                text-cyan-400/80 font-sans font-medium
                                border border-cyan-500/20
-                               shadow-[0_0_10px_-5px_rgba(6,182,212,0.3)]"
+                               "
                   >
                     {token}
                   </span>
@@ -121,9 +121,7 @@ const ScriptReader: React.FC<ScriptReaderProps> = memo(({
                     ${isCurrent ? 'text-cyan-400 font-medium' : ''}
                     ${isFuture ? 'text-white/40' : ''}
                   `}
-                  style={isCurrent ? {
-                    textShadow: '0 0 20px rgba(129, 140, 248, 0.4)'
-                  } : undefined}
+                  style={undefined}
                 >
                   {token}{' '}
                 </span>

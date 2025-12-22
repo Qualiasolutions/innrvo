@@ -1547,7 +1547,7 @@ const App: React.FC = () => {
                            rounded-lg md:rounded-xl bg-white/5 hover:bg-white/10
                            text-slate-400 hover:text-white transition-all flex items-center justify-center
                            border border-white/5 hover:border-cyan-500/30
-                           hover:shadow-[0_0_20px_-8px_rgba(6,182,212,0.5)]"
+                           "
                 title="Open sidebar"
               >
                 <ICONS.SidebarToggle className="w-5 h-5" />
@@ -1980,8 +1980,8 @@ const App: React.FC = () => {
                       onClick={() => setSelectedCategory(category.id)}
                       className={`!p-8 !rounded-3xl cursor-pointer border border-transparent transition-all hover:scale-[1.02] ${
                         category.id === 'meditation'
-                          ? 'hover:border-cyan-500/30 hover:shadow-[0_0_30px_rgba(6,182,212,0.1)]'
-                          : 'hover:border-pink-500/30 hover:shadow-[0_0_30px_rgba(236,72,153,0.1)]'
+                          ? 'hover:border-cyan-500/30 '
+                          : 'hover:border-pink-500/30 '
                       }`}
                     >
                       <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-4 ${
@@ -2499,7 +2499,7 @@ const App: React.FC = () => {
                              rounded-lg md:rounded-xl bg-white/5 hover:bg-white/10
                              text-slate-400 hover:text-white transition-all flex items-center justify-center
                              border border-white/5 hover:border-cyan-500/30
-                             hover:shadow-[0_0_20px_-8px_rgba(6,182,212,0.5)]"
+                             "
                   title="Close sidebar"
                 >
                   <ICONS.SidebarToggle className="w-5 h-5" />

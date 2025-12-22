@@ -272,8 +272,7 @@ const MeditationPanel = memo<MeditationPanelProps>(({
             onKeyUp={handleTextareaSelect}
             className="w-full min-h-full bg-transparent text-white leading-relaxed
                        resize-none outline-none p-5 pb-32
-                       placeholder:text-white/30
-                       [text-shadow:0_1px_2px_rgba(0,0,0,0.8),0_0_20px_rgba(0,0,0,0.5)]"
+                       placeholder:text-white/30"
             style={{ fontSize: '16px' }}
             placeholder="Your meditation script..."
           />
@@ -389,7 +388,7 @@ const MeditationPanel = memo<MeditationPanelProps>(({
                           hover:from-violet-500/30 hover:to-purple-500/30
                           border border-violet-500/30 hover:border-violet-400/50
                           text-violet-200 font-medium
-                          hover:shadow-[0_0_12px_-4px_rgba(139,92,246,0.5)]
+                          
                           active:scale-95"
                         title={`Insert ${tag.label} at cursor`}
                       >

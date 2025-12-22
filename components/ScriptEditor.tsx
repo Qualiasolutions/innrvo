@@ -300,7 +300,7 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
                            hover:from-cyan-500/30 hover:to-purple-500/30
                            border border-cyan-500/30 hover:border-cyan-400/50
                            text-cyan-200 text-[10px] sm:text-xs font-medium transition-all duration-200
-                           hover:shadow-[0_0_15px_-5px_rgba(6,182,212,0.5)]"
+                           "
                   title={description}
                 >
                   <span className="text-cyan-400">+</span>
