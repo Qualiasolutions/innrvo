@@ -46,10 +46,9 @@ const InlinePlayer: React.FC<InlinePlayerProps> = memo(({
 
   return (
     <div className="glass glass-prompt rounded-2xl md:rounded-[32px] p-3 md:p-4
-                    shadow-[0_0_50px_-15px_rgba(99,102,241,0.4),0_25px_50px_-12px_rgba(0,0,0,0.5)]
-                    border border-indigo-500/20
-                    animate-in fade-in slide-in-from-bottom-2 duration-500
-                    glow-breathe">
+                    shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)]
+                    border border-cyan-500/20
+                    animate-in fade-in slide-in-from-bottom-2 duration-500">
       {/* Main controls row */}
       <div className="flex items-center gap-2 md:gap-3">
         {/* Mini visualizer */}
@@ -62,8 +61,8 @@ const InlinePlayer: React.FC<InlinePlayerProps> = memo(({
             w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center
             transition-all duration-300 btn-press focus-ring flex-shrink-0
             ${isPlaying
-              ? 'bg-white text-slate-900 shadow-[0_0_30px_-5px_rgba(255,255,255,0.5)]'
-              : 'bg-gradient-to-br from-indigo-500 to-indigo-600 text-white shadow-[0_0_30px_-5px_rgba(99,102,241,0.6)]'}
+              ? 'bg-white text-slate-900'
+              : 'bg-gradient-to-br from-cyan-500 to-cyan-600 text-white'}
             hover:scale-105 active:scale-95
           `}
           aria-label={isPlaying ? 'Pause' : 'Play'}
@@ -83,14 +82,12 @@ const InlinePlayer: React.FC<InlinePlayerProps> = memo(({
             onClick={handleProgressClick}
           >
             <div
-              className="absolute left-0 top-0 h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-400 rounded-full transition-all duration-100
-                         shadow-[0_0_10px_rgba(99,102,241,0.5)]"
+              className="absolute left-0 top-0 h-full bg-gradient-to-r from-cyan-500 via-cyan-400 to-cyan-500 rounded-full transition-all duration-100"
               style={{ width: `${progress}%` }}
             />
             {/* Hover indicator */}
             <div
               className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-white rounded-full
-                         shadow-[0_0_10px_rgba(255,255,255,0.8),0_0_20px_rgba(99,102,241,0.5)]
                          opacity-0 group-hover:opacity-100 transition-opacity"
               style={{ left: `calc(${progress}% - 5px)` }}
             />

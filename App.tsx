@@ -1546,8 +1546,8 @@ const App: React.FC = () => {
                 className="p-2 md:p-2.5 min-w-[40px] min-h-[40px] md:min-w-[44px] md:min-h-[44px]
                            rounded-lg md:rounded-xl bg-white/5 hover:bg-white/10
                            text-slate-400 hover:text-white transition-all flex items-center justify-center
-                           border border-white/5 hover:border-indigo-500/30
-                           hover:shadow-[0_0_20px_-8px_rgba(99,102,241,0.5)]"
+                           border border-white/5 hover:border-cyan-500/30
+                           hover:shadow-[0_0_20px_-8px_rgba(6,182,212,0.5)]"
                 title="Open sidebar"
               >
                 <ICONS.SidebarToggle className="w-5 h-5" />
@@ -1582,7 +1582,7 @@ const App: React.FC = () => {
                     const voice = availableVoices.find(v => v.id === e.target.value);
                     if (voice) setSelectedVoice(voice);
                   }}
-                  className="bg-white/5 border border-white/10 rounded-lg md:rounded-xl px-2 md:px-3 py-1.5 md:py-2 text-[10px] md:text-[11px] font-bold uppercase tracking-wider md:tracking-widest text-slate-300 outline-none focus:border-indigo-500 transition-all cursor-pointer hover:bg-white/10 max-w-[100px] md:max-w-none truncate"
+                  className="bg-white/5 border border-white/10 rounded-lg md:rounded-xl px-2 md:px-3 py-1.5 md:py-2 text-[10px] md:text-[11px] font-bold uppercase tracking-wider md:tracking-widest text-slate-300 outline-none focus:border-cyan-500 transition-all cursor-pointer hover:bg-white/10 max-w-[100px] md:max-w-none truncate"
                 >
                   {availableVoices.map(v => (
                     <option key={v.id} value={v.id} className="bg-slate-900">
@@ -1593,7 +1593,7 @@ const App: React.FC = () => {
               ) : (
                 <button
                   onClick={() => setShowCloneModal(true)}
-                  className="bg-indigo-500/20 border border-indigo-500/30 rounded-lg md:rounded-xl px-2 md:px-3 py-1.5 md:py-2 text-[10px] md:text-[11px] font-bold uppercase tracking-wider text-indigo-300 hover:bg-indigo-500/30 transition-all"
+                  className="bg-cyan-500/20 border border-cyan-500/30 rounded-lg md:rounded-xl px-2 md:px-3 py-1.5 md:py-2 text-[10px] md:text-[11px] font-bold uppercase tracking-wider text-cyan-300 hover:bg-cyan-500/30 transition-all"
                 >
                   Clone Voice
                 </button>
@@ -1604,7 +1604,7 @@ const App: React.FC = () => {
             {!user && (
               <button
                 onClick={() => setShowAuthModal(true)}
-                className="px-3 md:px-4 py-2 min-h-[40px] md:min-h-[44px] rounded-lg md:rounded-xl bg-gradient-to-r from-indigo-600/20 to-purple-600/20 hover:from-indigo-600/30 hover:to-purple-600/30 border border-indigo-500/20 text-[10px] font-bold uppercase tracking-wider md:tracking-widest text-indigo-400 transition-all"
+                className="px-3 md:px-4 py-2 min-h-[40px] md:min-h-[44px] rounded-lg md:rounded-xl bg-gradient-to-r from-cyan-600/20 to-purple-600/20 hover:from-cyan-600/30 hover:to-purple-600/30 border border-cyan-500/20 text-[10px] font-bold uppercase tracking-wider md:tracking-widest text-cyan-400 transition-all"
               >
                 Sign In
               </button>
@@ -1624,7 +1624,7 @@ const App: React.FC = () => {
                   {!chatStarted && (
                     <div className="pt-20 md:pt-28 text-center animate-in fade-in slide-in-from-top-4 duration-500">
                       <p className="text-2xl md:text-4xl font-light tracking-wide text-white/70">
-                        {tagline.main} <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-indigo-500 font-semibold">{tagline.highlight}</span>
+                        {tagline.main} <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-cyan-500 font-semibold">{tagline.highlight}</span>
                       </p>
                       <p className="text-base md:text-2xl text-slate-500 mt-1 md:mt-2 hidden sm:block">{tagline.sub}</p>
                     </div>
@@ -1831,14 +1831,14 @@ const App: React.FC = () => {
               </button>
 
               <div className="w-full max-w-2xl text-center space-y-6 md:space-y-8">
-                <div className="inline-block px-4 py-1.5 rounded-full bg-indigo-500/10 text-indigo-400 text-[10px] font-bold uppercase tracking-[0.5em] animate-pulse">Neural Streaming</div>
+                <div className="inline-block px-4 py-1.5 rounded-full bg-cyan-500/10 text-cyan-400 text-[10px] font-bold uppercase tracking-[0.5em] animate-pulse">Neural Streaming</div>
                 <p className="text-xl md:text-3xl text-slate-200 font-serif italic font-light leading-relaxed px-4 md:px-12 opacity-80 select-none">
                   "{script.substring(0, 180)}{script.length > 180 ? '...' : ''}"
                 </p>
               </div>
 
               <div className="relative w-full aspect-square max-w-[280px] md:max-w-[360px] flex items-center justify-center">
-                <div className={`absolute inset-0 bg-indigo-600/10 rounded-full blur-[100px] transition-all duration-1000 ${isPlaying ? 'scale-150 opacity-100' : 'scale-100 opacity-40'}`}></div>
+                <div className={`absolute inset-0 bg-cyan-600/10 rounded-full blur-[100px] transition-all duration-1000 ${isPlaying ? 'scale-150 opacity-100' : 'scale-100 opacity-40'}`}></div>
                 <Suspense fallback={<div className="w-full h-full animate-pulse bg-white/5 rounded-full" />}>
                   <Visualizer isActive={isPlaying} />
                 </Suspense>
@@ -1851,7 +1851,7 @@ const App: React.FC = () => {
 
                 <button
                   onClick={togglePlayback}
-                  className={`w-20 h-20 md:w-28 md:h-28 rounded-full flex items-center justify-center transition-all duration-500 shadow-2xl btn-press focus-ring ${isPlaying ? 'bg-white text-slate-950 shadow-white/20' : 'bg-indigo-600 text-white shadow-indigo-600/40'}`}
+                  className={`w-20 h-20 md:w-28 md:h-28 rounded-full flex items-center justify-center transition-all duration-500 shadow-2xl btn-press focus-ring ${isPlaying ? 'bg-white text-slate-950 shadow-white/20' : 'bg-cyan-600 text-white shadow-cyan-600/40'}`}
                 >
                   {isPlaying ? (
                     <ICONS.Pause className="w-8 h-8 md:w-10 md:h-10" />
@@ -1888,7 +1888,7 @@ const App: React.FC = () => {
 
         {/* MODAL: Voice Clone (lazy-loaded) */}
         {showCloneModal && (
-          <Suspense fallback={<div className="fixed inset-0 z-[90] bg-slate-950/90 flex items-center justify-center"><div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" /></div>}>
+          <Suspense fallback={<div className="fixed inset-0 z-[90] bg-slate-950/90 flex items-center justify-center"><div className="w-8 h-8 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin" /></div>}>
             <SimpleVoiceClone
               onClose={() => {
                 setShowCloneModal(false);
@@ -1980,13 +1980,13 @@ const App: React.FC = () => {
                       onClick={() => setSelectedCategory(category.id)}
                       className={`!p-8 !rounded-3xl cursor-pointer border border-transparent transition-all hover:scale-[1.02] ${
                         category.id === 'meditation'
-                          ? 'hover:border-indigo-500/30 hover:shadow-[0_0_30px_rgba(99,102,241,0.1)]'
+                          ? 'hover:border-cyan-500/30 hover:shadow-[0_0_30px_rgba(6,182,212,0.1)]'
                           : 'hover:border-pink-500/30 hover:shadow-[0_0_30px_rgba(236,72,153,0.1)]'
                       }`}
                     >
                       <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-4 ${
                         category.id === 'meditation'
-                          ? 'bg-gradient-to-br from-indigo-500/20 to-purple-500/20'
+                          ? 'bg-gradient-to-br from-cyan-500/20 to-purple-500/20'
                           : 'bg-gradient-to-br from-pink-500/20 to-purple-500/20'
                       }`}>
                         {category.icon === 'sparkle' ? <ICONS.Sparkle className="w-8 h-8" /> : <ICONS.Book className="w-8 h-8" />}
@@ -2008,7 +2008,7 @@ const App: React.FC = () => {
                       onClick={() => setSelectedSubgroup(subgroup.id)}
                       className={`!p-6 !rounded-2xl cursor-pointer border border-transparent transition-all hover:scale-[1.02] ${
                         selectedCategory === 'meditation'
-                          ? 'hover:border-indigo-500/30'
+                          ? 'hover:border-cyan-500/30'
                           : 'hover:border-pink-500/30'
                       }`}
                     >
@@ -2032,14 +2032,14 @@ const App: React.FC = () => {
                         onClick={() => handleSelectTemplate(template.prompt)}
                         className={`!p-5 !rounded-2xl cursor-pointer border border-transparent transition-all ${
                           selectedCategory === 'meditation'
-                            ? 'hover:border-indigo-500/30'
+                            ? 'hover:border-cyan-500/30'
                             : 'hover:border-pink-500/30'
                         }`}
                       >
                         <h5 className="text-base font-bold text-white mb-1.5">{template.title}</h5>
                         <p className="text-sm text-slate-400 leading-relaxed">{template.description}</p>
                         <div className={`mt-3 text-[10px] font-bold uppercase tracking-widest ${
-                          selectedCategory === 'meditation' ? 'text-indigo-400' : 'text-pink-400'
+                          selectedCategory === 'meditation' ? 'text-cyan-400' : 'text-pink-400'
                         }`}>
                           Use Template →
                         </div>
@@ -2334,8 +2334,8 @@ const App: React.FC = () => {
                 {/* Header - Minimal */}
                 <div className="flex items-center justify-between px-4 py-3 md:px-6 md:py-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center">
-                      <ICONS.Sparkle className="w-4 h-4 text-indigo-400" />
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500/20 to-purple-500/20 flex items-center justify-center">
+                      <ICONS.Sparkle className="w-4 h-4 text-cyan-400" />
                     </div>
                     <span className="text-sm md:text-base font-medium text-white">Preview</span>
                   </div>
@@ -2352,12 +2352,12 @@ const App: React.FC = () => {
                 {(isGenerating || isExtending) && (
                   <div className="absolute inset-0 z-20 bg-black/60 backdrop-blur-sm rounded-2xl md:rounded-3xl flex flex-col items-center justify-center gap-4">
                     <div className="relative">
-                      <div className="w-16 h-16 rounded-full border-2 border-indigo-500/20 border-t-indigo-500 animate-spin"></div>
+                      <div className="w-16 h-16 rounded-full border-2 border-cyan-500/20 border-t-cyan-500 animate-spin"></div>
                       <div className="absolute inset-0 flex items-center justify-center">
                         {isExtending ? (
-                          <ICONS.Sparkle className="w-6 h-6 text-indigo-400 animate-pulse" />
+                          <ICONS.Sparkle className="w-6 h-6 text-cyan-400 animate-pulse" />
                         ) : (
-                          <ICONS.Waveform className="w-6 h-6 text-indigo-400 animate-pulse" />
+                          <ICONS.Waveform className="w-6 h-6 text-cyan-400 animate-pulse" />
                         )}
                       </div>
                     </div>
@@ -2393,7 +2393,7 @@ const App: React.FC = () => {
                     value={editableScript}
                     onChange={(e) => setEditableScript(e.target.value)}
                     disabled={isGenerating || isExtending}
-                    className="w-full h-56 md:h-72 p-4 rounded-xl bg-white/[0.03] border border-white/10 text-slate-200 text-sm md:text-base leading-relaxed font-serif resize-none focus:outline-none focus:border-indigo-500/40 focus:bg-white/[0.05] transition-all placeholder:text-slate-600 disabled:opacity-50"
+                    className="w-full h-56 md:h-72 p-4 rounded-xl bg-white/[0.03] border border-white/10 text-slate-200 text-sm md:text-base leading-relaxed font-serif resize-none focus:outline-none focus:border-cyan-500/40 focus:bg-white/[0.05] transition-all placeholder:text-slate-600 disabled:opacity-50"
                     placeholder="Your meditation script..."
                   />
 
@@ -2423,7 +2423,7 @@ const App: React.FC = () => {
                   <button
                     onClick={throttledPlayEditedScript}
                     disabled={!editableScript.trim() || isGenerating || isExtending}
-                    className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-sm font-medium transition-all hover:shadow-lg hover:shadow-indigo-500/25 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-cyan-600 to-purple-600 text-white text-sm font-medium transition-all hover:shadow-lg hover:shadow-cyan-500/25 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     <ICONS.Player className="w-4 h-4" />
                     Play
@@ -2498,8 +2498,8 @@ const App: React.FC = () => {
                   className="p-2 md:p-2.5 min-w-[40px] min-h-[40px] md:min-w-[44px] md:min-h-[44px]
                              rounded-lg md:rounded-xl bg-white/5 hover:bg-white/10
                              text-slate-400 hover:text-white transition-all flex items-center justify-center
-                             border border-white/5 hover:border-indigo-500/30
-                             hover:shadow-[0_0_20px_-8px_rgba(99,102,241,0.5)]"
+                             border border-white/5 hover:border-cyan-500/30
+                             hover:shadow-[0_0_20px_-8px_rgba(6,182,212,0.5)]"
                   title="Close sidebar"
                 >
                   <ICONS.SidebarToggle className="w-5 h-5" />
@@ -2513,7 +2513,7 @@ const App: React.FC = () => {
                   <>
                     {isLoadingHistory ? (
                       <div className="flex justify-center py-8">
-                        <div className="animate-spin rounded-full h-8 w-8 border-2 border-indigo-500/30 border-t-indigo-500"></div>
+                        <div className="animate-spin rounded-full h-8 w-8 border-2 border-cyan-500/30 border-t-cyan-500"></div>
                       </div>
                     ) : meditationHistory.length > 0 ? (
                       <div className="space-y-2">
@@ -2550,7 +2550,7 @@ const App: React.FC = () => {
                         setShowBurgerMenu(false);
                         setShowAuthModal(true);
                       }}
-                      className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm transition-colors"
+                      className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-sm transition-colors"
                     >
                       Sign In
                     </button>
@@ -2630,16 +2630,16 @@ const App: React.FC = () => {
             </button>
 
             <div className="flex-1 flex flex-col items-center justify-center pt-16 md:pt-0 relative z-10 max-w-4xl mx-auto">
-              <div className="inline-block px-4 py-1 rounded-full bg-indigo-500/10 text-indigo-400 text-[10px] font-bold uppercase tracking-[0.4em] mb-6">Guide</div>
+              <div className="inline-block px-4 py-1 rounded-full bg-cyan-500/10 text-cyan-400 text-[10px] font-bold uppercase tracking-[0.4em] mb-6">Guide</div>
               <h2 className="text-3xl md:text-5xl font-extralight text-center mb-4 tracking-tight">
-                <span className="bg-gradient-to-r from-indigo-300 via-purple-200 to-pink-300 bg-clip-text text-transparent">How INrVO Works</span>
+                <span className="bg-gradient-to-r from-cyan-300 via-purple-200 to-pink-300 bg-clip-text text-transparent">How INrVO Works</span>
               </h2>
               <p className="text-slate-500 text-center mb-12 max-w-lg">Create personalized meditations in seconds with AI</p>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
                 <GlassCard className="!p-6 !rounded-2xl text-center">
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center mx-auto mb-4">
-                    <span className="text-2xl font-bold text-indigo-400">1</span>
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-purple-500/20 flex items-center justify-center mx-auto mb-4">
+                    <span className="text-2xl font-bold text-cyan-400">1</span>
                   </div>
                   <h3 className="text-lg font-bold text-white mb-2">Write Your Intention</h3>
                   <p className="text-sm text-slate-400">Type a short phrase like "calm my anxiety" or "help me sleep" - or use voice input</p>
@@ -2670,7 +2670,7 @@ const App: React.FC = () => {
                     <p className="text-sm text-slate-400"><span className="text-white font-medium">Be specific:</span> "5-minute morning energy boost" works better than just "energy"</p>
                   </div>
                   <div className="flex items-start gap-3 p-4 rounded-xl bg-white/5">
-                    <ICONS.Microphone className="w-5 h-5 text-indigo-400 flex-shrink-0 mt-0.5" />
+                    <ICONS.Microphone className="w-5 h-5 text-cyan-400 flex-shrink-0 mt-0.5" />
                     <p className="text-sm text-slate-400"><span className="text-white font-medium">Clone your voice:</span> Record yourself to hear meditations in your own voice</p>
                   </div>
                   <div className="flex items-start gap-3 p-4 rounded-xl bg-white/5">
@@ -2727,8 +2727,8 @@ const App: React.FC = () => {
                 </div>
               ) : (
                 <GlassCard className="!p-8 !rounded-2xl text-center max-w-md">
-                  <div className="w-20 h-20 rounded-full bg-indigo-500/10 flex items-center justify-center mx-auto mb-6">
-                    <svg className="w-10 h-10 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="w-20 h-20 rounded-full bg-cyan-500/10 flex items-center justify-center mx-auto mb-6">
+                    <svg className="w-10 h-10 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
                     </svg>
                   </div>
@@ -2739,7 +2739,7 @@ const App: React.FC = () => {
                       setShowLibrary(false);
                       setShowAuthModal(true);
                     }}
-                    className="px-6 py-3 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold text-sm hover:scale-105 active:scale-95 transition-all"
+                    className="px-6 py-3 rounded-full bg-gradient-to-r from-cyan-600 to-purple-600 text-white font-bold text-sm hover:scale-105 active:scale-95 transition-all"
                   >
                     Sign In
                   </button>
@@ -2900,7 +2900,7 @@ const App: React.FC = () => {
                   <h3 className="text-xl font-bold text-white mb-4">What Makes Us Different</h3>
                   <div className="space-y-4">
                     <div className="flex items-start gap-4">
-                      <div className="w-10 h-10 rounded-xl bg-indigo-500/20 flex items-center justify-center flex-shrink-0">
+                      <div className="w-10 h-10 rounded-xl bg-cyan-500/20 flex items-center justify-center flex-shrink-0">
                         <ICONS.Sparkle className="w-5 h-5" />
                       </div>
                       <div>
@@ -2963,9 +2963,9 @@ const App: React.FC = () => {
             </button>
 
             <div className="flex-1 flex flex-col items-center pt-20 md:pt-16 relative z-10 max-w-4xl mx-auto w-full">
-              <div className="inline-block px-4 py-1 rounded-full bg-indigo-500/10 text-indigo-400 text-[10px] font-bold uppercase tracking-[0.4em] mb-6">Legal</div>
+              <div className="inline-block px-4 py-1 rounded-full bg-cyan-500/10 text-cyan-400 text-[10px] font-bold uppercase tracking-[0.4em] mb-6">Legal</div>
               <h2 className="text-3xl md:text-5xl font-extralight text-center mb-4 tracking-tight">
-                <span className="bg-gradient-to-r from-indigo-300 via-purple-200 to-pink-300 bg-clip-text text-transparent">Terms of Service</span>
+                <span className="bg-gradient-to-r from-cyan-300 via-purple-200 to-pink-300 bg-clip-text text-transparent">Terms of Service</span>
               </h2>
               <p className="text-slate-500 text-center mb-8">Last updated: December 2024</p>
 
@@ -3002,7 +3002,7 @@ const App: React.FC = () => {
 
                 <GlassCard className="!p-6 !rounded-2xl">
                   <h3 className="text-lg font-bold text-white mb-3">7. Contact</h3>
-                  <p className="text-slate-400">For questions about these Terms, contact us at <a href="https://qualiasolutions.net" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:text-indigo-300 transition-colors">qualiasolutions.net</a></p>
+                  <p className="text-slate-400">For questions about these Terms, contact us at <a href="https://qualiasolutions.net" target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:text-cyan-300 transition-colors">qualiasolutions.net</a></p>
                 </GlassCard>
               </div>
             </div>

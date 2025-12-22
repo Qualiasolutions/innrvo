@@ -255,7 +255,7 @@ export const AUDIO_TAG_CATEGORIES: { id: string; name: string; color: string; bg
 
 export const ICONS = {
   Logo: ({ className = "h-8" }: { className?: string }) => (
-    <svg viewBox="0 0 160 50" fill="none" xmlns="http://www.w3.org/2000/svg" className={`${className} transition-all duration-300 hover:drop-shadow-[0_0_10px_rgba(99,102,241,0.5)]`}>
+    <svg viewBox="0 0 160 50" fill="none" xmlns="http://www.w3.org/2000/svg" className={`${className} transition-all duration-300 hover:drop-shadow-[0_0_10px_rgba(6,182,212,0.5)]`}>
       <text x="0" y="38" className="font-sans" fill="currentColor" style={{ fontWeight: 200, fontSize: '32px', letterSpacing: '0.1em' }}>INR</text>
       <text x="75" y="38" className="font-sans" fill="currentColor" style={{ fontWeight: 800, fontSize: '32px' }}>V</text>
       <circle cx="115" cy="30" r="14" stroke="currentColor" strokeWidth="4" />
@@ -269,7 +269,7 @@ export const ICONS = {
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className={`${className} icon-glow`}>
       <defs>
         <linearGradient id="sparkleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#818cf8" />
+          <stop offset="0%" stopColor="#22d3ee" />
           <stop offset="100%" stopColor="#c084fc" />
         </linearGradient>
       </defs>
@@ -326,7 +326,7 @@ export const ICONS = {
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className={`${className} icon-glow`}>
       <defs>
         <linearGradient id="neuralGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#818cf8" />
+          <stop offset="0%" stopColor="#22d3ee" />
           <stop offset="100%" stopColor="#22d3ee" />
         </linearGradient>
       </defs>

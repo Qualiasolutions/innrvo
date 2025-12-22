@@ -114,12 +114,12 @@ const MiniVisualizer: React.FC<MiniVisualizerProps> = memo(({
     >
       <defs>
         <linearGradient id="miniAuraGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#818cf8" />
+          <stop offset="0%" stopColor="#22d3ee" />
           <stop offset="50%" stopColor="#c084fc" />
-          <stop offset="100%" stopColor="#818cf8" />
+          <stop offset="100%" stopColor="#22d3ee" />
         </linearGradient>
         <radialGradient id="miniCenterGrad">
-          <stop offset="0%" stopColor="#818cf8" stopOpacity="0.7" />
+          <stop offset="0%" stopColor="#22d3ee" stopOpacity="0.7" />
           <stop offset="100%" stopColor="transparent" stopOpacity="0" />
         </radialGradient>
       </defs>

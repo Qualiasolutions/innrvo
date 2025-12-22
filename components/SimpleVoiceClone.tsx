@@ -282,7 +282,7 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
           {!isSuccess && (
             <div className="flex items-center justify-center gap-2 text-xs">
               <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${
-                currentStep === 'metadata' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-white/5 text-slate-500'
+                currentStep === 'metadata' ? 'bg-cyan-500/20 text-cyan-400' : 'bg-white/5 text-slate-500'
               }`}>
                 <span className="w-5 h-5 rounded-full bg-current/20 flex items-center justify-center text-[10px] font-bold">1</span>
                 <span>Voice Profile</span>
@@ -291,7 +291,7 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
               <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${
-                currentStep === 'recording' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-white/5 text-slate-500'
+                currentStep === 'recording' ? 'bg-cyan-500/20 text-cyan-400' : 'bg-white/5 text-slate-500'
               }`}>
                 <span className="w-5 h-5 rounded-full bg-current/20 flex items-center justify-center text-[10px] font-bold">2</span>
                 <span>Record</span>
@@ -319,8 +319,8 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
               <span className="text-slate-500">Clones left: </span>
               <span className="text-white font-medium">{creditInfo.clonesRemaining}</span>
             </div>
-            <div className="px-3 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20">
-              <span className="text-indigo-400">Cost: {creditInfo.cloneCost.toLocaleString()}</span>
+            <div className="px-3 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/20">
+              <span className="text-cyan-400">Cost: {creditInfo.cloneCost.toLocaleString()}</span>
             </div>
           </div>
 
@@ -365,7 +365,7 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
                   value={profileName}
                   onChange={(e) => setProfileName(e.target.value)}
                   placeholder="My Meditation Voice"
-                  className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder:text-slate-600 focus:outline-none focus:border-indigo-500 transition-all"
+                  className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder:text-slate-600 focus:outline-none focus:border-cyan-500 transition-all"
                 />
               </div>
 
@@ -378,7 +378,7 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
                   <select
                     value={metadata.language}
                     onChange={(e) => updateMetadata('language', e.target.value)}
-                    className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:border-indigo-500 transition-all appearance-none cursor-pointer"
+                    className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:border-cyan-500 transition-all appearance-none cursor-pointer"
                   >
                     {VOICE_LANGUAGES.map(lang => (
                       <option key={lang.code} value={lang.code} className="bg-slate-900">
@@ -394,7 +394,7 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
                   <select
                     value={metadata.accent}
                     onChange={(e) => updateMetadata('accent', e.target.value)}
-                    className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:border-indigo-500 transition-all appearance-none cursor-pointer"
+                    className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:border-cyan-500 transition-all appearance-none cursor-pointer"
                   >
                     {availableAccents.map(accent => (
                       <option key={accent.value} value={accent.value} className="bg-slate-900">
@@ -418,7 +418,7 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
                       onClick={() => updateMetadata('gender', gender)}
                       className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
                         metadata.gender === gender
-                          ? 'bg-indigo-500/20 border-indigo-500 text-indigo-400 border'
+                          ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400 border'
                           : 'bg-white/5 border border-white/10 text-slate-400 hover:bg-white/10'
                       }`}
                     >
@@ -445,7 +445,7 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
                       onClick={() => updateMetadata('ageRange', age.value)}
                       className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
                         metadata.ageRange === age.value
-                          ? 'bg-indigo-500/20 border-indigo-500 text-indigo-400 border'
+                          ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400 border'
                           : 'bg-white/5 border border-white/10 text-slate-400 hover:bg-white/10'
                       }`}
                     >
@@ -465,7 +465,7 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
                   type="button"
                   onClick={() => updateMetadata('hasBackgroundNoise', !metadata.hasBackgroundNoise)}
                   className={`relative w-12 h-6 rounded-full transition-all ${
-                    metadata.hasBackgroundNoise ? 'bg-indigo-500' : 'bg-white/20'
+                    metadata.hasBackgroundNoise ? 'bg-cyan-500' : 'bg-white/20'
                   }`}
                 >
                   <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${
@@ -481,8 +481,8 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
             <div className="space-y-4">
               {/* Recording tips */}
               {!recordedBlob && !isRecording && (
-                <div className="p-4 rounded-lg bg-indigo-500/10 border border-indigo-500/20">
-                  <p className="text-indigo-400 text-sm font-medium mb-2">Recording Tips for Best Quality:</p>
+                <div className="p-4 rounded-lg bg-cyan-500/10 border border-cyan-500/20">
+                  <p className="text-cyan-400 text-sm font-medium mb-2">Recording Tips for Best Quality:</p>
                   <ul className="text-xs text-slate-400 space-y-1">
                     <li>• Speak calmly at a meditation pace</li>
                     <li>• Stay 6-12 inches from your microphone</li>
@@ -585,8 +585,8 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
               {/* Status message */}
               {isProcessing && (
                 <div className="flex items-center justify-center gap-3 py-2">
-                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-indigo-400/30 border-t-indigo-400"></div>
-                  <span className="text-indigo-400 text-sm font-medium">{getStatusMessage()}</span>
+                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-cyan-400/30 border-t-cyan-400"></div>
+                  <span className="text-cyan-400 text-sm font-medium">{getStatusMessage()}</span>
                 </div>
               )}
             </div>
@@ -607,7 +607,7 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
             <button
               onClick={handleProceedToRecording}
               disabled={!creditInfo.canClone || !isConfigured}
-              className="w-full px-4 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full px-4 py-3 rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               Continue to Recording
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -632,7 +632,7 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
               <button
                 onClick={handleCloneVoice}
                 disabled={!canSubmit || isProcessing || !creditInfo.canClone || !isConfigured}
-                className="flex-1 px-4 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-3 rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {isProcessing ? (
                   <>
@@ -650,7 +650,7 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
           {isSuccess && (
             <button
               onClick={onClose}
-              className="w-full px-4 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium transition-all"
+              className="w-full px-4 py-3 rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white font-medium transition-all"
             >
               Done
             </button>

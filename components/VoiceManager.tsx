@@ -95,7 +95,7 @@ const VoiceManager: React.FC<VoiceManagerProps> = ({
 
       <div className="w-full max-w-4xl mx-auto py-16 md:py-20 space-y-8">
         <div className="text-center space-y-4">
-          <div className="inline-block px-4 py-1 rounded-full bg-indigo-500/10 text-indigo-400 text-[10px] font-bold uppercase tracking-[0.4em]">
+          <div className="inline-block px-4 py-1 rounded-full bg-cyan-500/10 text-cyan-400 text-[10px] font-bold uppercase tracking-[0.4em]">
             Voice Library
           </div>
           <h3 className="text-3xl md:text-4xl font-serif font-bold text-white tracking-tight">
@@ -111,7 +111,7 @@ const VoiceManager: React.FC<VoiceManagerProps> = ({
               onClose();
               onCloneVoice();
             }}
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-medium hover:shadow-lg hover:shadow-indigo-500/25 transition-all hover:scale-105"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-600 to-purple-600 text-white font-medium hover:shadow-lg hover:shadow-cyan-500/25 transition-all hover:scale-105"
           >
             <ICONS.Waveform className="w-5 h-5" />
             Clone New Voice
@@ -120,7 +120,7 @@ const VoiceManager: React.FC<VoiceManagerProps> = ({
 
         {loading ? (
           <div className="flex items-center justify-center py-20">
-            <div className="animate-spin rounded-full h-10 w-10 border-4 border-indigo-500/20 border-t-indigo-500"></div>
+            <div className="animate-spin rounded-full h-10 w-10 border-4 border-cyan-500/20 border-t-cyan-500"></div>
           </div>
         ) : voices.length === 0 ? (
           <GlassCard className="text-center py-16">
@@ -132,7 +132,7 @@ const VoiceManager: React.FC<VoiceManagerProps> = ({
                 onClose();
                 onCloneVoice();
               }}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-medium hover:shadow-lg hover:shadow-indigo-500/25 transition-all"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-600 to-purple-600 text-white font-medium hover:shadow-lg hover:shadow-cyan-500/25 transition-all"
             >
               <ICONS.Waveform className="w-4 h-4" />
               Clone Your Voice
@@ -145,7 +145,7 @@ const VoiceManager: React.FC<VoiceManagerProps> = ({
                 key={voice.id}
                 className={`!p-6 border ${
                   currentVoiceId === voice.id
-                    ? 'border-indigo-500/30 bg-indigo-500/5'
+                    ? 'border-cyan-500/30 bg-cyan-500/5'
                     : 'border-transparent'
                 }`}
               >
@@ -164,12 +164,12 @@ const VoiceManager: React.FC<VoiceManagerProps> = ({
                               setEditName('');
                             }
                           }}
-                          className="flex-1 px-3 py-1 rounded-lg bg-white/10 border border-white/20 text-white text-sm focus:outline-none focus:border-indigo-500"
+                          className="flex-1 px-3 py-1 rounded-lg bg-white/10 border border-white/20 text-white text-sm focus:outline-none focus:border-cyan-500"
                           autoFocus
                         />
                         <button
                           onClick={() => handleRename(voice.id)}
-                          className="p-2 rounded-lg bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30"
+                          className="p-2 rounded-lg bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30"
                         >
                           ✓
                         </button>
@@ -193,7 +193,7 @@ const VoiceManager: React.FC<VoiceManagerProps> = ({
                     )}
                   </div>
                   {currentVoiceId === voice.id && (
-                    <span className="px-2 py-1 rounded-full bg-indigo-500/20 text-indigo-400 text-[10px] font-bold uppercase tracking-widest">
+                    <span className="px-2 py-1 rounded-full bg-cyan-500/20 text-cyan-400 text-[10px] font-bold uppercase tracking-widest">
                       Active
                     </span>
                   )}
@@ -211,7 +211,7 @@ const VoiceManager: React.FC<VoiceManagerProps> = ({
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => onSelectVoice(voice)}
-                      className="px-3 py-1.5 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-400 text-xs font-bold uppercase tracking-widest transition-all"
+                      className="px-3 py-1.5 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 text-xs font-bold uppercase tracking-widest transition-all"
                     >
                       Use
                     </button>

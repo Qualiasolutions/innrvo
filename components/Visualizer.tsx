@@ -157,12 +157,12 @@ const Visualizer: React.FC<VisualizerProps> = memo(({ isActive, intensity = 0.5 
       <svg ref={svgRef} className="w-full h-full">
         <defs>
           <linearGradient id="auraGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#818cf8" />
+            <stop offset="0%" stopColor="#22d3ee" />
             <stop offset="50%" stopColor="#c084fc" />
-            <stop offset="100%" stopColor="#818cf8" />
+            <stop offset="100%" stopColor="#22d3ee" />
           </linearGradient>
           <radialGradient id="centerGradient">
-            <stop offset="0%" stopColor="#818cf8" stopOpacity="0.8" />
+            <stop offset="0%" stopColor="#22d3ee" stopOpacity="0.8" />
             <stop offset="100%" stopColor="transparent" stopOpacity="0" />
           </radialGradient>
         </defs>

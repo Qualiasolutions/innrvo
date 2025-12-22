@@ -196,7 +196,7 @@ const Starfield: React.FC = () => {
       <div
         className="absolute inset-0 pointer-events-none opacity-20"
         style={{
-          background: 'radial-gradient(circle at 50% 50%, rgba(99, 102, 241, 0.04) 0%, transparent 60%)'
+          background: 'radial-gradient(circle at 50% 50%, rgba(6, 182, 212, 0.04) 0%, transparent 60%)'
         }}
       />
     </div>

@@ -84,15 +84,15 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ onComplete }) => {
       <div className="absolute bottom-12 left-1/2 -translate-x-1/2 flex items-center gap-3">
         <div className="flex gap-1">
           <div
-            className="w-1.5 h-1.5 rounded-full bg-indigo-500/60"
+            className="w-1.5 h-1.5 rounded-full bg-cyan-500/60"
             style={{ animation: 'pulse 1s ease-in-out infinite', animationDelay: '0s' }}
           />
           <div
-            className="w-1.5 h-1.5 rounded-full bg-indigo-500/60"
+            className="w-1.5 h-1.5 rounded-full bg-cyan-500/60"
             style={{ animation: 'pulse 1s ease-in-out infinite', animationDelay: '0.2s' }}
           />
           <div
-            className="w-1.5 h-1.5 rounded-full bg-indigo-500/60"
+            className="w-1.5 h-1.5 rounded-full bg-cyan-500/60"
             style={{ animation: 'pulse 1s ease-in-out infinite', animationDelay: '0.4s' }}
           />
         </div>

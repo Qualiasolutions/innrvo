@@ -242,11 +242,11 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-sm">
-      <div className="w-full max-w-3xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-br from-slate-900/95 via-indigo-950/90 to-slate-900/95 border border-white/20 shadow-2xl flex flex-col">
+      <div className="w-full max-w-3xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-br from-slate-900/95 via-cyan-950/90 to-slate-900/95 border border-white/20 shadow-2xl flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-white/10 shrink-0">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/30 shrink-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center shadow-lg shadow-cyan-500/30 shrink-0">
               <SparkleIcon />
             </div>
             <div className="min-w-0">
@@ -296,14 +296,14 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
                   key={tag}
                   onClick={() => insertTag(tag)}
                   className="group flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full
-                           bg-gradient-to-r from-indigo-500/20 to-purple-500/20
-                           hover:from-indigo-500/30 hover:to-purple-500/30
-                           border border-indigo-500/30 hover:border-indigo-400/50
-                           text-indigo-200 text-[10px] sm:text-xs font-medium transition-all duration-200
-                           hover:shadow-[0_0_15px_-5px_rgba(99,102,241,0.5)]"
+                           bg-gradient-to-r from-cyan-500/20 to-purple-500/20
+                           hover:from-cyan-500/30 hover:to-purple-500/30
+                           border border-cyan-500/30 hover:border-cyan-400/50
+                           text-cyan-200 text-[10px] sm:text-xs font-medium transition-all duration-200
+                           hover:shadow-[0_0_15px_-5px_rgba(6,182,212,0.5)]"
                   title={description}
                 >
-                  <span className="text-indigo-400">+</span>
+                  <span className="text-cyan-400">+</span>
                   {label}
                 </button>
               ))}
@@ -392,7 +392,7 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({
                        ${isGenerating || !editableScript.trim()
                          ? 'bg-white/10 text-white/40 cursor-not-allowed'
                          : selectedVoice
-                           ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-400 hover:to-purple-500 shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50'
+                           ? 'bg-gradient-to-r from-cyan-500 to-purple-600 text-white hover:from-cyan-400 hover:to-purple-500 shadow-lg shadow-cyan-500/30 hover:shadow-cyan-500/50'
                            : 'bg-gradient-to-r from-amber-500 to-orange-600 text-white hover:from-amber-400 hover:to-orange-500 shadow-lg shadow-amber-500/30'
                        }`}
             >

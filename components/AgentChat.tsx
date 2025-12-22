@@ -109,8 +109,8 @@ const MessageBubble = memo<MessageBubbleProps>(({ message, isLast }) => {
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4`}>
       {!isUser && (
         <div className="flex-shrink-0 mr-3 mt-1">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600
-                        flex items-center justify-center shadow-lg shadow-indigo-500/30">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-purple-600
+                        flex items-center justify-center shadow-lg shadow-cyan-500/30">
             <SparkleIcon className="w-4 h-4 text-white" />
           </div>
         </div>
@@ -120,7 +120,7 @@ const MessageBubble = memo<MessageBubbleProps>(({ message, isLast }) => {
         className={`
           max-w-[85%] rounded-2xl px-4 py-3
           ${isUser
-            ? 'bg-gradient-to-br from-indigo-600 to-indigo-700 text-white shadow-lg shadow-indigo-500/20'
+            ? 'bg-gradient-to-br from-cyan-600 to-cyan-700 text-white shadow-lg shadow-cyan-500/20'
             : 'bg-white/[0.08] text-white/90 border border-white/10'
           }
         `}
@@ -128,9 +128,9 @@ const MessageBubble = memo<MessageBubbleProps>(({ message, isLast }) => {
         {message.isLoading ? (
           <div className="flex items-center gap-3 py-1">
             <div className="flex gap-1.5">
-              <span className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-              <span className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-              <span className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              <span className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+              <span className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+              <span className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
             </div>
             <span className="text-white/50 text-sm">Contemplating...</span>
           </div>
@@ -141,7 +141,7 @@ const MessageBubble = memo<MessageBubbleProps>(({ message, isLast }) => {
         {message.quote && (
           <div className="mt-3 pt-3 border-t border-white/10">
             <p className="italic text-white/60 text-sm">"{message.quote.quote}"</p>
-            <p className="text-indigo-400 text-xs mt-1.5">— {message.quote.teacher}</p>
+            <p className="text-cyan-400 text-xs mt-1.5">— {message.quote.teacher}</p>
           </div>
         )}
       </div>
@@ -245,7 +245,7 @@ const MeditationPanel = memo<MeditationPanelProps>(({
         {/* Header - frosted glass effect */}
         <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-white/10 bg-black/30 backdrop-blur-md">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center">
               <SparkleIcon className="w-4 h-4 text-white" />
             </div>
             <div>
@@ -289,7 +289,7 @@ const MeditationPanel = memo<MeditationPanelProps>(({
               onClick={() => setShowControls(!showControls)}
               className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-all
                 ${showControls
-                  ? 'bg-indigo-500 text-white'
+                  ? 'bg-cyan-500 text-white'
                   : 'bg-white/10 text-white/60 hover:bg-white/20 hover:text-white'
                 }`}
             >
@@ -302,7 +302,7 @@ const MeditationPanel = memo<MeditationPanelProps>(({
                 onClick={onVoiceSelect}
                 className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1.5 transition-all
                   ${selectedVoice
-                    ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
+                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
                     : 'bg-white/10 text-white/50 border border-white/10 animate-pulse'
                   }`}
               >
@@ -326,7 +326,7 @@ const MeditationPanel = memo<MeditationPanelProps>(({
                 <button
                   onClick={() => setActiveTab('voice')}
                   className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all
-                    ${activeTab === 'voice' ? 'bg-indigo-500/30 text-indigo-300' : 'text-white/50'}`}
+                    ${activeTab === 'voice' ? 'bg-cyan-500/30 text-cyan-300' : 'text-white/50'}`}
                 >
                   Voice
                 </button>
@@ -353,7 +353,7 @@ const MeditationPanel = memo<MeditationPanelProps>(({
                     onClick={onVoiceSelect}
                     className="w-full p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-all flex items-center gap-3"
                   >
-                    <VoiceIcon className={`w-5 h-5 ${selectedVoice ? 'text-indigo-400' : 'text-white/40'}`} />
+                    <VoiceIcon className={`w-5 h-5 ${selectedVoice ? 'text-cyan-400' : 'text-white/40'}`} />
                     <span className="text-white/80 text-sm">
                       {selectedVoice ? `Change from ${selectedVoice.name}` : 'Tap to select a voice'}
                     </span>
@@ -411,8 +411,8 @@ const MeditationPanel = memo<MeditationPanelProps>(({
               ${!selectedVoice
                 ? 'bg-white/10 text-white/40'
                 : isGenerating
-                  ? 'bg-indigo-500/60 text-white'
-                  : 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/30 active:scale-[0.98]'
+                  ? 'bg-cyan-500/60 text-white'
+                  : 'bg-gradient-to-r from-cyan-500 to-purple-600 text-white shadow-lg shadow-cyan-500/30 active:scale-[0.98]'
               }`}
           >
             {isGenerating ? (
@@ -664,7 +664,7 @@ export const AgentChat: React.FC<AgentChatProps> = ({
                           transition-all duration-200 shadow-lg shadow-black/10
                           ${isRecording
                             ? 'border-rose-500/50 bg-rose-500/10'
-                            : 'border-white/10 focus-within:border-indigo-500/40 focus-within:bg-white/[0.08]'
+                            : 'border-white/10 focus-within:border-cyan-500/40 focus-within:bg-white/[0.08]'
                           }`}>
               <textarea
                 ref={inputRef}
@@ -689,11 +689,11 @@ export const AgentChat: React.FC<AgentChatProps> = ({
                   flex-shrink-0 ml-2
                   flex items-center justify-center transition-all duration-200
                   ${isProcessing && !isRecording
-                    ? 'h-10 w-10 rounded-full bg-indigo-500/50 cursor-not-allowed'
+                    ? 'h-10 w-10 rounded-full bg-cyan-500/50 cursor-not-allowed'
                     : isRecording
                       ? 'h-10 w-10 rounded-full bg-rose-500 hover:bg-rose-400 active:scale-95 text-white animate-pulse'
                       : inputValue.trim()
-                        ? 'h-10 w-10 rounded-full bg-indigo-500 hover:bg-indigo-400 active:scale-95 text-white'
+                        ? 'h-10 w-10 rounded-full bg-cyan-500 hover:bg-cyan-400 active:scale-95 text-white'
                         : 'p-2 hover:opacity-80 active:scale-95'
                   }
                 `}

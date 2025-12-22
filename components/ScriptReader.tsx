@@ -95,10 +95,10 @@ const ScriptReader: React.FC<ScriptReaderProps> = memo(({
                   <span
                     key={`${pIndex}-${tIndex}`}
                     className="inline-block px-2 py-0.5 mx-1 text-xs md:text-sm rounded-full
-                               bg-gradient-to-r from-indigo-500/15 to-purple-500/15
-                               text-indigo-400/80 font-sans font-medium
-                               border border-indigo-500/20
-                               shadow-[0_0_10px_-5px_rgba(99,102,241,0.3)]"
+                               bg-gradient-to-r from-cyan-500/15 to-purple-500/15
+                               text-cyan-400/80 font-sans font-medium
+                               border border-cyan-500/20
+                               shadow-[0_0_10px_-5px_rgba(6,182,212,0.3)]"
                   >
                     {token}
                   </span>
@@ -118,7 +118,7 @@ const ScriptReader: React.FC<ScriptReaderProps> = memo(({
                   className={`
                     transition-all duration-150 inline
                     ${isPast ? 'text-white/90' : ''}
-                    ${isCurrent ? 'text-indigo-400 font-medium' : ''}
+                    ${isCurrent ? 'text-cyan-400 font-medium' : ''}
                     ${isFuture ? 'text-white/40' : ''}
                   `}
                   style={isCurrent ? {
