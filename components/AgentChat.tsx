@@ -238,12 +238,12 @@ const MeditationPanel = memo<MeditationPanelProps>(({
   const estimatedDuration = Math.ceil(wordCount / 100);
 
   return (
-    <div className="fixed inset-0 z-[60] bg-[#020617] animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-[75] bg-[#020617] animate-in fade-in duration-300">
       {/* Full screen meditation editor */}
       <div className="h-full flex flex-col">
 
         {/* Header - frosted glass effect */}
-        <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-white/10 bg-black/30 backdrop-blur-md safe-area-top">
+        <div className="flex-shrink-0 relative z-10 flex items-center justify-between px-4 py-3 border-b border-white/10 bg-black/50 backdrop-blur-md">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center">
               <SparkleIcon className="w-4 h-4 text-white" />
@@ -255,7 +255,8 @@ const MeditationPanel = memo<MeditationPanelProps>(({
           </div>
           <button
             onClick={onClose}
-            className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/20 transition-all"
+            className="relative z-20 w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white hover:bg-white/30 transition-all active:scale-95"
+            aria-label="Close"
           >
             <CloseIcon className="w-5 h-5" />
           </button>
