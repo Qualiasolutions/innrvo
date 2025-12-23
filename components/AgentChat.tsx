@@ -285,26 +285,27 @@ const MeditationPanel = memo<MeditationPanelProps>(({
 
           {/* Options Row */}
           <div className="flex items-center gap-2">
-            {/* + Button to expand controls */}
+            {/* + Button to expand controls - matches voice chip height */}
             <button
               onClick={() => setShowControls(!showControls)}
-              className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-all
+              className={`flex-shrink-0 h-8 px-3 rounded-full flex items-center justify-center gap-1.5 text-xs font-medium border transition-all
                 ${showControls
-                  ? 'bg-cyan-500 text-white'
-                  : 'bg-white/10 text-white/60 hover:bg-white/20 hover:text-white'
+                  ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30'
+                  : 'bg-white/10 text-white/50 border-white/10 hover:bg-white/15 hover:text-white/70 hover:border-white/20'
                 }`}
             >
-              <PlusIcon className={`w-5 h-5 transition-transform duration-200 ${showControls ? 'rotate-45' : ''}`} />
+              <PlusIcon className={`w-3.5 h-3.5 transition-transform duration-200 ${showControls ? 'rotate-45' : ''}`} />
+              <span className="hidden sm:inline">{showControls ? 'Close' : 'Options'}</span>
             </button>
 
             {/* Status chips */}
             <div className="flex-1 flex items-center gap-2 overflow-x-auto no-scrollbar">
               <button
                 onClick={onVoiceSelect}
-                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1.5 transition-all
+                className={`flex-shrink-0 h-8 px-3 rounded-full text-xs font-medium flex items-center gap-1.5 border transition-all
                   ${selectedVoice
-                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
-                    : 'bg-white/10 text-white/50 border border-white/10 animate-pulse'
+                    ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30'
+                    : 'bg-white/10 text-white/50 border-white/10 animate-pulse'
                   }`}
               >
                 <VoiceIcon className="w-3.5 h-3.5" />
@@ -312,7 +313,7 @@ const MeditationPanel = memo<MeditationPanelProps>(({
               </button>
 
               {selectedMusic && selectedMusic.id !== 'none' && (
-                <span className="flex-shrink-0 px-3 py-1.5 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-medium border border-emerald-500/30">
+                <span className="flex-shrink-0 h-8 px-3 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-medium border border-emerald-500/30 flex items-center">
                   🎵 {selectedMusic.name}
                 </span>
               )}
