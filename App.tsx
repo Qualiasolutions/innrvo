@@ -1547,7 +1547,7 @@ const App: React.FC = () => {
             {!showBurgerMenu && (
               <button
                 onClick={() => setShowBurgerMenu(true)}
-                className="p-2 md:p-2.5 min-w-[40px] min-h-[40px] md:min-w-[44px] md:min-h-[44px]
+                className="ml-1 md:ml-2 p-2 md:p-2.5 min-w-[40px] min-h-[40px] md:min-w-[44px] md:min-h-[44px]
                            rounded-lg md:rounded-xl bg-white/5 hover:bg-white/10
                            text-slate-400 hover:text-white transition-all flex items-center justify-center
                            border border-white/5 hover:border-cyan-500/30
