@@ -238,7 +238,7 @@ const MeditationPanel = memo<MeditationPanelProps>(({
   const estimatedDuration = Math.ceil(wordCount / 100);
 
   return (
-    <div className="fixed inset-0 z-50 animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-[60] animate-in fade-in duration-300">
       {/* Full screen meditation editor - transparent to show stars */}
       <div className="h-full flex flex-col">
 
