@@ -184,6 +184,7 @@ const App: React.FC = () => {
   // Inline player state
   const [isInlineMode, setIsInlineMode] = useState(false);
   const [enhancedScript, setEnhancedScript] = useState('');
+  const [restoredScript, setRestoredScript] = useState<string | null>(null);
 
   // Script edit preview state (after generation, before playing)
   const [showScriptPreview, setShowScriptPreview] = useState(false);
@@ -1803,6 +1804,8 @@ const App: React.FC = () => {
                       onMusicChange={(track) => setSelectedBackgroundTrack(track)}
                       isGenerating={isGenerating}
                       isGeneratingAudio={isGenerating && generationStage === 'voice'}
+                      restoredScript={restoredScript}
+                      onRestoredScriptClear={() => setRestoredScript(null)}
                     />
                   )}
                 </div>
@@ -2534,7 +2537,28 @@ const App: React.FC = () => {
                           <button
                             key={item.id}
                             onClick={() => {
+                              // Restore meditation from history
+                              const scriptToRestore = item.enhanced_script || item.prompt;
                               setScript(item.prompt);
+                              setEnhancedScript(scriptToRestore);
+                              setRestoredScript(scriptToRestore);
+
+                              // Try to restore the voice if available
+                              if (item.voice_id && savedVoices.length > 0) {
+                                const matchingVoice = savedVoices.find(v => v.id === item.voice_id);
+                                if (matchingVoice) {
+                                  const voiceProfile: VoiceProfile = {
+                                    id: matchingVoice.id,
+                                    name: matchingVoice.name,
+                                    voiceName: matchingVoice.name,
+                                    description: 'Cloned voice',
+                                    isCloned: true,
+                                    elevenlabsVoiceId: matchingVoice.elevenlabs_voice_id,
+                                  };
+                                  setSelectedVoice(voiceProfile);
+                                }
+                              }
+
                               setShowBurgerMenu(false);
                             }}
                             className="history-item stagger-item slide-in-stagger w-full text-left p-3 rounded-xl bg-white/[0.02] hover:bg-white/[0.06] group"

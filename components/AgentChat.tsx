@@ -459,6 +459,9 @@ interface AgentChatProps {
   isGenerating?: boolean;
   isGeneratingAudio?: boolean;
   className?: string;
+  // Restored meditation from history
+  restoredScript?: string | null;
+  onRestoredScriptClear?: () => void;
 }
 
 export const AgentChat: React.FC<AgentChatProps> = ({
@@ -474,6 +477,8 @@ export const AgentChat: React.FC<AgentChatProps> = ({
   isGenerating: externalIsGenerating,
   isGeneratingAudio = false,
   className = '',
+  restoredScript,
+  onRestoredScriptClear,
 }) => {
   const {
     messages,
@@ -488,6 +493,7 @@ export const AgentChat: React.FC<AgentChatProps> = ({
   const [transcribedText, setTranscribedText] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [showMeditationPanel, setShowMeditationPanel] = useState(false);
+  const [restoredMeditationScript, setRestoredMeditationScript] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
@@ -514,6 +520,16 @@ export const AgentChat: React.FC<AgentChatProps> = ({
       setShowMeditationPanel(true);
     }
   }, [currentMeditation]);
+
+  // Handle restored meditation from history
+  useEffect(() => {
+    if (restoredScript) {
+      setRestoredMeditationScript(restoredScript);
+      setShowMeditationPanel(true);
+      // Clear the prop after processing
+      onRestoredScriptClear?.();
+    }
+  }, [restoredScript, onRestoredScriptClear]);
 
   // Cleanup speech recognition on unmount
   useEffect(() => {
@@ -629,6 +645,7 @@ export const AgentChat: React.FC<AgentChatProps> = ({
 
   const handleCloseMeditationPanel = useCallback(() => {
     setShowMeditationPanel(false);
+    setRestoredMeditationScript(null);
   }, []);
 
   return (
@@ -714,10 +731,10 @@ export const AgentChat: React.FC<AgentChatProps> = ({
       )}
 
       {/* Meditation Panel - Full screen on mobile, inline on desktop */}
-      {showMeditationPanel && currentMeditation?.script && (
+      {showMeditationPanel && (currentMeditation?.script || restoredMeditationScript) && (
         <MeditationPanel
-          script={currentMeditation.script}
-          meditationType={currentMeditation.meditationType}
+          script={currentMeditation?.script || restoredMeditationScript || ''}
+          meditationType={currentMeditation?.meditationType || 'general'}
           selectedVoice={selectedVoice || null}
           selectedMusic={selectedMusic || null}
           selectedTags={selectedTags}
