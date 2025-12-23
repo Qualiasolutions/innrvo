@@ -256,11 +256,10 @@ export async function elevenLabsTTS(
   }
 ): Promise<string> {
   // Default settings optimized for meditative, calm delivery
-  const response = await callEdgeFunction<ElevenLabsTTSResponse>('elevenlabs-tts', {
+  const response = await callEdgeFunction<{ success: boolean; audioBase64: string }>('generate-speech', {
     voiceId,
     text,
-    model_id: 'eleven_multilingual_v2',
-    voice_settings: voiceSettings || {
+    voiceSettings: voiceSettings || {
       stability: 0.75,           // Higher = calmer, more consistent
       similarity_boost: 0.7,
       style: 0.15,               // Low style = more soothing
@@ -268,7 +267,7 @@ export async function elevenLabsTTS(
     },
   });
 
-  return response.audio;
+  return response.audioBase64;
 }
 
 /**

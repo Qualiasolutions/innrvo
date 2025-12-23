@@ -104,9 +104,26 @@ export const ALLOWED_ORIGINS = [
   'http://localhost:3000',
 ];
 
+/**
+ * Check if origin is allowed (includes Vercel preview deployments)
+ */
+function isOriginAllowed(origin: string): boolean {
+  // Check exact matches first
+  if (ALLOWED_ORIGINS.includes(origin)) {
+    return true;
+  }
+
+  // Allow Vercel preview deployments (pattern: *.vercel.app)
+  if (origin.endsWith('.vercel.app') && origin.startsWith('https://')) {
+    return true;
+  }
+
+  return false;
+}
+
 export function getCorsHeaders(origin: string | null): Record<string, string> {
   return {
-    'Access-Control-Allow-Origin': origin && ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0],
+    'Access-Control-Allow-Origin': origin && isOriginAllowed(origin) ? origin : ALLOWED_ORIGINS[0],
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, accept-encoding',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
   };
