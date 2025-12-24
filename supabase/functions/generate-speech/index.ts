@@ -5,16 +5,20 @@ import { getRequestId, createLogger, getTracingHeaders } from "../_shared/tracin
 import { checkRateLimit, createRateLimitResponse, RATE_LIMITS } from "../_shared/rateLimit.ts";
 
 /**
- * Generate Speech using Chatterbox via Replicate
- * Replaced ElevenLabs with Chatterbox for 10x cost savings (~$0.03/run vs ~$0.30)
+ * Generate Speech - Supports both ElevenLabs and Chatterbox providers
+ *
+ * - ElevenLabs: For legacy cloned voices with elevenlabs_voice_id
+ * - Chatterbox: For new clones with voice_sample_url (10x cheaper)
  */
 
 interface GenerateSpeechRequest {
   text: string;
   voiceId: string;
   voiceSettings?: {
-    exaggeration?: number;  // Emotion exaggeration (0-1)
-    cfgWeight?: number;     // CFG weight for quality (0-1)
+    exaggeration?: number;  // Emotion exaggeration (0-1) - Chatterbox only
+    cfgWeight?: number;     // CFG weight for quality (0-1) - Chatterbox only
+    stability?: number;     // Voice stability (0-1) - ElevenLabs only
+    similarity_boost?: number; // Similarity boost (0-1) - ElevenLabs only
   };
 }
 
@@ -37,7 +41,66 @@ function getSupabaseClient() {
   return supabaseClient;
 }
 
-// Replicate API for Chatterbox (supports audio_prompt for voice cloning)
+// ============================================================================
+// ElevenLabs TTS (for legacy cloned voices)
+// ============================================================================
+
+const ELEVENLABS_API_URL = 'https://api.elevenlabs.io/v1';
+
+async function runElevenLabsTTS(
+  text: string,
+  voiceId: string,
+  options: { stability?: number; similarity_boost?: number },
+  apiKey: string,
+  log: ReturnType<typeof createLogger>
+): Promise<{ base64: string; format: string }> {
+  log.info('Generating speech with ElevenLabs', { voiceId, textLength: text.length });
+
+  // Use turbo model for faster generation with good quality
+  const response = await fetch(`${ELEVENLABS_API_URL}/text-to-speech/${voiceId}`, {
+    method: 'POST',
+    headers: {
+      'Accept': 'audio/mpeg',
+      'Content-Type': 'application/json',
+      'xi-api-key': apiKey,
+    },
+    body: JSON.stringify({
+      text,
+      model_id: 'eleven_turbo_v2_5',  // Fast, high-quality model
+      voice_settings: {
+        stability: options.stability ?? 0.5,
+        similarity_boost: options.similarity_boost ?? 0.75,
+        style: 0.0,  // Neutral style for meditation
+        use_speaker_boost: true,
+      },
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    log.error('ElevenLabs API error', { status: response.status, error: errorText });
+    throw new Error(`ElevenLabs API error: ${response.status} - ${errorText}`);
+  }
+
+  // Convert audio to base64
+  const audioBuffer = await response.arrayBuffer();
+  const bytes = new Uint8Array(audioBuffer);
+
+  let binary = '';
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
+    binary += String.fromCharCode(...chunk);
+  }
+
+  log.info('ElevenLabs TTS successful', { audioSize: bytes.length });
+  return { base64: btoa(binary), format: 'audio/mpeg' };
+}
+
+// ============================================================================
+// Chatterbox TTS via Replicate (for new cloned voices)
+// ============================================================================
+
 const REPLICATE_API_URL = 'https://api.replicate.com/v1/predictions';
 const CHATTERBOX_MODEL = 'resemble-ai/chatterbox:1b8422bc49635c20d0a84e387ed20879c0dd09254ecdb4e75dc4bec10ff94e97';
 
@@ -207,60 +270,103 @@ serve(async (req) => {
       );
     }
 
-    // Get Replicate API key
+    // Get API keys
     const replicateApiKey = Deno.env.get('REPLICATE_API_TOKEN');
-    if (!replicateApiKey) {
-      log.error('Replicate API key not configured');
-      return new Response(
-        JSON.stringify({ error: 'TTS service not configured', requestId }),
-        { status: 500, headers: { ...allHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    const elevenlabsApiKey = Deno.env.get('ELEVENLABS_API_KEY');
 
-    // Get voice profile if voiceId provided (for cloned voice audio sample)
-    let audioPromptUrl: string | null = null;
+    // Get voice profile if voiceId provided
+    let voiceProfile: {
+      voice_sample_url: string | null;
+      provider_voice_id: string | null;
+      elevenlabs_voice_id: string | null;
+      provider: string | null;
+    } | null = null;
 
     if (voiceId) {
-      const { data: voiceProfile, error: profileError } = await supabase
+      const { data, error: profileError } = await supabase
         .from('voice_profiles')
-        .select('voice_sample_url, provider_voice_id, user_id, provider')
+        .select('voice_sample_url, provider_voice_id, elevenlabs_voice_id, provider')
         .eq('id', voiceId)
         .eq('user_id', user.id)
         .single();
 
       if (profileError) {
         log.warn('Voice profile not found', { voiceId, error: profileError.message });
-        // Continue without voice cloning - will use default Chatterbox voice
-      } else if (voiceProfile) {
-        // Use stored voice sample URL for cloning
-        audioPromptUrl = voiceProfile.voice_sample_url || voiceProfile.provider_voice_id;
-        log.info('Using cloned voice', { voiceId, hasAudioPrompt: !!audioPromptUrl, provider: voiceProfile.provider });
+      } else {
+        voiceProfile = data;
+        log.info('Found voice profile', {
+          voiceId,
+          provider: voiceProfile?.provider,
+          hasElevenLabsId: !!voiceProfile?.elevenlabs_voice_id,
+          hasVoiceSampleUrl: !!voiceProfile?.voice_sample_url,
+        });
       }
     }
 
-    log.info('Starting TTS generation with Chatterbox', { textLength: text.length, voiceId, hasVoiceSample: !!audioPromptUrl });
+    // Determine which provider to use based on voice profile
+    const isElevenLabsVoice = voiceProfile?.provider === 'ElevenLabs' && voiceProfile?.elevenlabs_voice_id;
+    const hasChatterboxSample = voiceProfile?.voice_sample_url;
 
-    // Generate speech using Chatterbox via Replicate
-    // Use optimized settings for natural, high-quality voice
-    const audioBase64 = await runChatterboxTTS(
-      text,
-      audioPromptUrl,
-      {
-        exaggeration: voiceSettings?.exaggeration ?? 0.5,  // Neutral for natural voice
-        cfgWeight: voiceSettings?.cfgWeight ?? 0.7,        // Higher for better quality
-      },
-      replicateApiKey,
-      log
-    );
+    let audioBase64: string;
+    let audioFormat: string;
 
-    log.info('TTS generation successful', { audioSize: audioBase64.length });
+    if (isElevenLabsVoice && elevenlabsApiKey) {
+      // Use ElevenLabs for legacy cloned voices
+      log.info('Using ElevenLabs TTS', {
+        voiceId: voiceProfile!.elevenlabs_voice_id,
+        textLength: text.length,
+      });
+
+      const result = await runElevenLabsTTS(
+        text,
+        voiceProfile!.elevenlabs_voice_id!,
+        {
+          stability: voiceSettings?.stability ?? 0.5,
+          similarity_boost: voiceSettings?.similarity_boost ?? 0.75,
+        },
+        elevenlabsApiKey,
+        log
+      );
+      audioBase64 = result.base64;
+      audioFormat = result.format;
+
+    } else if (replicateApiKey) {
+      // Use Chatterbox for new cloned voices or default
+      const audioPromptUrl = hasChatterboxSample ? voiceProfile!.voice_sample_url : null;
+
+      log.info('Using Chatterbox TTS', {
+        textLength: text.length,
+        hasVoiceSample: !!audioPromptUrl,
+      });
+
+      audioBase64 = await runChatterboxTTS(
+        text,
+        audioPromptUrl,
+        {
+          exaggeration: voiceSettings?.exaggeration ?? 0.5,
+          cfgWeight: voiceSettings?.cfgWeight ?? 0.7,
+        },
+        replicateApiKey,
+        log
+      );
+      audioFormat = 'audio/wav';
+
+    } else {
+      log.error('No TTS service configured');
+      return new Response(
+        JSON.stringify({ error: 'No TTS service configured', requestId }),
+        { status: 500, headers: { ...allHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    log.info('TTS generation successful', { audioSize: audioBase64.length, format: audioFormat });
 
     // Return compressed response
     return await createCompressedResponse(
       {
         success: true,
         audioBase64,
-        format: 'audio/wav',
+        format: audioFormat,
         requestId,
       } as GenerateSpeechResponse,
       allHeaders,

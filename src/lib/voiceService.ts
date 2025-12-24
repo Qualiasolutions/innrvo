@@ -109,7 +109,7 @@ export const voiceService = {
   },
 
   /**
-   * Generate speech using Chatterbox via Replicate (also handles legacy ElevenLabs voices)
+   * Generate speech using the unified edge function (routes to ElevenLabs or Chatterbox)
    */
   async generateWithChatterbox(
     text: string,
@@ -119,15 +119,20 @@ export const voiceService = {
     // Import dynamically to avoid circular dependency
     const { elevenLabsTTS } = await import('./edgeFunctions');
 
-    // Use voice profile ID - the edge function will look up the voice sample URL
+    // Use voice profile ID - the edge function will look up the voice and route appropriately
     const voiceId = voice.id;
 
-    // Call generate-speech edge function (now uses Chatterbox/Replicate)
+    // Call generate-speech edge function (routes to ElevenLabs or Chatterbox based on voice profile)
     const base64 = await elevenLabsTTS(voiceId, text);
 
     // Decode to AudioBuffer if needed
+    // Determine format based on voice provider:
+    // - ElevenLabs returns MP3
+    // - Chatterbox returns WAV
     if (audioContext) {
-      const audioBuffer = await this.decodeAudio(base64, audioContext, 'audio/wav');
+      const isElevenLabs = voice.provider === 'ElevenLabs' || voice.provider === 'elevenlabs';
+      const mimeType = isElevenLabs ? 'audio/mpeg' : 'audio/wav';
+      const audioBuffer = await this.decodeAudio(base64, audioContext, mimeType);
       return { audioBuffer, base64 };
     }
 
