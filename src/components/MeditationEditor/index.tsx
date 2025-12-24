@@ -165,7 +165,7 @@ export const MeditationEditor = memo<MeditationEditorProps>(
         aria-modal="true"
         aria-labelledby="editor-title"
       >
-        {/* Desktop: Centered modal container */}
+        {/* Desktop: Centered modal container / Mobile: Full screen */}
         <div
           className="
             h-full flex flex-col overflow-hidden

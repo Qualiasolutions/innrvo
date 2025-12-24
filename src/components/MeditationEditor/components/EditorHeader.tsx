@@ -1,7 +1,8 @@
 /**
  * EditorHeader Component
  *
- * Header section with close button and script statistics.
+ * Header section with back button and script statistics.
+ * Mobile-first design with clean, minimal layout.
  */
 
 import React, { memo } from 'react';
@@ -12,7 +13,7 @@ import type { MeditationType } from '../../../lib/agent/knowledgeBase';
 // ICONS
 // ============================================================================
 
-const CloseIcon = ({ className = 'w-5 h-5' }: { className?: string }) => (
+const BackArrowIcon = ({ className = 'w-5 h-5' }: { className?: string }) => (
   <svg
     className={className}
     viewBox="0 0 24 24"
@@ -20,14 +21,9 @@ const CloseIcon = ({ className = 'w-5 h-5' }: { className?: string }) => (
     stroke="currentColor"
     strokeWidth="2"
     strokeLinecap="round"
+    strokeLinejoin="round"
   >
-    <path d="M18 6L6 18M6 6l12 12" />
-  </svg>
-);
-
-const SparkleIcon = ({ className = 'w-4 h-4' }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 0L14.59 9.41L24 12L14.59 14.59L12 24L9.41 14.59L0 12L9.41 9.41L12 0Z" />
+    <path d="M19 12H5M12 19l-7-7 7-7" />
   </svg>
 );
 
@@ -77,60 +73,53 @@ export const EditorHeader = memo<EditorHeaderProps>(
       <header
         role="banner"
         aria-label="Meditation editor header"
-        className="flex-shrink-0 flex items-center justify-between px-4 py-3 md:px-6 md:py-4 border-b border-white/10"
+        className="flex-shrink-0 flex items-center px-3 py-3 md:px-6 md:py-4 border-b border-white/10 safe-top"
       >
-        {/* Left: Title & Type */}
-        <div className="flex items-center gap-3 min-w-0">
-          <div
-            className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-gradient-to-br from-cyan-500 to-purple-600
-                        flex items-center justify-center shadow-lg shadow-cyan-500/30 flex-shrink-0"
-          >
-            <SparkleIcon className="w-4 h-4 md:w-5 md:h-5 text-white" />
-          </div>
-          <div className="min-w-0">
-            <h1 className="text-base md:text-lg font-medium text-white truncate">
-              Edit Meditation
-            </h1>
-            <p className="text-xs md:text-sm text-white/50 truncate">
-              {formatMeditationType(meditationType)}
-            </p>
-          </div>
-        </div>
-
-        {/* Center: Stats (hidden on mobile, shown in a row on desktop) */}
-        <div
-          id="editor-stats"
-          className="hidden md:flex items-center gap-3 text-sm"
-          aria-label={`${stats.wordCount} words, approximately ${stats.estimatedMinutes} minutes, ${stats.tagCount} audio tags`}
-        >
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
-            <span className="text-white/50">Words:</span>
-            <span className="text-white font-medium">{stats.wordCount}</span>
-          </div>
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
-            <span className="text-white/50">~</span>
-            <span className="text-white font-medium">
-              {stats.estimatedMinutes}
-            </span>
-            <span className="text-white/50">min</span>
-          </div>
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
-            <TagIcon />
-            <span className="text-white font-medium">{stats.tagCount}</span>
-          </div>
-        </div>
-
-        {/* Right: Close Button */}
+        {/* Left: Back Button */}
         <button
           onClick={onClose}
-          aria-label="Close editor"
-          className="w-11 h-11 md:w-12 md:h-12 rounded-xl bg-white/10 hover:bg-white/20
-                     text-slate-300 hover:text-white transition-all flex items-center justify-center
-                     border border-white/10 hover:border-cyan-500/30 active:scale-95
-                     cursor-pointer touch-manipulation flex-shrink-0 ml-3"
+          aria-label="Go back"
+          className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-white/5 hover:bg-white/10
+                     text-white/70 hover:text-white transition-all flex items-center justify-center
+                     active:scale-95 cursor-pointer touch-manipulation flex-shrink-0"
         >
-          <CloseIcon className="w-5 h-5 md:w-6 md:h-6" />
+          <BackArrowIcon className="w-5 h-5" />
         </button>
+
+        {/* Center: Title & Type */}
+        <div className="flex-1 flex flex-col items-center justify-center min-w-0 px-3">
+          <h1 className="text-base md:text-lg font-medium text-white truncate">
+            Edit Meditation
+          </h1>
+          <p className="text-xs text-white/50 truncate">
+            {formatMeditationType(meditationType)}
+          </p>
+        </div>
+
+        {/* Right: Stats (desktop only) - placeholder for layout balance on mobile */}
+        <div className="w-10 h-10 md:w-auto md:h-auto flex-shrink-0">
+          <div
+            id="editor-stats"
+            className="hidden md:flex items-center gap-2 text-sm"
+            aria-label={`${stats.wordCount} words, approximately ${stats.estimatedMinutes} minutes, ${stats.tagCount} audio tags`}
+          >
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/10">
+              <span className="text-white/50 text-xs">Words:</span>
+              <span className="text-white font-medium text-xs">{stats.wordCount}</span>
+            </div>
+            <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/5 border border-white/10">
+              <span className="text-white/50 text-xs">~</span>
+              <span className="text-white font-medium text-xs">
+                {stats.estimatedMinutes}
+              </span>
+              <span className="text-white/50 text-xs">min</span>
+            </div>
+            <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/5 border border-white/10">
+              <TagIcon className="w-3 h-3 text-white/50" />
+              <span className="text-white font-medium text-xs">{stats.tagCount}</span>
+            </div>
+          </div>
+        </div>
       </header>
     );
   }
