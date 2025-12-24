@@ -71,23 +71,118 @@ async function runChatterboxTTS(
 
   log.info('Creating Replicate prediction', { model: CHATTERBOX_MODEL, textLength: text.length, hasVoiceSample: !!audioPromptUrl });
 
-  const createResponse = await fetch(REPLICATE_API_URL, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      version: CHATTERBOX_MODEL.split(':')[1],
-      input,
-    }),
-  });
+  // Retry logic for rate limits (429)
+  const maxRetries = 3;
+  let lastError: Error | null = null;
 
-  if (!createResponse.ok) {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    const createResponse = await fetch(REPLICATE_API_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        version: CHATTERBOX_MODEL.split(':')[1],
+        input,
+      }),
+    });
+
+    if (createResponse.ok) {
+      const prediction = await createResponse.json();
+      log.info('Prediction created', { id: prediction.id, status: prediction.status });
+
+      // Poll for completion (Replicate predictions are async)
+      let result = prediction;
+      const maxWaitTime = 120000; // 2 minutes max
+      const pollInterval = 1000; // 1 second
+      const startTime = Date.now();
+
+      while (result.status !== 'succeeded' && result.status !== 'failed') {
+        if (Date.now() - startTime > maxWaitTime) {
+          throw new Error('Prediction timed out after 2 minutes');
+        }
+
+        await new Promise(resolve => setTimeout(resolve, pollInterval));
+
+        const pollResponse = await fetch(result.urls.get, {
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+          },
+        });
+
+        if (!pollResponse.ok) {
+          throw new Error(`Failed to poll prediction: ${pollResponse.status}`);
+        }
+
+        result = await pollResponse.json();
+        log.info('Prediction status', { id: result.id, status: result.status });
+      }
+
+      if (result.status === 'failed') {
+        log.error('Prediction failed', { error: result.error });
+        throw new Error(result.error || 'TTS prediction failed');
+      }
+
+      // Get the audio URL from the output
+      const audioUrl = result.output;
+      if (!audioUrl) {
+        throw new Error('No audio URL in prediction output');
+      }
+
+      log.info('Downloading audio from Replicate', { url: audioUrl });
+
+      // Download the audio and convert to base64
+      const audioResponse = await fetch(audioUrl);
+      if (!audioResponse.ok) {
+        throw new Error(`Failed to download audio: ${audioResponse.status}`);
+      }
+
+      const audioBlob = await audioResponse.blob();
+      const buffer = await audioBlob.arrayBuffer();
+      const bytes = new Uint8Array(buffer);
+
+      // Convert to base64 with chunked processing
+      let binary = '';
+      const chunkSize = 0x8000;
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
+        binary += String.fromCharCode(...chunk);
+      }
+
+      return btoa(binary);
+    }
+
+    // Handle rate limit (429) with retry
+    if (createResponse.status === 429) {
+      const errorData = await createResponse.json().catch(() => ({}));
+      const retryAfter = errorData.retry_after || (attempt + 1) * 5; // Default: 5s, 10s, 15s
+
+      log.warn('Rate limited by Replicate, retrying...', {
+        attempt: attempt + 1,
+        retryAfter,
+        detail: errorData.detail
+      });
+
+      if (attempt < maxRetries - 1) {
+        await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
+        continue;
+      }
+
+      // Last attempt failed - throw user-friendly error
+      throw new Error(
+        'Voice generation is temporarily busy. Please wait a few seconds and try again. ' +
+        '(Tip: Add Replicate credits to increase rate limits)'
+      );
+    }
+
+    // Other errors - don't retry
     const errorText = await createResponse.text();
     log.error('Failed to create Replicate prediction', { status: createResponse.status, error: errorText });
     throw new Error(`Failed to create prediction: ${createResponse.status} - ${errorText}`);
   }
+
+  throw lastError || new Error('Failed to create prediction after retries');
 
   const prediction = await createResponse.json();
   log.info('Prediction created', { id: prediction.id, status: prediction.status });

@@ -10,44 +10,103 @@ interface State {
   hasError: boolean;
   error: Error | null;
   eventId: string | null;
+  isChunkError: boolean;
 }
 
 class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false, error: null, eventId: null };
+    this.state = { hasError: false, error: null, eventId: null, isChunkError: false };
   }
 
   static getDerivedStateFromError(error: Error): Partial<State> {
-    return { hasError: true, error };
+    // Detect chunk loading errors (happens after deployments with stale cache)
+    const isChunkError =
+      error.message?.includes('dynamically imported module') ||
+      error.message?.includes('Loading chunk') ||
+      error.message?.includes('Failed to fetch') ||
+      error.name === 'ChunkLoadError';
+
+    return { hasError: true, error, isChunkError };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // Log error to console in development
     console.error('ErrorBoundary caught an error:', error, errorInfo);
 
-    // Send to Sentry
-    const eventId = Sentry.captureException(error, {
-      extra: {
-        componentStack: errorInfo.componentStack,
-      },
-    });
-
-    this.setState({ eventId });
+    // Don't send chunk errors to Sentry (they're user cache issues, not bugs)
+    if (!this.state.isChunkError) {
+      const eventId = Sentry.captureException(error, {
+        extra: {
+          componentStack: errorInfo.componentStack,
+        },
+      });
+      this.setState({ eventId });
+    }
   }
+
+  handleHardRefresh = () => {
+    // Clear cache and reload
+    if ('caches' in window) {
+      caches.keys().then((names) => {
+        names.forEach((name) => caches.delete(name));
+      });
+    }
+    window.location.reload();
+  };
 
   handleReload = () => {
     window.location.reload();
   };
 
   handleReset = () => {
-    this.setState({ hasError: false, error: null });
+    this.setState({ hasError: false, error: null, isChunkError: false });
   };
 
   render() {
     if (this.state.hasError) {
       if (this.props.fallback) {
         return this.props.fallback;
+      }
+
+      // Special UI for chunk loading errors
+      if (this.state.isChunkError) {
+        return (
+          <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-slate-900 to-slate-800 p-4">
+            <div className="max-w-md w-full bg-white/10 backdrop-blur-lg rounded-2xl p-8 text-center border border-white/20">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-cyan-500/20 flex items-center justify-center">
+                <svg
+                  className="w-8 h-8 text-cyan-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  />
+                </svg>
+              </div>
+
+              <h1 className="text-2xl font-semibold text-white mb-2">
+                Update Available
+              </h1>
+
+              <p className="text-white/70 mb-6">
+                A new version of the app is available. Please refresh to get the latest updates.
+              </p>
+
+              <button
+                onClick={this.handleHardRefresh}
+                className="w-full px-4 py-3 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 text-white font-medium transition-all"
+              >
+                Refresh Now
+              </button>
+            </div>
+          </div>
+        );
       }
 
       return (
