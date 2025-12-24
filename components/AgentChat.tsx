@@ -242,18 +242,18 @@ const MeditationPanel = memo<MeditationPanelProps>(({
       {/* Full screen meditation editor */}
       <div className="h-full flex flex-col">
 
-        {/* Close button - top right */}
+        {/* Close button - top right (square like sidebar toggle) */}
         <button
           onClick={(e) => { e.stopPropagation(); onClose(); }}
-          className="fixed top-4 right-4 z-[100] w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-all active:scale-95 cursor-pointer"
+          className="fixed top-3 right-3 md:top-4 md:right-4 z-[100] w-10 h-10 md:w-11 md:h-11 rounded-lg md:rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all flex items-center justify-center border border-white/5 hover:border-cyan-500/30 active:scale-95 cursor-pointer"
           aria-label="Close"
           type="button"
         >
           <CloseIcon className="w-5 h-5" />
         </button>
 
-        {/* Scrollable Script Area */}
-        <div className="flex-1 overflow-y-auto min-h-0">
+        {/* Scrollable Script Area - starts below X button */}
+        <div className="flex-1 overflow-y-auto min-h-0 pt-14 md:pt-16">
           <textarea
             ref={textareaRef}
             value={editedScript}
@@ -262,7 +262,7 @@ const MeditationPanel = memo<MeditationPanelProps>(({
             onClick={handleTextareaSelect}
             onKeyUp={handleTextareaSelect}
             className="w-full h-full bg-transparent text-white leading-relaxed
-                       resize-none outline-none p-4 md:p-6
+                       resize-none outline-none px-4 pb-4 md:px-6 md:pb-6
                        placeholder:text-white/30"
             style={{ fontSize: '16px', minHeight: '200px' }}
             placeholder="Your meditation script..."
