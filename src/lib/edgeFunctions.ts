@@ -229,99 +229,33 @@ async function callEdgeFunction<T>(
 }
 
 // ============================================================================
-// ElevenLabs Edge Function Wrappers
+// TTS Edge Function Wrappers (Chatterbox via Replicate)
 // ============================================================================
 
-export interface ElevenLabsTTSResponse {
-  audio: string; // base64 encoded MP3
-  format: string;
-}
-
-export interface ElevenLabsCloneResponse {
-  voice_id: string;
-}
-
 /**
- * Generate speech using ElevenLabs via Edge Function
+ * Generate speech using Chatterbox via Replicate Edge Function
+ * (Legacy function name kept for backward compatibility - now uses Chatterbox, not ElevenLabs)
  * API key is stored server-side
  */
 export async function elevenLabsTTS(
   voiceId: string,
   text: string,
   voiceSettings?: {
-    stability?: number;
-    similarity_boost?: number;
-    style?: number;
-    use_speaker_boost?: boolean;
+    exaggeration?: number;  // 0-1, emotion exaggeration
+    cfgWeight?: number;     // 0-1, quality weight
   }
 ): Promise<string> {
-  // Default settings optimized for meditative, calm delivery
+  // Settings optimized for meditative, calm delivery
   const response = await callEdgeFunction<{ success: boolean; audioBase64: string }>('generate-speech', {
     voiceId,
     text,
     voiceSettings: voiceSettings || {
-      stability: 0.75,           // Higher = calmer, more consistent
-      similarity_boost: 0.7,
-      style: 0.15,               // Low style = more soothing
-      use_speaker_boost: true,
+      exaggeration: 0.3,  // Low for calm meditation
+      cfgWeight: 0.5,
     },
   });
 
   return response.audioBase64;
-}
-
-/**
- * Clone a voice using ElevenLabs via Edge Function
- * API key is stored server-side
- * Now supports metadata for improved voice accuracy
- */
-export interface CloneVoiceResult {
-  elevenlabsVoiceId: string;
-  voiceProfileId: string;
-}
-
-export async function elevenLabsCloneVoice(
-  audioBlob: Blob,
-  name: string,
-  description?: string,
-  metadata?: VoiceMetadata
-): Promise<CloneVoiceResult> {
-  const token = await getAuthToken();
-
-  // Convert blob to base64 for JSON body (process-voice uses JSON, not FormData)
-  const base64Audio = await blobToBase64(audioBlob);
-
-  const url = `${SUPABASE_URL}/functions/v1/process-voice`;
-
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      audioBase64: base64Audio,
-      voiceName: name,
-      description: description || 'Meditation voice clone created with INrVO',
-      metadata: metadata || undefined,
-      removeBackgroundNoise: metadata?.hasBackgroundNoise || false,
-    }),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || `Voice cloning failed: ${response.status}`);
-  }
-
-  if (!data.elevenlabsVoiceId) {
-    throw new Error('No voice_id returned from cloning service');
-  }
-
-  return {
-    elevenlabsVoiceId: data.elevenlabsVoiceId,
-    voiceProfileId: data.voiceProfileId,
-  };
 }
 
 /**
@@ -337,30 +271,6 @@ async function blobToBase64(blob: Blob): Promise<string> {
     reader.onerror = reject;
     reader.readAsDataURL(blob);
   });
-}
-
-/**
- * Delete a voice from ElevenLabs via Edge Function
- * API key is stored server-side
- */
-export async function elevenLabsDeleteVoice(voiceId: string): Promise<void> {
-  await callEdgeFunction<{ success: boolean }>('elevenlabs-voice-ops', {
-    operation: 'delete',
-    voiceId,
-  });
-}
-
-/**
- * Get voice status from ElevenLabs via Edge Function
- * API key is stored server-side
- * @returns 'ready' if voice exists, 'deleted' if not found
- */
-export async function elevenLabsGetVoiceStatus(voiceId: string): Promise<string> {
-  const response = await callEdgeFunction<{ success: boolean; status: string }>('elevenlabs-voice-ops', {
-    operation: 'status',
-    voiceId,
-  });
-  return response.status;
 }
 
 // ============================================================================

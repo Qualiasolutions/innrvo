@@ -9,7 +9,6 @@ import {
   DEFAULT_VOICE_METADATA
 } from '../types';
 import { AIVoiceInput } from './ui/ai-voice-input';
-import { isElevenLabsConfigured } from '../src/lib/elevenlabs';
 
 interface SimpleVoiceCloneProps {
   onClose: () => void;
@@ -18,7 +17,7 @@ interface SimpleVoiceCloneProps {
   creditInfo: CreditInfo;
 }
 
-// Recording settings - ElevenLabs recommends 30+ seconds for best quality
+// Recording settings - 30+ seconds recommended for best quality
 const MIN_RECORDING_SECONDS = 30; // Minimum for acceptable quality
 const RECOMMENDED_SECONDS = 45;   // Recommended for best quality
 const MAX_RECORDING_SECONDS = 90; // Maximum allowed
@@ -48,12 +47,13 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const autoStopRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Check if ElevenLabs is configured
-  const isConfigured = isElevenLabsConfigured();
+  // Voice cloning is always configured (using Chatterbox via Replicate)
+  const isConfigured = true;
 
   // Derive state from cloningStatus
   const isProcessing = cloningStatus.state === 'validating' ||
-                       cloningStatus.state === 'uploading_to_elevenlabs' ||
+                       cloningStatus.state === 'uploading_to_chatterbox' ||
+                       cloningStatus.state === 'uploading_to_elevenlabs' || // Legacy support
                        cloningStatus.state === 'saving_to_database';
 
   const error = cloningStatus.state === 'error' ? cloningStatus.message : localError;

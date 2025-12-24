@@ -3,7 +3,7 @@
  *
  * These tools connect the conversational agent to the app's core functionality:
  * - Script generation (Gemini)
- * - Audio synthesis (ElevenLabs)
+ * - Audio synthesis (Chatterbox via Replicate)
  * - User history (Supabase)
  * - Wisdom quotes (Knowledge Base)
  */
@@ -177,8 +177,8 @@ export async function synthesizeAudio(
   audioContext?: AudioContext
 ): Promise<ToolResult<SynthesizedAudio>> {
   try {
-    // Check if voice is ready
-    if (!voice.isCloned || !voice.elevenlabsVoiceId) {
+    // Check if voice is ready (cloned voices need a voice sample URL or provider voice ID)
+    if (!voice.isCloned && !voice.providerVoiceId) {
       return { success: false, error: 'Please clone a voice first to generate audio.' };
     }
 

@@ -3,24 +3,25 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { getCorsHeaders, createCompressedResponse } from "../_shared/compression.ts";
 import { getRequestId, createLogger, getTracingHeaders } from "../_shared/tracing.ts";
 import { checkRateLimit, createRateLimitResponse, RATE_LIMITS } from "../_shared/rateLimit.ts";
-import { withCircuitBreaker, CIRCUIT_CONFIGS, CircuitBreakerError } from "../_shared/circuitBreaker.ts";
+
+/**
+ * Generate Speech using Chatterbox via Replicate
+ * Replaced ElevenLabs with Chatterbox for 10x cost savings (~$0.03/run vs ~$0.30)
+ */
 
 interface GenerateSpeechRequest {
   text: string;
   voiceId: string;
-  userId: string;
   voiceSettings?: {
-    stability?: number;
-    similarity_boost?: number;
-    style?: number;
-    use_speaker_boost?: boolean;
+    exaggeration?: number;  // Emotion exaggeration (0-1)
+    cfgWeight?: number;     // CFG weight for quality (0-1)
   };
 }
 
 interface GenerateSpeechResponse {
   success: boolean;
   audioBase64?: string;
-  creditsUsed?: number;
+  format?: string;
   error?: string;
 }
 
@@ -36,14 +37,105 @@ function getSupabaseClient() {
   return supabaseClient;
 }
 
-// Optimized base64 conversion using Deno APIs (replaces FileReader)
-async function blobToBase64(blob: Blob): Promise<string> {
-  const buffer = await blob.arrayBuffer();
+// Replicate API for Chatterbox
+const REPLICATE_API_URL = 'https://api.replicate.com/v1/predictions';
+const CHATTERBOX_MODEL = 'resemble-ai/chatterbox:55ae2ceb2206973ed3795c8c99c93cc87a8f25434cf5ac09fce8eb0bf9de7a74';
+
+async function runChatterboxTTS(
+  text: string,
+  audioPromptUrl: string | null,
+  options: { exaggeration?: number; cfgWeight?: number },
+  apiKey: string,
+  log: ReturnType<typeof createLogger>
+): Promise<string> {
+  // Create prediction input
+  const input: Record<string, unknown> = {
+    text,
+    exaggeration: options.exaggeration ?? 0.3,  // Low for calm meditation
+    cfg_weight: options.cfgWeight ?? 0.5,
+  };
+
+  // Add audio prompt if we have a cloned voice reference
+  if (audioPromptUrl) {
+    input.audio_prompt = audioPromptUrl;
+  }
+
+  log.info('Creating Replicate prediction', { model: CHATTERBOX_MODEL, textLength: text.length, hasVoiceSample: !!audioPromptUrl });
+
+  const createResponse = await fetch(REPLICATE_API_URL, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      version: CHATTERBOX_MODEL.split(':')[1],
+      input,
+    }),
+  });
+
+  if (!createResponse.ok) {
+    const errorText = await createResponse.text();
+    log.error('Failed to create Replicate prediction', { status: createResponse.status, error: errorText });
+    throw new Error(`Failed to create prediction: ${createResponse.status} - ${errorText}`);
+  }
+
+  const prediction = await createResponse.json();
+  log.info('Prediction created', { id: prediction.id, status: prediction.status });
+
+  // Poll for completion (Replicate predictions are async)
+  let result = prediction;
+  const maxWaitTime = 120000; // 2 minutes max
+  const pollInterval = 1000; // 1 second
+  const startTime = Date.now();
+
+  while (result.status !== 'succeeded' && result.status !== 'failed') {
+    if (Date.now() - startTime > maxWaitTime) {
+      throw new Error('Prediction timed out after 2 minutes');
+    }
+
+    await new Promise(resolve => setTimeout(resolve, pollInterval));
+
+    const pollResponse = await fetch(result.urls.get, {
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+      },
+    });
+
+    if (!pollResponse.ok) {
+      throw new Error(`Failed to poll prediction: ${pollResponse.status}`);
+    }
+
+    result = await pollResponse.json();
+    log.info('Prediction status', { id: result.id, status: result.status });
+  }
+
+  if (result.status === 'failed') {
+    log.error('Prediction failed', { error: result.error });
+    throw new Error(result.error || 'TTS prediction failed');
+  }
+
+  // Get the audio URL from the output
+  const audioUrl = result.output;
+  if (!audioUrl) {
+    throw new Error('No audio URL in prediction output');
+  }
+
+  log.info('Downloading audio from Replicate', { url: audioUrl });
+
+  // Download the audio and convert to base64
+  const audioResponse = await fetch(audioUrl);
+  if (!audioResponse.ok) {
+    throw new Error(`Failed to download audio: ${audioResponse.status}`);
+  }
+
+  const audioBlob = await audioResponse.blob();
+  const buffer = await audioBlob.arrayBuffer();
   const bytes = new Uint8Array(buffer);
 
-  // Use built-in btoa with chunked processing for large files
+  // Convert to base64 with chunked processing
   let binary = '';
-  const chunkSize = 0x8000; // 32KB chunks to avoid stack overflow
+  const chunkSize = 0x8000;
   for (let i = 0; i < bytes.length; i += chunkSize) {
     const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
     binary += String.fromCharCode(...chunk);
@@ -89,7 +181,6 @@ serve(async (req) => {
       );
     }
 
-    // Update logger with user context
     log.info('Request authenticated', { userId: user.id });
 
     // Check rate limit
@@ -99,207 +190,71 @@ serve(async (req) => {
       return createRateLimitResponse(rateLimitResult, allHeaders);
     }
 
-    // Parse request body - use verified user.id instead of userId from body
-    const { text, voiceId, voiceSettings }: Omit<GenerateSpeechRequest, 'userId'> = await req.json();
-    const userId = user.id; // Use verified user ID from JWT
+    // Parse request body
+    const { text, voiceId, voiceSettings }: GenerateSpeechRequest = await req.json();
 
     // Validate input
-    if (!text || !voiceId) {
-      log.warn('Missing required fields', { hasText: !!text, hasVoiceId: !!voiceId });
+    if (!text) {
+      log.warn('Missing text');
       return new Response(
-        JSON.stringify({ error: 'Missing required fields', requestId }),
+        JSON.stringify({ error: 'Missing text parameter', requestId }),
         { status: 400, headers: { ...allHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Get voice profile to verify ownership
-    const { data: voiceProfile, error: profileError } = await supabase
-      .from('voice_profiles')
-      .select('elevenlabs_voice_id, user_id, provider')
-      .eq('id', voiceId)
-      .eq('user_id', userId)
-      .single();
-
-    if (profileError || !voiceProfile) {
-      log.warn('Voice profile not found', { voiceId, profileError: profileError?.message });
+    // Get Replicate API key
+    const replicateApiKey = Deno.env.get('REPLICATE_API_TOKEN');
+    if (!replicateApiKey) {
+      log.error('Replicate API key not configured');
       return new Response(
-        JSON.stringify({ error: 'Voice profile not found', requestId }),
-        { status: 404, headers: { ...allHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Calculate TTS cost (280 credits per 1K characters) - CREDIT SYSTEM DISABLED
-    const creditsNeeded = Math.ceil((text.length / 1000) * 280);
-
-    // Only cloned ElevenLabs voices are supported
-    if (!voiceProfile.elevenlabs_voice_id) {
-      log.warn('Voice profile has no ElevenLabs ID', { voiceId });
-      return new Response(
-        JSON.stringify({ error: 'Only cloned voices are supported. Please clone a voice first.', requestId }),
-        { status: 400, headers: { ...allHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const elevenlabsApiKey = Deno.env.get('ELEVENLABS_API_KEY');
-    if (!elevenlabsApiKey) {
-      log.error('ElevenLabs API key not configured');
-      return new Response(
-        JSON.stringify({ error: 'ElevenLabs API key not configured', requestId }),
+        JSON.stringify({ error: 'TTS service not configured', requestId }),
         { status: 500, headers: { ...allHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Verify voice exists in ElevenLabs before attempting TTS
-    log.info('Verifying voice exists in ElevenLabs', { elevenlabsVoiceId: voiceProfile.elevenlabs_voice_id });
+    // Get voice profile if voiceId provided (for cloned voice audio sample)
+    let audioPromptUrl: string | null = null;
 
-    const voiceCheckResponse = await fetch(
-      `https://api.elevenlabs.io/v1/voices/${voiceProfile.elevenlabs_voice_id}`,
-      {
-        method: 'GET',
-        headers: {
-          'xi-api-key': elevenlabsApiKey,
-        },
-      }
-    );
+    if (voiceId) {
+      const { data: voiceProfile, error: profileError } = await supabase
+        .from('voice_profiles')
+        .select('voice_sample_url, provider_voice_id, user_id, provider')
+        .eq('id', voiceId)
+        .eq('user_id', user.id)
+        .single();
 
-    if (!voiceCheckResponse.ok) {
-      if (voiceCheckResponse.status === 401) {
-        log.error('ElevenLabs API key invalid', { status: voiceCheckResponse.status });
-        return new Response(
-          JSON.stringify({ error: 'ElevenLabs API key is invalid or expired', requestId }),
-          { status: 500, headers: { ...allHeaders, 'Content-Type': 'application/json' } }
-        );
+      if (profileError) {
+        log.warn('Voice profile not found', { voiceId, error: profileError.message });
+        // Continue without voice cloning - will use default Chatterbox voice
+      } else if (voiceProfile) {
+        // Use stored voice sample URL for cloning
+        audioPromptUrl = voiceProfile.voice_sample_url || voiceProfile.provider_voice_id;
+        log.info('Using cloned voice', { voiceId, hasAudioPrompt: !!audioPromptUrl, provider: voiceProfile.provider });
       }
-      if (voiceCheckResponse.status === 404) {
-        log.error('Voice not found in ElevenLabs', {
-          voiceId,
-          elevenlabsVoiceId: voiceProfile.elevenlabs_voice_id,
-        });
-        return new Response(
-          JSON.stringify({
-            error: 'This voice no longer exists in ElevenLabs. Please clone a new voice or select a different one.',
-            requestId,
-          }),
-          { status: 404, headers: { ...allHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      // Log but continue for other errors (might be temporary)
-      log.warn('Voice verification failed', {
-        status: voiceCheckResponse.status,
-        elevenlabsVoiceId: voiceProfile.elevenlabs_voice_id,
-      });
     }
 
-    log.info('Starting TTS generation', { textLength: text.length, voiceId, elevenlabsVoiceId: voiceProfile.elevenlabs_voice_id });
+    log.info('Starting TTS generation with Chatterbox', { textLength: text.length, voiceId, hasVoiceSample: !!audioPromptUrl });
 
-    // Voice settings optimized for meditative pace
-    const requestData = {
+    // Generate speech using Chatterbox via Replicate
+    const audioBase64 = await runChatterboxTTS(
       text,
-      model_id: 'eleven_multilingual_v2',
-      voice_settings: {
-        stability: voiceSettings?.stability ?? 0.75,
-        similarity_boost: voiceSettings?.similarity_boost ?? 0.7,
-        style: voiceSettings?.style ?? 0.15,
-        use_speaker_boost: voiceSettings?.use_speaker_boost ?? true,
+      audioPromptUrl,
+      {
+        exaggeration: voiceSettings?.exaggeration ?? 0.3,  // Calm for meditation
+        cfgWeight: voiceSettings?.cfgWeight ?? 0.5,
       },
-    };
-
-    // Call ElevenLabs API with circuit breaker and timeout
-    log.info('Calling ElevenLabs TTS API', {
-      elevenlabsVoiceId: voiceProfile.elevenlabs_voice_id,
-      textLength: text.length,
-      textPreview: text.substring(0, 100) + (text.length > 100 ? '...' : ''),
-      model: requestData.model_id,
-      voiceSettings: requestData.voice_settings,
-    });
-
-    const audioBase64 = await withCircuitBreaker(
-      'elevenlabs',
-      CIRCUIT_CONFIGS.elevenlabs,
-      async () => {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout for TTS
-
-        try {
-          const ttsResponse = await fetch(
-            `https://api.elevenlabs.io/v1/text-to-speech/${voiceProfile.elevenlabs_voice_id}`,
-            {
-              method: 'POST',
-              headers: {
-                'xi-api-key': elevenlabsApiKey,
-                'Content-Type': 'application/json',
-                'Accept': 'audio/mpeg',
-              },
-              body: JSON.stringify(requestData),
-              signal: controller.signal,
-            }
-          );
-
-          clearTimeout(timeoutId);
-
-          log.info('ElevenLabs TTS response received', {
-            status: ttsResponse.status,
-            statusText: ttsResponse.statusText,
-            contentType: ttsResponse.headers.get('content-type'),
-            contentLength: ttsResponse.headers.get('content-length'),
-          });
-
-          if (!ttsResponse.ok) {
-            // Safely parse error response - handle various formats
-            const errorText = await ttsResponse.text();
-            let errorDetail = 'Unknown error';
-
-            try {
-              const errorJson = JSON.parse(errorText);
-              errorDetail = errorJson.detail?.message || errorJson.detail || errorJson.message || errorJson.error || JSON.stringify(errorJson);
-            } catch {
-              errorDetail = errorText || `HTTP ${ttsResponse.status}`;
-            }
-
-            log.error('ElevenLabs API error', {
-              status: ttsResponse.status,
-              statusText: ttsResponse.statusText,
-              voiceId: voiceProfile.elevenlabs_voice_id,
-              errorDetail,
-            });
-
-            // Return specific error messages based on status code
-            if (ttsResponse.status === 401) {
-              throw new Error('ElevenLabs API key is invalid or expired');
-            } else if (ttsResponse.status === 404) {
-              throw new Error('Voice not found in ElevenLabs - it may have been deleted');
-            } else if (ttsResponse.status === 429) {
-              throw new Error('ElevenLabs rate limit exceeded - please try again later');
-            } else if (ttsResponse.status === 402) {
-              throw new Error('ElevenLabs account has insufficient credits');
-            }
-
-            throw new Error(`TTS generation failed (${ttsResponse.status}): ${errorDetail}`);
-          }
-
-          const audioBlob = await ttsResponse.blob();
-          const base64 = await blobToBase64(audioBlob);
-
-          if (!base64) {
-            throw new Error('No audio data received');
-          }
-
-          return base64;
-        } catch (fetchError) {
-          clearTimeout(timeoutId);
-          throw fetchError;
-        }
-      }
+      replicateApiKey,
+      log
     );
 
-    log.info('TTS generation successful', { audioSize: audioBase64.length, creditsUsed: creditsNeeded });
+    log.info('TTS generation successful', { audioSize: audioBase64.length });
 
-    // Use compression for audio responses (base64 compresses ~30-40%)
+    // Return compressed response
     return await createCompressedResponse(
       {
         success: true,
         audioBase64,
-        creditsUsed: creditsNeeded,
+        format: 'audio/wav',
         requestId,
       } as GenerateSpeechResponse,
       allHeaders,
@@ -308,26 +263,6 @@ serve(async (req) => {
 
   } catch (error) {
     log.error('Error generating speech', error);
-
-    // Handle circuit breaker errors with appropriate status
-    if (error instanceof CircuitBreakerError) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: error.message,
-          requestId,
-          retryAfterMs: error.retryAfterMs,
-        }),
-        {
-          status: 503,
-          headers: {
-            ...allHeaders,
-            'Content-Type': 'application/json',
-            'Retry-After': String(Math.ceil(error.retryAfterMs / 1000)),
-          },
-        }
-      );
-    }
 
     return new Response(
       JSON.stringify({

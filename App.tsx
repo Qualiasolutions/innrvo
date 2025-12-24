@@ -23,8 +23,20 @@ import OfflineIndicator from './components/OfflineIndicator';
 import { buildTimingMap, getCurrentWordIndex } from './src/lib/textSync';
 import { geminiService, decodeAudioBuffer, blobToBase64 } from './geminiService';
 import { voiceService } from './src/lib/voiceService';
-import { elevenlabsService, base64ToBlob } from './src/lib/elevenlabs';
+import { chatterboxCloneVoice } from './src/lib/edgeFunctions';
 import { creditService } from './src/lib/credits';
+
+/**
+ * Convert base64 audio to Blob
+ */
+function base64ToBlob(base64: string, mimeType: string): Blob {
+  const binaryString = atob(base64);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return new Blob([bytes], { type: mimeType });
+}
 import { throttleLeading } from './src/utils/debounce';
 import { supabase, getCurrentUser, signOut, createVoiceProfile, getUserVoiceProfiles, getVoiceProfileById, VoiceProfile as DBVoiceProfile, createVoiceClone, saveMeditationHistory, getMeditationHistory, deleteMeditationHistory, MeditationHistory, getAudioTagPreferences, updateAudioTagPreferences, AudioTagPreference } from './lib/supabase';
 
@@ -519,97 +531,57 @@ const App: React.FC = () => {
         return;
       }
 
-      // Get cost for user information
-      const costConfig = creditService.getCostConfig();
-
-      // Convert base64 to blob for ElevenLabs
+      // Convert base64 to blob for Chatterbox
       const audioBlob = base64ToBlob(audioData, 'audio/webm');
 
-      // Clone voice with ElevenLabs
-      let elevenlabsVoiceId: string | null = null;
+      // Clone voice with Chatterbox via Replicate
+      let cloneResult: { voiceProfileId: string; voiceSampleUrl: string };
       try {
-        elevenlabsVoiceId = await elevenlabsService.cloneVoice(audioBlob, {
-          name: finalName,
-          description: 'Voice clone created with INrVO'
-        });
-
-        // Deduct credits for successful cloning
-        await creditService.deductCredits(
-          costConfig.VOICE_CLONE,
-          'CLONE_CREATE',
-          undefined,
-          user.id
+        cloneResult = await chatterboxCloneVoice(
+          audioBlob,
+          finalName,
+          'Voice clone created with INrVO'
         );
       } catch (cloneError: any) {
-        console.error('ElevenLabs voice clone failed:', cloneError);
+        console.error('Chatterbox voice clone failed:', cloneError);
         setMicError(`Voice cloning failed: ${cloneError.message}`);
         return;
       }
 
-      // Create voice profile entry with ElevenLabs ID
-      // Handle potential race conditions with duplicate names
-      let savedVoice = null;
-      let retryCount = 0;
-      const maxRetries = 5;
-      let currentName = finalName;
-
-      while (!savedVoice && retryCount < maxRetries) {
-        try {
-          savedVoice = await createVoiceProfile(
-            currentName,
-            'Cloned voice profile',
-            'en-US',
-            undefined, // No Gemini voice for clones
-            elevenlabsVoiceId // Store ElevenLabs voice ID
-          );
-        } catch (error: any) {
-          if (error.message?.includes('already exists') && retryCount < maxRetries - 1) {
-            // Generate a new unique name and retry
-            const uuid = Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
-            currentName = `${profileName}-${uuid}`;
-            retryCount++;
-            continue;
-          }
-          throw error;
-        }
+      // Save audio sample backup (non-critical)
+      try {
+        await createVoiceClone(
+          finalName,
+          audioData,
+          'Voice sample for cloned voice',
+          { providerVoiceId: cloneResult.voiceSampleUrl }
+        );
+      } catch (e) {
+        console.warn('Failed to save voice sample:', e);
       }
 
-      if (savedVoice) {
-        // Also save the audio sample to voice_clones table for backup
-        try {
-          await createVoiceClone(
-            savedVoice.name, // Use the actual saved name
-            audioData,
-            'Voice sample for cloned voice',
-            { elevenlabsVoiceId }
-          );
-        } catch (e) {
-          console.warn('Failed to save voice sample:', e);
-        }
-
-        // Update the profile name if it was auto-generated
-        if (!newProfileName.trim()) {
-          setNewProfileName(savedVoice.name);
-        }
-
-        setSavedVoiceId(savedVoice.id);
-        setVoiceSaved(true);
-
-        // Reload voices to include the new one
-        await loadUserVoices();
-
-        // Auto-select the new voice
-        const newVoice: VoiceProfile = {
-          id: savedVoice.id,
-          name: savedVoice.name,
-          provider: 'ElevenLabs',
-          voiceName: savedVoice.name, // Use actual saved name
-          description: savedVoice.description || 'Your personalized cloned voice',
-          isCloned: true,
-          elevenlabsVoiceId: elevenlabsVoiceId
-        };
-        setSelectedVoice(newVoice);
+      // Update the profile name if it was auto-generated
+      if (!newProfileName.trim()) {
+        setNewProfileName(finalName);
       }
+
+      setSavedVoiceId(cloneResult.voiceProfileId);
+      setVoiceSaved(true);
+
+      // Reload voices to include the new one
+      await loadUserVoices();
+
+      // Auto-select the new voice
+      const newVoice: VoiceProfile = {
+        id: cloneResult.voiceProfileId,
+        name: finalName,
+        provider: 'chatterbox',
+        voiceName: finalName,
+        description: 'Your personalized cloned voice',
+        isCloned: true,
+        providerVoiceId: cloneResult.voiceSampleUrl,
+      };
+      setSelectedVoice(newVoice);
     } catch (error: any) {
       console.error('Failed to auto-save voice:', error);
       setMicError(error?.message || 'Failed to save voice. Please try again.');
@@ -660,7 +632,7 @@ const App: React.FC = () => {
   }, [user]);
 
   // Handle recording complete from SimpleVoiceClone
-  // Now accepts VoiceMetadata for improved clone accuracy
+  // Uses Chatterbox via Replicate for voice cloning
   const handleCloneRecordingComplete = useCallback(async (blob: Blob, name: string, metadata?: VoiceMetadata) => {
     if (!user) {
       setCloningStatus({ state: 'error', message: 'Please sign in to clone your voice', canRetry: false });
@@ -669,33 +641,21 @@ const App: React.FC = () => {
 
     setCloningStatus({ state: 'validating' });
 
-    let elevenlabsVoiceId: string | null = null;
-    let voiceProfileId: string | null = null;
-    let creditsDeducted = false;
-
     try {
-      // Check credits
-      const { can: canClone, reason } = await creditService.canClone(user.id);
-      if (!canClone) {
-        setCloningStatus({ state: 'error', message: reason || 'Cannot clone voice', canRetry: false });
-        return;
-      }
+      setCloningStatus({ state: 'uploading_to_chatterbox' });
 
-      setCloningStatus({ state: 'uploading_to_elevenlabs' });
-
-      // Clone with ElevenLabs - now includes metadata for better accuracy
-      // Edge Function creates both the ElevenLabs voice and the database profile
+      // Clone with Chatterbox via Replicate
+      let cloneResult: { voiceProfileId: string; voiceSampleUrl: string };
       try {
-        const cloneResult = await elevenlabsService.cloneVoice(blob, {
+        cloneResult = await chatterboxCloneVoice(
+          blob,
           name,
-          description: 'Meditation voice clone created with INrVO',
-          metadata: metadata,
-        });
-        elevenlabsVoiceId = cloneResult.elevenlabsVoiceId;
-        voiceProfileId = cloneResult.voiceProfileId;
-        console.log('Voice cloned successfully! Voice ID:', elevenlabsVoiceId, 'Profile ID:', voiceProfileId);
+          'Meditation voice clone created with INrVO',
+          metadata
+        );
+        console.log('Voice cloned successfully! Profile ID:', cloneResult.voiceProfileId);
       } catch (cloneError: any) {
-        console.error('ElevenLabs cloning failed:', cloneError);
+        console.error('Chatterbox cloning failed:', cloneError);
         setCloningStatus({
           state: 'error',
           message: cloneError.message || 'Voice cloning failed',
@@ -704,46 +664,20 @@ const App: React.FC = () => {
         return;
       }
 
-      // Deduct credits after successful clone
-      try {
-        const costConfig = creditService.getCostConfig();
-        await creditService.deductCredits(
-          costConfig.VOICE_CLONE,
-          'CLONE_CREATE',
-          undefined,
-          user.id
-        );
-        creditsDeducted = true;
-      } catch (creditError: any) {
-        console.error('Failed to deduct credits:', creditError);
-        // Continue even if credit deduction fails - we don't want to lose the voice
-      }
-
       setCloningStatus({ state: 'saving_to_database' });
 
       // Voice profile already created by Edge Function - fetch it
       let savedVoice;
       try {
-        if (!voiceProfileId) {
+        if (!cloneResult.voiceProfileId) {
           throw new Error('No voice profile ID returned from server');
         }
-        savedVoice = await getVoiceProfileById(voiceProfileId);
+        savedVoice = await getVoiceProfileById(cloneResult.voiceProfileId);
         if (!savedVoice) {
           throw new Error('Voice profile not found after cloning');
         }
       } catch (dbError: any) {
         console.error('Failed to fetch voice profile:', dbError);
-
-        // Rollback: Delete voice from ElevenLabs
-        if (elevenlabsVoiceId) {
-          try {
-            await elevenlabsService.deleteVoice(elevenlabsVoiceId);
-            console.log('Rolled back ElevenLabs voice:', elevenlabsVoiceId);
-          } catch (rollbackError) {
-            console.error('Failed to rollback ElevenLabs voice:', rollbackError);
-          }
-        }
-
         setCloningStatus({
           state: 'error',
           message: dbError.message || 'Failed to fetch voice profile',
@@ -759,7 +693,7 @@ const App: React.FC = () => {
           savedVoice.name,
           base64,
           'Voice sample for cloned voice',
-          { elevenlabsVoiceId: savedVoice.elevenlabs_voice_id || elevenlabsVoiceId }
+          { providerVoiceId: cloneResult.voiceSampleUrl }
         );
       } catch (e) {
         console.warn('Failed to save voice sample backup:', e);
@@ -769,11 +703,11 @@ const App: React.FC = () => {
       const newVoice: VoiceProfile = {
         id: savedVoice.id,
         name: savedVoice.name,
-        provider: 'ElevenLabs',
+        provider: 'chatterbox',
         voiceName: savedVoice.name,
         description: savedVoice.description || 'Your personalized cloned voice',
         isCloned: true,
-        elevenlabsVoiceId: savedVoice.elevenlabs_voice_id || elevenlabsVoiceId,
+        providerVoiceId: cloneResult.voiceSampleUrl,
       };
 
       // Update available voices

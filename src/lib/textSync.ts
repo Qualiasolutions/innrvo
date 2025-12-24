@@ -1,7 +1,7 @@
 import { TextSegment, ScriptTimingMap } from '../../types';
 
 // Audio tag pause durations in seconds
-// NOTE: Set to 0 because TTS services (ElevenLabs/Gemini) don't actually create pauses
+// NOTE: Set to 0 because TTS services (Chatterbox/Gemini) don't actually create pauses
 // They either speak the tag literally or skip it - no actual audio pause is added
 // If TTS is updated to support SSML breaks, these values should be restored
 //

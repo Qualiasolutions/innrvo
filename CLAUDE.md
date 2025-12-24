@@ -4,142 +4,125 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-INrVO is an AI-powered meditation platform that generates personalized meditation scripts using Gemini 2.0 Flash and synthesizes audio using ElevenLabs voice cloning. Users can clone their own voice or use existing profiles for intimate, personalized meditation guidance.
+INrVO is a personalized meditation app that generates custom meditation scripts using AI and converts them to speech with voice cloning. Users can clone their own voice or select from built-in voices to hear meditations in a familiar tone.
 
-## Build & Development Commands
+**Tech Stack**: React 19 + TypeScript + Vite + Tailwind CSS 4 + Supabase (auth, database, edge functions) + ElevenLabs (TTS/voice cloning) + Gemini (script generation)
+
+## Development Commands
 
 ```bash
-npm run dev          # Vite dev server (http://localhost:3000)
+npm run dev          # Start development server (Vite)
 npm run build        # Production build
-npm test             # Run Vitest in watch mode
+npm run test         # Run tests in watch mode
 npm run test:run     # Run tests once
-npm run test:coverage # Generate coverage report
-npm run test:ui      # Run Vitest with UI
+npm run test:ui      # Tests with Vitest UI
+npm run test:coverage # Coverage report (90% threshold for credits.ts)
 ```
-
-**Testing a single file:**
-```bash
-npx vitest run tests/lib/credits.test.ts
-npx vitest tests/lib/credits.test.ts  # watch mode
-```
-
-**Edge Functions (Deno):**
-```bash
-supabase functions deploy <function-name>
-supabase functions serve  # local development
-```
-
-## Tech Stack
-
-- **Frontend**: React 19 + TypeScript 5.8 + Vite 6 + Tailwind CSS 4
-- **Backend**: Supabase (PostgreSQL with RLS, Edge Functions in Deno)
-- **AI Services**: Gemini 2.0 Flash (script generation), ElevenLabs (voice cloning + TTS)
-- **Testing**: Vitest + @testing-library/react + happy-dom + MSW
-- **Monitoring**: Sentry (production only)
 
 ## Architecture
 
-### Key Directories
-- `components/` - React UI components (lazy-loaded for bundle optimization)
-- `src/contexts/` - React Context for modal state management (ModalContext)
-- `src/hooks/` - Custom hooks: useVoiceGeneration, useVoiceCloning, useAudioPlayback, useMeditationAgent
-- `src/lib/agent/` - MeditationAgent (emotional detection, wisdom teachers, conversation management)
-- `src/lib/` - Services: voiceService.ts, elevenlabs.ts, edgeFunctions.ts, credits.ts, textSync.ts
-- `supabase/functions/` - Edge Functions: generate-speech, gemini-script, process-voice, elevenlabs-voice-ops
-- `supabase/migrations/` - Database schema migrations (numbered 001-009)
-- `tests/` - Test files with setup in tests/setup.ts
+### Frontend Structure
 
-### Data Flow
-1. User input → AgentChat → MeditationAgent (emotional state detection)
-2. Script generation → Edge Function → Gemini API
-3. User edits script with audio tags in ScriptEditor
-4. Voice selection → TTS via Edge Function → ElevenLabs API
-5. Audio playback with text sync via InlinePlayer
+The app uses a **single-page architecture** with the main `App.tsx` containing most UI logic. State is managed through React Context providers:
 
-### Audio Tag System
-Scripts contain inline markers like `[pause]`, `[deep breath]`, `[long pause]` that control TTS pacing and enable text-to-audio synchronization. Tags are detected via regex `/^\[.+\]$/` in `src/lib/textSync.ts`. Tag categories and templates are defined in `constants.tsx`.
+- **`ModalProvider`** (`src/contexts/ModalContext.tsx`) - Centralized modal state for 14+ modal types
+- **`AudioProvider`** (`src/contexts/AudioContext.tsx`) - Audio playback and background music
+- **`VoiceProvider`** (`src/contexts/VoiceContext.tsx`) - Voice selection and cloning state
 
-### Edge Function Pattern
-All Edge Functions follow this pattern:
-- CORS handling with allowed origins list
-- JWT authentication via Supabase
-- Service role key for database operations
-- Return JSON responses with success/error structure
-
-## Environment Variables
-
-```env
-# Frontend (.env.local)
-VITE_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
-VITE_SUPABASE_ANON_KEY=eyJ...
-
-# Edge Function secrets (set in Supabase dashboard)
-ELEVENLABS_API_KEY=sk_...
-GEMINI_API_KEY=AI...
-SUPABASE_SERVICE_ROLE_KEY=eyJ...
+Components are lazy-loaded for bundle optimization (~400KB saved):
+```typescript
+const Visualizer = lazy(() => import('./components/Visualizer'));
+const AuthModal = lazy(() => import('./components/AuthModal'));
 ```
 
-## Database
+### Backend Architecture
 
-Core tables: `voice_profiles`, `user_credits`, `agent_conversations`, `voice_metadata`, `user_audio_tag_preferences`
+All AI/external API calls route through **Supabase Edge Functions** for security (API keys server-side only):
 
-All tables use Row Level Security - users can only access their own data.
+```
+Frontend → lib/edgeFunctions.ts → Supabase Edge Functions → External APIs
+```
 
-The credit system is currently disabled (`CREDITS_DISABLED = true` in credits.ts) for unlimited access.
+**Edge Functions** (`supabase/functions/`):
+- `generate-speech/` - ElevenLabs TTS with rate limiting, circuit breaker
+- `process-voice/` - Voice cloning upload
+- `gemini-script/` - Meditation script generation
+- `elevenlabs-voice-ops/` - Voice management operations
+- `health/` - System health checks
+
+**Shared utilities** (`supabase/functions/_shared/`):
+- `circuitBreaker.ts` - Fault tolerance for external APIs
+- `rateLimit.ts` - Request rate limiting per user
+- `compression.ts` - Response compression
+- `tracing.ts` - Request logging with correlation IDs
+
+### AI Agent System
+
+The **MeditationAgent** (`src/lib/agent/MeditationAgent.ts`) is a conversational AI that:
+1. Has natural conversations (not immediately generating meditations)
+2. Detects emotional state from user input
+3. Only generates meditations when explicitly requested
+4. Uses a knowledge base of wisdom teachers (Buddha, Rumi, Thich Nhat Hanh, etc.)
+5. Personalizes scripts based on user context and past sessions
+
+Key trigger phrases for meditation generation:
+- "I'll craft a", "Let me create", "Creating your"
+
+### Database Schema
+
+Main tables (`supabase/schema.sql`, migrations in `supabase/migrations/`):
+- `voice_profiles` - User voice clones with ElevenLabs voice IDs
+- `voice_clones` - Audio samples for cloning
+- `meditation_history` - Past meditation sessions
+- `voice_sessions` - Generated audio history
+- `users` - Extended user profiles with audio tag preferences
+
+All tables have RLS policies - users can only access their own data.
+
+### Voice Flow
+
+1. **Clone Voice**: Record 30+ sec → Convert WebM to WAV → Edge Function → ElevenLabs Instant Clone
+2. **Generate Meditation**: User prompt → Agent conversation → Explicit request → Gemini script → ElevenLabs TTS
+3. **Voice Selection**: Built-in voices (constants.tsx) + User clones (voice_profiles table)
 
 ## Key Files
 
-- `App.tsx` - Main app component (~1400 lines, handles core UI state)
-- `types.ts` - Global TypeScript interfaces
-- `constants.tsx` - Audio tag categories, template types, background tracks
-- `src/lib/agent/MeditationAgent.ts` - Core agent with emotional state detection
-- `src/lib/agent/knowledgeBase.ts` - Wisdom teachers, meditation types, emotional mapping
-- `src/lib/edgeFunctions.ts` - Client for calling Edge Functions with auth
-- `src/lib/textSync.ts` - Text-to-audio synchronization logic
+- `App.tsx` - Main application component (large file, ~1200 lines)
+- `types.ts` - TypeScript definitions for views, voice profiles, audio tags
+- `constants.tsx` - Built-in voices, templates, background tracks, audio tags
+- `lib/supabase.ts` - Database operations with retry logic
+- `geminiService.ts` - Script generation prompts
+- `src/lib/elevenlabs.ts` - Voice cloning and TTS (uses edge functions)
+
+## Environment Variables
+
+Frontend (`.env.local`):
+```
+VITE_SUPABASE_URL=https://xxx.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJ...
+VITE_SENTRY_DSN=https://...  # Optional
+```
+
+Edge Function secrets (set in Supabase dashboard, not .env):
+```
+ELEVENLABS_API_KEY=sk_...
+GEMINI_API_KEY=AI...
+```
+
+## Testing
+
+Tests use Vitest with happy-dom. Setup in `tests/setup.ts`, mocks in `tests/mocks/`.
+
+```bash
+npm run test -- src/lib/credits  # Run specific test file
+```
+
+The credits service (`src/lib/credits.ts`) has 90% coverage threshold.
 
 ## Path Aliases
 
-`@/` maps to project root (configured in vite.config.ts and vitest.config.ts)
+`@/*` resolves to project root (configured in tsconfig.json and vite.config.ts).
 
-## Deployment
+## MCP Integration
 
-- **Frontend**: Vercel (auto-deploys from main branch via GitHub Actions)
-- **Edge Functions**: Deploy via `supabase functions deploy <function-name>`
-- **Security headers**: Configured in vercel.json (HSTS, CSP, etc.)
-
-### Rollback Strategy
-
-**Frontend (Vercel):**
-1. Go to Vercel Dashboard → Project → Deployments
-2. Find the last known good deployment
-3. Click "..." → "Promote to Production"
-4. Rollback is instant with zero downtime
-
-**Database Migrations:**
-```bash
-# List applied migrations
-supabase db remote list
-
-# Reset to specific migration (CAUTION: destructive)
-supabase db reset --linked --version <migration_number>
-
-# For non-destructive rollback, create a new migration that reverses changes
-```
-
-**Edge Functions:**
-```bash
-# Redeploy previous version from git
-git checkout <previous-commit> -- supabase/functions/<function-name>
-supabase functions deploy <function-name>
-```
-
-**Emergency Contacts:**
-- Vercel Status: status.vercel.com
-- Supabase Status: status.supabase.com
-
-## Monitoring
-
-- **Error Tracking**: Sentry (see `index.tsx` for config)
-- **Analytics**: Vercel Analytics
-- **Health Check**: `GET /functions/v1/health`
-- **Uptime**: See `docs/UPTIME_MONITORING.md`
+The project supports MCP tools for Supabase operations. See `README_MCP.md` for usage patterns.

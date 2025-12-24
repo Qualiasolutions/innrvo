@@ -1,10 +1,8 @@
 import { VoiceProfile, VoiceProvider } from '../../types';
-import { elevenlabsService } from './elevenlabs';
 import { webSpeechService, isWebSpeechAvailable } from './webSpeechService';
 // Voice service supports multiple providers:
 // - 'browser': Free Web Speech API (built-in browser TTS)
-// - 'chatterbox': Chatterbox via Replicate (cloned voices)
-// - 'elevenlabs': Legacy ElevenLabs support (being phased out)
+// - 'chatterbox': Chatterbox via Replicate (cloned voices, 10x cheaper than ElevenLabs)
 
 /**
  * Strip audio tags from text before sending to TTS
@@ -69,11 +67,10 @@ export const voiceService = {
         return this.generateWithWebSpeech(meditationText, voice);
 
       case 'chatterbox':
-        return this.generateWithChatterbox(meditationText, voice, audioContext);
-
-      case 'elevenlabs':
+      case 'elevenlabs':  // Legacy: route ElevenLabs voices to Chatterbox
+      case 'ElevenLabs':
       default:
-        return this.generateWithElevenLabs(meditationText, voice, audioContext);
+        return this.generateWithChatterbox(meditationText, voice, audioContext);
     }
   },
 
@@ -83,8 +80,8 @@ export const voiceService = {
   detectProvider(voice: VoiceProfile): VoiceProvider {
     if (voice.provider) return voice.provider;
     if (voice.id.startsWith('browser-')) return 'browser';
-    if (voice.providerVoiceId) return 'chatterbox';
-    if (voice.elevenlabsVoiceId || voice.isCloned) return 'elevenlabs';
+    // All cloned voices now use Chatterbox
+    if (voice.providerVoiceId || voice.elevenlabsVoiceId || voice.isCloned) return 'chatterbox';
     return 'browser'; // Default to free browser TTS
   },
 
@@ -112,7 +109,7 @@ export const voiceService = {
   },
 
   /**
-   * Generate speech using Chatterbox via Replicate
+   * Generate speech using Chatterbox via Replicate (also handles legacy ElevenLabs voices)
    */
   async generateWithChatterbox(
     text: string,
@@ -120,55 +117,17 @@ export const voiceService = {
     audioContext?: AudioContext
   ): Promise<{ audioBuffer: AudioBuffer | null; base64: string }> {
     // Import dynamically to avoid circular dependency
-    const { chatterboxTTS } = await import('./edgeFunctions');
+    const { elevenLabsTTS } = await import('./edgeFunctions');
 
-    const voiceId = voice.providerVoiceId || voice.id;
+    // Use voice profile ID - the edge function will look up the voice sample URL
+    const voiceId = voice.id;
 
-    // Call Chatterbox edge function
-    const base64 = await chatterboxTTS(voiceId, text);
+    // Call generate-speech edge function (now uses Chatterbox/Replicate)
+    const base64 = await elevenLabsTTS(voiceId, text);
 
     // Decode to AudioBuffer if needed
     if (audioContext) {
       const audioBuffer = await this.decodeAudio(base64, audioContext, 'audio/wav');
-      return { audioBuffer, base64 };
-    }
-
-    return { audioBuffer: null, base64 };
-  },
-
-  /**
-   * Generate speech using ElevenLabs (legacy)
-   */
-  async generateWithElevenLabs(
-    text: string,
-    voice: VoiceProfile,
-    audioContext?: AudioContext
-  ): Promise<{ audioBuffer: AudioBuffer | null; base64: string }> {
-    // Only cloned voices with ElevenLabs ID are supported
-    if (!voice.isCloned || !voice.elevenlabsVoiceId) {
-      throw new Error('Please clone a voice to generate meditations, or use a browser voice.');
-    }
-
-    // Voice settings optimized for natural, human-like meditation delivery
-    const meditationTTSOptions = {
-      voice_settings: {
-        stability: 0.55,           // Lower = more natural variation in delivery
-        similarity_boost: 0.80,    // Higher = closer to original voice sample
-        style: 0.35,               // Higher = more expressiveness, less robotic
-        use_speaker_boost: true,
-      },
-    };
-
-    // Use ElevenLabs for cloned voices with meditation settings
-    const base64 = await elevenlabsService.generateSpeech(
-      text,
-      voice.id, // Profile ID for ownership verification
-      meditationTTSOptions
-    );
-
-    // Decode to AudioBuffer if needed
-    if (audioContext) {
-      const audioBuffer = await this.decodeElevenLabsAudio(base64, audioContext);
       return { audioBuffer, base64 };
     }
 
@@ -223,22 +182,11 @@ export const voiceService = {
         return isWebSpeechAvailable();
 
       case 'chatterbox':
-        // Chatterbox voices are ready if they have a provider voice ID
-        return !!voice.providerVoiceId;
-
       case 'elevenlabs':
+      case 'ElevenLabs':
       default:
-        // Only cloned voices with ElevenLabs ID are supported
-        if (!voice.isCloned || !voice.elevenlabsVoiceId) {
-          return false;
-        }
-        try {
-          const status = await elevenlabsService.getVoiceStatus(voice.elevenlabsVoiceId);
-          return status === 'ready' || status === 'complete';
-        } catch (error) {
-          console.error('Failed to check voice status:', error);
-          return false;
-        }
+        // Cloned voices are ready if they have any voice reference
+        return !!(voice.providerVoiceId || voice.elevenlabsVoiceId || voice.isCloned);
     }
   },
 
