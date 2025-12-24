@@ -24,3 +24,6 @@ dist-ssr
 *.sw?
 .vercel
 .env*.local
+
+# v0 generated reference folder (not part of main project)
+meditation-player-page/

@@ -18,6 +18,7 @@ const VoiceManager = lazy(() => import('./components/VoiceManager'));
 const SimpleVoiceClone = lazy(() => import('./components/SimpleVoiceClone').then(m => ({ default: m.SimpleVoiceClone })));
 const ScriptReader = lazy(() => import('./components/ScriptReader'));
 const MeditationEditor = lazy(() => import('./src/components/MeditationEditor'));
+const MeditationPlayer = lazy(() => import('./components/MeditationPlayer'));
 import InlinePlayer from './components/InlinePlayer';
 import { AgentChat } from './components/AgentChat';
 import OfflineIndicator from './components/OfflineIndicator';
@@ -1869,97 +1870,50 @@ const App: React.FC = () => {
 
           {/* VIEW: PLAYER (Immersive Mode) */}
           {currentView === View.PLAYER && (
-            <div className="fixed inset-0 z-[100] bg-[#020617] flex flex-col items-center justify-center p-6 space-y-12 md:space-y-20 animate-in fade-in duration-1000">
-              <Starfield />
-
-              <button
-                onClick={() => {
-                  // If came from inline mode, go back to inline mode
+            <Suspense fallback={<div className="fixed inset-0 z-[100] bg-[#0f172a] flex items-center justify-center"><div className="w-8 h-8 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin" /></div>}>
+              <MeditationPlayer
+                isPlaying={isPlaying}
+                currentTime={currentTime}
+                duration={duration}
+                onPlayPause={togglePlayback}
+                onSeek={(time) => {
+                  // For Web Audio API, seeking requires restarting from a position
+                  // This is a simplified implementation - full seeking would require more work
+                  setCurrentTime(time);
+                }}
+                onSkip={(seconds) => {
+                  const newTime = Math.max(0, Math.min(duration, currentTime + seconds));
+                  setCurrentTime(newTime);
+                }}
+                onClose={() => {
                   if (isInlineMode) {
                     setCurrentView(View.HOME);
                   } else {
-                    // Otherwise stop everything and go to HOME
                     stopBackgroundMusic();
                     audioSourceRef.current?.stop();
                     setIsPlaying(false);
                     setCurrentView(View.HOME);
                   }
                 }}
-                className="absolute top-6 left-6 md:top-8 md:left-8 text-slate-600 hover:text-white transition-all flex items-center gap-3 group btn-press focus-ring rounded-full"
-              >
-                <div className="w-12 h-12 min-w-[44px] min-h-[44px] rounded-full border border-white/5 flex items-center justify-center group-hover:bg-white/10 group-hover:scale-110 transition-all">
-                  <ICONS.ArrowBack className="w-5 h-5" />
-                </div>
-                <span className="hidden md:inline text-[11px] font-bold uppercase tracking-[0.3em]">{isInlineMode ? 'Collapse' : 'Back'}</span>
-              </button>
-
-              <div className="w-full max-w-2xl text-center space-y-6 md:space-y-8">
-                <div className="inline-block px-4 py-1.5 rounded-full bg-cyan-500/10 text-cyan-400 text-[10px] font-bold uppercase tracking-[0.5em] animate-pulse">Neural Streaming</div>
-                <p className="text-xl md:text-3xl text-slate-200 font-serif italic font-light leading-relaxed px-4 md:px-12 opacity-80 select-none">
-                  "{script.substring(0, 180)}{script.length > 180 ? '...' : ''}"
-                </p>
-              </div>
-
-              <div className="relative w-full aspect-square max-w-[280px] md:max-w-[360px] flex items-center justify-center">
-                <div className={`absolute inset-0 bg-cyan-600/10 rounded-full blur-[100px] transition-all duration-1000 ${isPlaying ? 'scale-150 opacity-100' : 'scale-100 opacity-40'}`}></div>
-                <Suspense fallback={<div className="w-full h-full animate-pulse bg-white/5 rounded-full" />}>
-                  <Visualizer isActive={isPlaying} />
-                </Suspense>
-              </div>
-
-              <div className="flex items-center gap-10 md:gap-16">
-                <button className="p-3 min-w-[44px] min-h-[44px] text-slate-700 hover:text-white transition-all hover:scale-110 btn-press focus-ring rounded-full flex items-center justify-center">
-                  <ICONS.SkipPrev className="w-7 h-7 md:w-8 md:h-8" />
-                </button>
-
-                <button
-                  onClick={togglePlayback}
-                  className={`w-20 h-20 md:w-28 md:h-28 rounded-full flex items-center justify-center transition-all duration-500 shadow-2xl btn-press focus-ring ${isPlaying ? 'bg-white text-slate-950 shadow-white/20' : 'bg-cyan-600 text-white shadow-cyan-600/40'}`}
-                >
-                  {isPlaying ? (
-                    <ICONS.Pause className="w-8 h-8 md:w-10 md:h-10" />
-                  ) : (
-                    <ICONS.Player className="w-8 h-8 md:w-10 md:h-10 ml-1" />
-                  )}
-                </button>
-
-                <button className="p-3 min-w-[44px] min-h-[44px] text-slate-700 hover:text-white transition-all hover:scale-110 btn-press focus-ring rounded-full flex items-center justify-center">
-                  <ICONS.SkipNext className="w-7 h-7 md:w-8 md:h-8" />
-                </button>
-              </div>
-
-              {/* Background Music Volume Control */}
-              {selectedBackgroundTrack.id !== 'none' && (
-                <div className="flex flex-col gap-2 mt-4">
-                  <div className="flex items-center gap-3">
-                    <ICONS.Music className={`w-4 h-4 ${isMusicPlaying ? 'text-cyan-400 animate-pulse' : 'text-slate-500'}`} />
-                    <input
-                      type="range"
-                      min="0"
-                      max="1"
-                      step="0.1"
-                      value={backgroundVolume}
-                      onChange={(e) => updateBackgroundVolume(parseFloat(e.target.value))}
-                      className="w-32 h-1 bg-white/10 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white"
-                    />
-                    <span className="text-xs text-slate-500 w-8">{Math.round(backgroundVolume * 100)}%</span>
-                  </div>
-                  {/* Music Status Indicator */}
-                  <div className="flex items-center gap-2 text-xs">
-                    {isMusicPlaying ? (
-                      <span className="text-cyan-400 flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse" />
-                        Playing: {selectedBackgroundTrack.name}
-                      </span>
-                    ) : musicError ? (
-                      <span className="text-amber-400">{musicError}</span>
-                    ) : (
-                      <span className="text-slate-600">Music: {selectedBackgroundTrack.name}</span>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
+                title={script.substring(0, 50) + (script.length > 50 ? '...' : '')}
+                script={script}
+                backgroundMusicEnabled={selectedBackgroundTrack.id !== 'none' && isMusicPlaying}
+                backgroundVolume={backgroundVolume}
+                onBackgroundVolumeChange={updateBackgroundVolume}
+                onBackgroundMusicToggle={() => {
+                  if (isMusicPlaying) {
+                    stopBackgroundMusic();
+                  } else if (selectedBackgroundTrack.id !== 'none') {
+                    startBackgroundMusic(selectedBackgroundTrack);
+                  }
+                }}
+                backgroundTrackName={selectedBackgroundTrack.name}
+                userId={user?.id}
+                voiceId={selectedVoice?.id}
+                voiceName={selectedVoice?.name}
+                meditationType="custom"
+              />
+            </Suspense>
           )}
 
         </main>
