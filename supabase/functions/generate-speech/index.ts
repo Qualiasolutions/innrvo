@@ -183,69 +183,6 @@ async function runChatterboxTTS(
   }
 
   throw lastError || new Error('Failed to create prediction after retries');
-
-  const prediction = await createResponse.json();
-  log.info('Prediction created', { id: prediction.id, status: prediction.status });
-
-  // Poll for completion (Replicate predictions are async)
-  let result = prediction;
-  const maxWaitTime = 120000; // 2 minutes max
-  const pollInterval = 1000; // 1 second
-  const startTime = Date.now();
-
-  while (result.status !== 'succeeded' && result.status !== 'failed') {
-    if (Date.now() - startTime > maxWaitTime) {
-      throw new Error('Prediction timed out after 2 minutes');
-    }
-
-    await new Promise(resolve => setTimeout(resolve, pollInterval));
-
-    const pollResponse = await fetch(result.urls.get, {
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-      },
-    });
-
-    if (!pollResponse.ok) {
-      throw new Error(`Failed to poll prediction: ${pollResponse.status}`);
-    }
-
-    result = await pollResponse.json();
-    log.info('Prediction status', { id: result.id, status: result.status });
-  }
-
-  if (result.status === 'failed') {
-    log.error('Prediction failed', { error: result.error });
-    throw new Error(result.error || 'TTS prediction failed');
-  }
-
-  // Get the audio URL from the output
-  const audioUrl = result.output;
-  if (!audioUrl) {
-    throw new Error('No audio URL in prediction output');
-  }
-
-  log.info('Downloading audio from Replicate', { url: audioUrl });
-
-  // Download the audio and convert to base64
-  const audioResponse = await fetch(audioUrl);
-  if (!audioResponse.ok) {
-    throw new Error(`Failed to download audio: ${audioResponse.status}`);
-  }
-
-  const audioBlob = await audioResponse.blob();
-  const buffer = await audioBlob.arrayBuffer();
-  const bytes = new Uint8Array(buffer);
-
-  // Convert to base64 with chunked processing
-  let binary = '';
-  const chunkSize = 0x8000;
-  for (let i = 0; i < bytes.length; i += chunkSize) {
-    const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
-    binary += String.fromCharCode(...chunk);
-  }
-
-  return btoa(binary);
 }
 
 serve(async (req) => {
