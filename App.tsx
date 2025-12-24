@@ -2465,205 +2465,143 @@ const App: React.FC = () => {
           />
         </Suspense>
 
-        {/* Sidebar Overlay - covers content on mobile */}
+        {/* Sidebar Overlay */}
         {showBurgerMenu && (
           <div
-            className="fixed inset-0 z-[90] bg-black/60 backdrop-blur-sm md:hidden"
+            className="fixed inset-0 z-[90] bg-black/70"
             onClick={() => setShowBurgerMenu(false)}
           />
         )}
 
-        {/* Sidebar Drawer - Slides in from left */}
-        <div className={`fixed top-0 bottom-0 left-0 z-[95] w-[280px] md:w-[320px] bg-[#0a0f1a] sidebar-premium border-r border-white/[0.06] flex flex-col overflow-hidden transition-all duration-300 ease-out ${showBurgerMenu ? 'translate-x-0' : '-translate-x-full'}`}>
-              {/* Sidebar Header with Logo and Close Button */}
-              <div className="flex-shrink-0 p-4 md:p-5 flex items-center justify-between sidebar-content-enter">
-                {/* Logo */}
-                <div
-                  className="flex items-center gap-2.5 cursor-pointer group"
-                  onClick={() => { setCurrentView(View.HOME); setShowBurgerMenu(false); }}
-                >
-                  <ICONS.Logo className="h-5 md:h-6 text-white opacity-90 group-hover:opacity-100 transition-opacity" />
-                </div>
-
-                {/* Close Button */}
-                <button
-                  onClick={() => setShowBurgerMenu(false)}
-                  className="p-2.5 min-w-[40px] min-h-[40px] md:min-w-[44px] md:min-h-[44px]
-                             rounded-xl bg-white/[0.03] hover:bg-white/[0.08]
-                             text-slate-500 hover:text-white transition-all flex items-center justify-center
-                             border border-white/[0.04] hover:border-cyan-500/20"
-                  title="Close sidebar"
-                >
-                  <ICONS.SidebarToggle className="w-5 h-5" />
-                </button>
-              </div>
-
-              {/* Premium divider */}
-              <div className="divider-premium mx-4" />
-
-              {/* History Header */}
-              <div className="px-4 pt-4 pb-2 sidebar-content-enter" style={{ animationDelay: '50ms' }}>
-                <h3 className="text-[10px] font-semibold text-slate-500 uppercase tracking-[0.2em]">History</h3>
-              </div>
-
-              {/* History Content - scrollable area */}
-              <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-4 no-scrollbar">
-
-                {user ? (
-                  <>
-                    {isLoadingHistory ? (
-                      <div className="flex justify-center py-8">
-                        <div className="animate-spin rounded-full h-7 w-7 border-2 border-cyan-500/20 border-t-cyan-500"></div>
-                      </div>
-                    ) : meditationHistory.length > 0 ? (
-                      <div className="space-y-1.5">
-                        {meditationHistory.slice(0, 10).map((item, index) => (
-                          <button
-                            key={item.id}
-                            onClick={() => {
-                              // Restore meditation from history
-                              const scriptToRestore = item.enhanced_script || item.prompt;
-                              setScript(item.prompt);
-                              setEnhancedScript(scriptToRestore);
-                              setRestoredScript(scriptToRestore);
-
-                              // Try to restore the voice if available
-                              if (item.voice_id && savedVoices.length > 0) {
-                                const matchingVoice = savedVoices.find(v => v.id === item.voice_id);
-                                if (matchingVoice) {
-                                  const voiceProfile: VoiceProfile = {
-                                    id: matchingVoice.id,
-                                    name: matchingVoice.name,
-                                    voiceName: matchingVoice.name,
-                                    description: 'Cloned voice',
-                                    isCloned: true,
-                                    elevenlabsVoiceId: matchingVoice.elevenlabs_voice_id,
-                                  };
-                                  setSelectedVoice(voiceProfile);
-                                }
-                              }
-
-                              setShowBurgerMenu(false);
-                            }}
-                            className="history-item stagger-item slide-in-stagger w-full text-left p-3 rounded-xl bg-white/[0.02] hover:bg-white/[0.06] group"
-                            style={{ animationDelay: `${100 + index * 40}ms` }}
-                          >
-                            <p className="text-[13px] text-slate-300 group-hover:text-white truncate mb-1.5 transition-colors">{item.prompt}</p>
-                            <div className="flex items-center gap-2 text-[10px] text-slate-600">
-                              {item.voice_name && <span className="text-slate-500">{item.voice_name}</span>}
-                              {item.voice_name && <span className="text-slate-700">•</span>}
-                              <span>{new Date(item.created_at).toLocaleDateString()}</span>
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-10 sidebar-content-enter" style={{ animationDelay: '100ms' }}>
-                        <div className="w-12 h-12 rounded-2xl bg-white/[0.03] flex items-center justify-center mx-auto mb-3">
-                          <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                        </div>
-                        <p className="text-slate-500 text-sm font-medium">No history yet</p>
-                        <p className="text-slate-600 text-xs mt-1">Your meditations will appear here</p>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <div className="text-center py-10 sidebar-content-enter" style={{ animationDelay: '100ms' }}>
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-500/10 to-purple-500/10 flex items-center justify-center mx-auto mb-3">
-                      <svg className="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
-                      </svg>
-                    </div>
-                    <p className="text-slate-400 text-sm font-medium mb-4">Sign in to view history</p>
-                    <button
-                      onClick={() => {
-                        setShowBurgerMenu(false);
-                        setShowAuthModal(true);
-                      }}
-                      className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-600/90 to-cyan-500/90 hover:from-cyan-500 hover:to-cyan-400 text-white text-sm font-medium transition-all hover:scale-[1.02] active:scale-[0.98]"
-                    >
-                      Sign In
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Quick Actions Row */}
-              <div className="flex-shrink-0 px-4 pb-3">
-                <div className="divider-premium mb-3" />
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => { setShowBurgerMenu(false); setShowHowItWorks(true); }}
-                    className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2.5 rounded-lg bg-white/[0.03] text-slate-400 hover:text-cyan-400 hover:bg-white/[0.06] transition-all text-xs font-medium"
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
-                    </svg>
-                    How
-                  </button>
-                  <button
-                    onClick={() => { setShowBurgerMenu(false); setShowLibrary(true); }}
-                    className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2.5 rounded-lg bg-white/[0.03] text-slate-400 hover:text-cyan-400 hover:bg-white/[0.06] transition-all text-xs font-medium"
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
-                    </svg>
-                    Library
-                  </button>
-                  {user && (
-                    <button
-                      onClick={() => { setShowBurgerMenu(false); handleSignOut(); }}
-                      className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2.5 rounded-lg bg-white/[0.03] text-slate-400 hover:text-rose-400 hover:bg-white/[0.06] transition-all text-xs font-medium"
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                      </svg>
-                      Out
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Footer */}
-              <div className="flex-shrink-0 mt-auto p-4 pb-6 space-y-3 safe-bottom">
-                <div className="divider-premium" />
-                <div className="flex items-center justify-center gap-4 text-[10px] text-slate-600 uppercase tracking-[0.15em] pt-1">
-                  <button
-                    onClick={() => { setShowBurgerMenu(false); setShowAboutUs(true); }}
-                    className="footer-link hover:text-cyan-400 transition-colors"
-                  >
-                    About
-                  </button>
-                  <span className="text-slate-700/50">•</span>
-                  <button
-                    onClick={() => { setShowBurgerMenu(false); setShowTerms(true); }}
-                    className="footer-link hover:text-cyan-400 transition-colors"
-                  >
-                    Terms
-                  </button>
-                  <span className="text-slate-700/50">•</span>
-                  <button
-                    onClick={() => { setShowBurgerMenu(false); setShowPrivacy(true); }}
-                    className="footer-link hover:text-cyan-400 transition-colors"
-                  >
-                    Privacy
-                  </button>
-                </div>
-                <a
-                  href="https://qualiasolutions.net"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[10px] text-slate-600 hover:text-cyan-400 text-center uppercase tracking-[0.15em] block transition-colors"
-                >
-                  Powered by Qualia Solutions
-                </a>
-                <p className="text-[9px] text-slate-700 text-center opacity-60">
-                  © {new Date().getFullYear()} INrVO
-                </p>
-              </div>
+        {/* Sidebar */}
+        <div
+          className={`fixed top-0 left-0 h-full w-72 z-[95] flex flex-col transition-transform duration-300 ${
+            showBurgerMenu ? 'translate-x-0' : '-translate-x-full'
+          }`}
+          style={{ backgroundColor: '#030712' }}
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between p-5 border-b border-white/5">
+            <div
+              className="cursor-pointer"
+              onClick={() => { setCurrentView(View.HOME); setShowBurgerMenu(false); }}
+            >
+              <ICONS.Logo className="h-5 text-white" />
             </div>
+            <button
+              onClick={() => setShowBurgerMenu(false)}
+              className="w-9 h-9 flex items-center justify-center rounded-lg text-slate-500 hover:text-white hover:bg-white/5 transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Navigation */}
+          <div className="p-4 space-y-1">
+            <button
+              onClick={() => { setShowBurgerMenu(false); setShowHowItWorks(true); }}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors text-sm"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
+              </svg>
+              How It Works
+            </button>
+            <button
+              onClick={() => { setShowBurgerMenu(false); setShowLibrary(true); }}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors text-sm"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+              </svg>
+              Library
+            </button>
+          </div>
+
+          {/* Divider */}
+          <div className="mx-4 h-px bg-white/5" />
+
+          {/* History */}
+          <div className="flex-1 flex flex-col min-h-0 p-4">
+            <p className="text-[10px] font-medium text-slate-600 uppercase tracking-wider mb-3">History</p>
+            <div className="flex-1 overflow-y-auto space-y-1">
+              {user ? (
+                isLoadingHistory ? (
+                  <div className="flex justify-center py-6">
+                    <div className="w-5 h-5 border-2 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin" />
+                  </div>
+                ) : meditationHistory.length > 0 ? (
+                  meditationHistory.slice(0, 10).map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                        const scriptToRestore = item.enhanced_script || item.prompt;
+                        setScript(item.prompt);
+                        setEnhancedScript(scriptToRestore);
+                        setRestoredScript(scriptToRestore);
+                        if (item.voice_id && savedVoices.length > 0) {
+                          const matchingVoice = savedVoices.find(v => v.id === item.voice_id);
+                          if (matchingVoice) {
+                            setSelectedVoice({
+                              id: matchingVoice.id,
+                              name: matchingVoice.name,
+                              voiceName: matchingVoice.name,
+                              description: 'Cloned voice',
+                              isCloned: true,
+                              elevenlabsVoiceId: matchingVoice.elevenlabs_voice_id,
+                            });
+                          }
+                        }
+                        setShowBurgerMenu(false);
+                      }}
+                      className="w-full text-left p-2.5 rounded-lg hover:bg-white/5 transition-colors group"
+                    >
+                      <p className="text-sm text-slate-400 group-hover:text-white truncate">{item.prompt}</p>
+                      <p className="text-[10px] text-slate-600 mt-1">{new Date(item.created_at).toLocaleDateString()}</p>
+                    </button>
+                  ))
+                ) : (
+                  <p className="text-sm text-slate-600 text-center py-6">No history yet</p>
+                )
+              ) : (
+                <div className="text-center py-6">
+                  <p className="text-sm text-slate-500 mb-3">Sign in to view history</p>
+                  <button
+                    onClick={() => { setShowBurgerMenu(false); setShowAuthModal(true); }}
+                    className="px-4 py-2 rounded-lg bg-cyan-500/20 text-cyan-400 text-sm hover:bg-cyan-500/30 transition-colors"
+                  >
+                    Sign In
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="p-4 border-t border-white/5 space-y-3">
+            {user && (
+              <button
+                onClick={() => { setShowBurgerMenu(false); handleSignOut(); }}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-white/5 transition-colors text-sm"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                Sign Out
+              </button>
+            )}
+            <div className="flex items-center justify-center gap-3 text-[10px] text-slate-600">
+              <button onClick={() => { setShowBurgerMenu(false); setShowAboutUs(true); }} className="hover:text-white transition-colors">About</button>
+              <span>·</span>
+              <button onClick={() => { setShowBurgerMenu(false); setShowTerms(true); }} className="hover:text-white transition-colors">Terms</button>
+              <span>·</span>
+              <button onClick={() => { setShowBurgerMenu(false); setShowPrivacy(true); }} className="hover:text-white transition-colors">Privacy</button>
+            </div>
+            <p className="text-[9px] text-slate-700 text-center">© {new Date().getFullYear()} INrVO</p>
+          </div>
+        </div>
 
         {/* MODAL: How It Works */}
         {showHowItWorks && (
