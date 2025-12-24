@@ -134,7 +134,8 @@ export interface VoiceProfile {
   status: VoiceProfileStatus;
   quality?: VoiceQuality;
   quality_score?: number;
-  elevenlabs_voice_id?: string;
+  provider_voice_id?: string;
+  voice_sample_url?: string;
   provider?: string;
   cloning_status?: string;
   sample_duration?: number;
@@ -303,7 +304,7 @@ export const createVoiceProfile = async (
   description?: string,
   language: string = 'en-US',
   geminiVoice?: string, // Gemini voice name (optional for cloned voices)
-  elevenlabsVoiceId?: string // ElevenLabs voice ID (for cloned voices)
+  providerVoiceId?: string // Provider voice ID (for cloned voices via Chatterbox)
 ): Promise<VoiceProfile | null> => {
   const user = await getCurrentUser();
   if (!user || !supabase) throw new Error('User not authenticated or Supabase not configured');
@@ -313,18 +314,18 @@ export const createVoiceProfile = async (
     name,
     description,
     language,
-    provider: elevenlabsVoiceId ? 'ElevenLabs' : 'Gemini',
+    provider: providerVoiceId ? 'chatterbox' : 'Gemini',
     status: 'READY',
   };
 
   // Set Gemini voice for non-cloned voices
-  if (geminiVoice && !elevenlabsVoiceId) {
+  if (geminiVoice && !providerVoiceId) {
     profileData.accent = geminiVoice;
   }
 
-  // Set ElevenLabs voice ID for cloned voices
-  if (elevenlabsVoiceId) {
-    profileData.elevenlabs_voice_id = elevenlabsVoiceId;
+  // Set provider voice ID for cloned voices (Chatterbox via Replicate)
+  if (providerVoiceId) {
+    profileData.provider_voice_id = providerVoiceId;
     profileData.cloning_status = 'READY';
     profileData.accent = null; // Clear Gemini voice for clones
   }

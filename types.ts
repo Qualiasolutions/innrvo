@@ -23,8 +23,8 @@ export interface ScriptTemplate {
   prompt: string;
 }
 
-// Voice providers (lowercase is preferred, uppercase for backwards compat)
-export type VoiceProvider = 'browser' | 'chatterbox' | 'elevenlabs' | 'ElevenLabs' | 'Gemini';
+// Voice providers
+export type VoiceProvider = 'browser' | 'chatterbox' | 'Gemini';
 
 export interface VoiceProfile {
   id: string;
@@ -33,8 +33,7 @@ export interface VoiceProfile {
   voiceName: string;
   description: string;
   isCloned?: boolean;
-  elevenlabsVoiceId?: string;     // Legacy: ElevenLabs voice ID
-  providerVoiceId?: string;        // New: Universal provider voice ID (Chatterbox, etc.)
+  providerVoiceId?: string;        // Provider voice ID (Chatterbox, etc.)
 }
 
 export interface BackgroundMusic {
@@ -93,7 +92,6 @@ export type CloningStatus =
   | { state: 'validating' }
   | { state: 'processing_audio' }                                         // Converting WebM to WAV
   | { state: 'uploading'; progress?: number; provider?: VoiceProvider }  // Generic upload state
-  | { state: 'uploading_to_elevenlabs'; progress?: number }               // Legacy: ElevenLabs
   | { state: 'uploading_to_chatterbox'; progress?: number }               // Chatterbox via Replicate
   | { state: 'saving_to_database' }
   | { state: 'success'; voiceId: string; voiceName: string }

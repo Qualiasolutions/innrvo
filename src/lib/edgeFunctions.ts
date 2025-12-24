@@ -234,10 +234,9 @@ async function callEdgeFunction<T>(
 
 /**
  * Generate speech using Chatterbox via Replicate Edge Function
- * (Legacy function name kept for backward compatibility - now uses Chatterbox, not ElevenLabs)
  * API key is stored server-side
  */
-export async function elevenLabsTTS(
+export async function generateSpeech(
   voiceId: string,
   text: string,
   voiceSettings?: {

@@ -4,8 +4,6 @@ import { beforeAll, afterAll, afterEach, vi } from 'vitest';
 // Mock environment variables
 vi.stubEnv('VITE_SUPABASE_URL', 'https://test.supabase.co');
 vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'test-anon-key');
-vi.stubEnv('VITE_GEMINI_API_KEY', 'test-gemini-key');
-vi.stubEnv('VITE_ELEVENLABS_API_KEY', 'test-elevenlabs-key');
 
 // Mock AudioContext for audio tests
 class MockAudioContext {

@@ -21,7 +21,7 @@ interface HealthStatus {
   version: string;
   services: {
     database: 'up' | 'down';
-    elevenlabs: 'configured' | 'not_configured';
+    replicate: 'configured' | 'not_configured';
     gemini: 'configured' | 'not_configured';
   };
   latency?: {
@@ -67,7 +67,7 @@ serve(async (req) => {
     }
 
     // Check if API keys are configured (not their validity, just presence)
-    const elevenlabsKey = Deno.env.get('ELEVENLABS_API_KEY');
+    const replicateKey = Deno.env.get('REPLICATE_API_TOKEN');
     const geminiKey = Deno.env.get('GEMINI_API_KEY');
 
     const healthStatus: HealthStatus = {
@@ -76,7 +76,7 @@ serve(async (req) => {
       version: '1.0.0',
       services: {
         database: databaseStatus,
-        elevenlabs: elevenlabsKey ? 'configured' : 'not_configured',
+        replicate: replicateKey ? 'configured' : 'not_configured',
         gemini: geminiKey ? 'configured' : 'not_configured',
       },
       latency: {
@@ -87,7 +87,7 @@ serve(async (req) => {
     // Determine overall status
     if (databaseStatus === 'down') {
       healthStatus.status = 'unhealthy';
-    } else if (!elevenlabsKey || !geminiKey) {
+    } else if (!replicateKey || !geminiKey) {
       healthStatus.status = 'degraded';
     }
 
@@ -114,7 +114,7 @@ serve(async (req) => {
       version: '1.0.0',
       services: {
         database: 'down',
-        elevenlabs: 'not_configured',
+        replicate: 'not_configured',
         gemini: 'not_configured',
       },
     };

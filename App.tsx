@@ -401,15 +401,15 @@ const App: React.FC = () => {
 
       // Add saved voices to available voices (cloned voices only)
       const clonedVoiceProfiles = voices
-        .filter(v => v.elevenlabs_voice_id) // Only include voices with ElevenLabs ID
+        .filter(v => v.voice_sample_url || v.provider_voice_id) // Include voices with Chatterbox sample
         .map(v => ({
           id: v.id,
           name: v.name,
-          provider: 'ElevenLabs' as const,
+          provider: 'chatterbox' as const,
           voiceName: v.name, // Use voice name for display
           description: v.description || 'Your personalized voice clone',
           isCloned: true,
-          elevenlabsVoiceId: v.elevenlabs_voice_id
+          providerVoiceId: v.provider_voice_id
         }));
 
       setAvailableVoices(clonedVoiceProfiles);
@@ -2382,11 +2382,11 @@ const App: React.FC = () => {
               const voiceProfile: VoiceProfile = {
                 id: voice.id,
                 name: voice.name,
-                provider: 'ElevenLabs',
+                provider: 'chatterbox',
                 voiceName: voice.name,
                 description: voice.description || 'Your personalized voice clone',
                 isCloned: true,
-                elevenlabsVoiceId: voice.elevenlabs_voice_id
+                providerVoiceId: voice.provider_voice_id
               };
               setSelectedVoice(voiceProfile);
               setShowVoiceManager(false);
@@ -2481,10 +2481,11 @@ const App: React.FC = () => {
                             setSelectedVoice({
                               id: matchingVoice.id,
                               name: matchingVoice.name,
+                              provider: 'chatterbox',
                               voiceName: matchingVoice.name,
                               description: 'Cloned voice',
                               isCloned: true,
-                              elevenlabsVoiceId: matchingVoice.elevenlabs_voice_id,
+                              providerVoiceId: matchingVoice.provider_voice_id,
                             });
                           }
                         }
@@ -3092,7 +3093,7 @@ const App: React.FC = () => {
 
                 <GlassCard className="!p-6 !rounded-2xl">
                   <h3 className="text-lg font-bold text-white mb-3">2. Description of Service</h3>
-                  <p className="text-slate-400">INrVO provides AI-powered meditation generation, voice synthesis, and audio experiences. The Service uses third-party AI providers including Google Gemini and ElevenLabs.</p>
+                  <p className="text-slate-400">INrVO provides AI-powered meditation generation, voice synthesis, and audio experiences. The Service uses third-party AI providers including Google Gemini and Replicate.</p>
                 </GlassCard>
 
                 <GlassCard className="!p-6 !rounded-2xl">
@@ -3165,7 +3166,7 @@ const App: React.FC = () => {
 
                 <GlassCard className="!p-6 !rounded-2xl">
                   <h3 className="text-lg font-bold text-white mb-3">4. Third-Party Services</h3>
-                  <p className="text-slate-400">We use Google Gemini for AI generation and ElevenLabs for voice synthesis. These services have their own privacy policies. Voice data sent for cloning is processed according to ElevenLabs' terms.</p>
+                  <p className="text-slate-400">We use Google Gemini for AI generation and Replicate (Chatterbox) for voice synthesis. These services have their own privacy policies. Voice data sent for cloning is processed according to Replicate's terms.</p>
                 </GlassCard>
 
                 <GlassCard className="!p-6 !rounded-2xl">

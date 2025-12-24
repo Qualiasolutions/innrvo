@@ -53,7 +53,6 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
   // Derive state from cloningStatus
   const isProcessing = cloningStatus.state === 'validating' ||
                        cloningStatus.state === 'uploading_to_chatterbox' ||
-                       cloningStatus.state === 'uploading_to_elevenlabs' || // Legacy support
                        cloningStatus.state === 'saving_to_database';
 
   const error = cloningStatus.state === 'error' ? cloningStatus.message : localError;
@@ -169,7 +168,7 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
     }
 
     if (!isConfigured) {
-      setLocalError('ElevenLabs API key not configured. Please add VITE_ELEVENLABS_API_KEY to your .env.local file.');
+      setLocalError('Voice cloning service not configured. Please check your settings.');
       return;
     }
 
@@ -219,7 +218,7 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
     switch (cloningStatus.state) {
       case 'validating':
         return 'Validating audio...';
-      case 'uploading_to_elevenlabs':
+      case 'uploading_to_chatterbox':
         return cloningStatus.progress
           ? `Creating voice clone... ${cloningStatus.progress}%`
           : 'Creating voice clone (this may take a moment)...';
@@ -299,13 +298,13 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
             </div>
           )}
 
-          {/* API Key Warning */}
+          {/* Service Warning */}
           {!isConfigured && (
             <div className="text-amber-400 text-sm font-medium bg-amber-500/10 p-3 rounded-lg flex items-center gap-2">
               <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
-              <span>ElevenLabs API key not configured. Voice cloning will not work.</span>
+              <span>Voice cloning service not configured. Please check your settings.</span>
             </div>
           )}
 

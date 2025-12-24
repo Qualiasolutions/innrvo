@@ -38,7 +38,6 @@ function prepareMeditationText(text: string): string {
  * Unified voice service that routes between providers:
  * - 'browser': Free Web Speech API
  * - 'chatterbox': Chatterbox via Replicate (for cloned voices)
- * - 'elevenlabs': Legacy support
  */
 export const voiceService = {
   /**
@@ -67,21 +66,19 @@ export const voiceService = {
         return this.generateWithWebSpeech(meditationText, voice);
 
       case 'chatterbox':
-      case 'elevenlabs':  // Legacy: route ElevenLabs voices to Chatterbox
-      case 'ElevenLabs':
       default:
         return this.generateWithChatterbox(meditationText, voice, audioContext);
     }
   },
 
   /**
-   * Detect provider from voice profile (for backwards compatibility)
+   * Detect provider from voice profile
    */
   detectProvider(voice: VoiceProfile): VoiceProvider {
     if (voice.provider) return voice.provider;
     if (voice.id.startsWith('browser-')) return 'browser';
-    // All cloned voices now use Chatterbox
-    if (voice.providerVoiceId || voice.elevenlabsVoiceId || voice.isCloned) return 'chatterbox';
+    // All cloned voices use Chatterbox
+    if (voice.providerVoiceId || voice.isCloned) return 'chatterbox';
     return 'browser'; // Default to free browser TTS
   },
 
@@ -109,7 +106,7 @@ export const voiceService = {
   },
 
   /**
-   * Generate speech using the unified edge function (routes to ElevenLabs or Chatterbox)
+   * Generate speech using Chatterbox via edge function
    */
   async generateWithChatterbox(
     text: string,
@@ -117,22 +114,17 @@ export const voiceService = {
     audioContext?: AudioContext
   ): Promise<{ audioBuffer: AudioBuffer | null; base64: string }> {
     // Import dynamically to avoid circular dependency
-    const { elevenLabsTTS } = await import('./edgeFunctions');
+    const { generateSpeech } = await import('./edgeFunctions');
 
-    // Use voice profile ID - the edge function will look up the voice and route appropriately
+    // Use voice profile ID - the edge function will look up the voice
     const voiceId = voice.id;
 
-    // Call generate-speech edge function (routes to ElevenLabs or Chatterbox based on voice profile)
-    const base64 = await elevenLabsTTS(voiceId, text);
+    // Call generate-speech edge function
+    const base64 = await generateSpeech(voiceId, text);
 
-    // Decode to AudioBuffer if needed
-    // Determine format based on voice provider:
-    // - ElevenLabs returns MP3
-    // - Chatterbox returns WAV
+    // Decode to AudioBuffer if needed (Chatterbox returns WAV)
     if (audioContext) {
-      const isElevenLabs = voice.provider === 'ElevenLabs' || voice.provider === 'elevenlabs';
-      const mimeType = isElevenLabs ? 'audio/mpeg' : 'audio/wav';
-      const audioBuffer = await this.decodeAudio(base64, audioContext, mimeType);
+      const audioBuffer = await this.decodeAudio(base64, audioContext, 'audio/wav');
       return { audioBuffer, base64 };
     }
 
@@ -167,16 +159,7 @@ export const voiceService = {
   },
 
   /**
-   * Decodes ElevenLabs MP3 audio to AudioBuffer (legacy)
-   * Uses Blob + Object URL for better memory efficiency
-   */
-  async decodeElevenLabsAudio(base64: string, audioContext: AudioContext): Promise<AudioBuffer> {
-    return this.decodeAudio(base64, audioContext, 'audio/mpeg');
-  },
-
-  /**
    * Checks if a voice is ready for TTS generation
-   * Supports multiple providers
    */
   async isVoiceReady(voice: VoiceProfile): Promise<boolean> {
     const provider = voice.provider || this.detectProvider(voice);
@@ -187,11 +170,9 @@ export const voiceService = {
         return isWebSpeechAvailable();
 
       case 'chatterbox':
-      case 'elevenlabs':
-      case 'ElevenLabs':
       default:
-        // Cloned voices are ready if they have any voice reference
-        return !!(voice.providerVoiceId || voice.elevenlabsVoiceId || voice.isCloned);
+        // Cloned voices are ready if they have a voice reference
+        return !!(voice.providerVoiceId || voice.isCloned);
     }
   },
 
