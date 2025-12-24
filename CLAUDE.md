@@ -124,6 +124,39 @@ Music is handled via HTML5 Audio in `App.tsx`:
 - Categories: nature, ambient, instrumental, binaural, lofi, classical
 - All tracks use SoundHelix URLs (free, public domain, CORS-enabled)
 
+### MeditationEditor Component
+
+The **MeditationEditor** (`src/components/MeditationEditor/`) is a unified meditation script editing experience.
+
+**Structure:**
+```
+src/components/MeditationEditor/
+├── index.tsx              # Main component with contentEditable script editing
+├── types.ts               # TypeScript types (MeditationEditorProps, ScriptStats, ControlTab)
+├── components/
+│   ├── EditorHeader.tsx   # Header with back button, centered title, stats (desktop)
+│   ├── ControlPanel.tsx   # Bottom sheet with Voice/Music/Tags tabs
+│   ├── GenerateButton.tsx # Primary CTA for audio generation
+│   └── ScriptTextArea.tsx # Script editing area
+└── hooks/
+    ├── useAudioTags.ts    # Renders styled [tag] content
+    ├── useEditorCursor.ts # Cursor position management
+    └── useKeyboard.ts     # Keyboard shortcuts (Escape, Ctrl+Enter)
+```
+
+**Features:**
+- Full-screen overlay on mobile, centered modal on desktop
+- contentEditable script editing with styled audio tags (e.g., `[pause]`, `[deep breath]`)
+- Voice/Music/Tags selection via expandable bottom sheet
+- Keyboard shortcuts: `Escape` to close, `Ctrl+Enter` to generate
+- Mobile-first responsive design with iOS safe area handling
+
+**Mobile Header Design:**
+- Back arrow button on left (clean, intuitive navigation)
+- Centered title with meditation type subtitle
+- Stats row shown below header on mobile, inline on desktop
+- Uses `safe-top` CSS class for iOS notch handling
+
 ## Environment Variables
 
 Frontend (`.env.local`):
