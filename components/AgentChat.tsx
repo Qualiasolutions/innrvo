@@ -326,22 +326,22 @@ const MeditationPanel = memo<MeditationPanelProps>(({
   const estimatedDuration = Math.ceil(wordCount / 100);
 
   return (
-    <div className="fixed inset-0 z-[75] bg-[#020617] animate-in fade-in duration-300">
-      {/* Full screen meditation editor */}
-      <div className="h-full flex flex-col">
+    <div className="fixed inset-0 z-[100] bg-[#020617] animate-in fade-in duration-300">
+      {/* Full screen meditation editor - z-[100] to be above sidebar (z-[95]) */}
+      <div className="h-full flex flex-col overflow-hidden">
 
         {/* Close button - top right (square like sidebar toggle) */}
         <button
           onClick={(e) => { e.stopPropagation(); onClose(); }}
-          className="fixed top-3 right-3 md:top-4 md:right-4 z-[100] w-10 h-10 md:w-11 md:h-11 rounded-lg md:rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all flex items-center justify-center border border-white/5 hover:border-cyan-500/30 active:scale-95 cursor-pointer"
+          className="absolute top-3 right-3 md:top-4 md:right-4 z-10 w-11 h-11 md:w-12 md:h-12 rounded-xl bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white transition-all flex items-center justify-center border border-white/10 hover:border-cyan-500/30 active:scale-95 cursor-pointer touch-manipulation"
           aria-label="Close"
           type="button"
         >
-          <CloseIcon className="w-5 h-5" />
+          <CloseIcon className="w-5 h-5 md:w-6 md:h-6" />
         </button>
 
         {/* Scrollable Script Area - starts below X button */}
-        <div className="flex-1 overflow-y-auto min-h-0 pt-14 md:pt-16">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 pt-16 md:pt-18">
           <div
             ref={editorRef}
             contentEditable
@@ -367,8 +367,8 @@ const MeditationPanel = memo<MeditationPanelProps>(({
               }
             }}
             className="w-full min-h-full bg-transparent text-white leading-relaxed
-                       outline-none px-4 pb-4 md:px-6 md:pb-6 whitespace-pre-wrap"
-            style={{ fontSize: '16px', minHeight: '200px' }}
+                       outline-none px-4 pb-4 md:px-6 md:pb-6 whitespace-pre-wrap break-words"
+            style={{ fontSize: '16px', minHeight: '200px', wordBreak: 'break-word' }}
             data-placeholder="Your meditation script..."
           >
             {renderStyledContent}
@@ -546,6 +546,7 @@ interface AgentChatProps {
   onRequestVoiceSelection?: () => void;
   onRequestMusicSelection?: () => void;
   onChatStarted?: () => void;
+  onMeditationPanelOpen?: () => void;
   selectedVoice?: VoiceProfile | null;
   selectedMusic?: BackgroundTrack | null;
   availableMusic?: BackgroundTrack[];
@@ -564,6 +565,7 @@ export const AgentChat: React.FC<AgentChatProps> = ({
   onGenerateAudio,
   onRequestVoiceSelection,
   onChatStarted,
+  onMeditationPanelOpen,
   selectedVoice,
   selectedMusic,
   availableMusic = [],
@@ -615,6 +617,13 @@ export const AgentChat: React.FC<AgentChatProps> = ({
       setShowMeditationPanel(true);
     }
   }, [currentMeditation]);
+
+  // Notify parent when meditation panel opens (for sidebar auto-close)
+  useEffect(() => {
+    if (showMeditationPanel && onMeditationPanelOpen) {
+      onMeditationPanelOpen();
+    }
+  }, [showMeditationPanel, onMeditationPanelOpen]);
 
   // Handle restored meditation from history
   useEffect(() => {

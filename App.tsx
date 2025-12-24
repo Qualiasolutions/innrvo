@@ -1766,6 +1766,7 @@ const App: React.FC = () => {
                         }
                       }}
                       onChatStarted={() => setChatStarted(true)}
+                      onMeditationPanelOpen={() => setShowBurgerMenu(false)}
                       onRequestVoiceSelection={() => setShowVoiceManager(true)}
                       selectedVoice={selectedVoice}
                       selectedMusic={selectedBackgroundTrack}
