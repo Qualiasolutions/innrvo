@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 INrVO is a personalized meditation app that generates custom meditation scripts using AI and converts them to speech with voice cloning. Users can clone their own voice or select from built-in voices to hear meditations in a familiar tone.
 
-**Tech Stack**: React 19 + TypeScript + Vite + Tailwind CSS 4 + Supabase (auth, database, edge functions) + ElevenLabs/Chatterbox (TTS/voice cloning) + Gemini (script generation)
+**Tech Stack**: React 19 + TypeScript + Vite + Tailwind CSS 4 + Supabase (auth, database, edge functions) + Chatterbox via Replicate (TTS/voice cloning) + Gemini (script generation)
 
 ## Development Commands
 
@@ -58,12 +58,12 @@ Frontend → src/lib/edgeFunctions.ts → Supabase Edge Functions → External A
 ```
 
 **Edge Functions** (`supabase/functions/`):
-- `generate-speech/` - ElevenLabs TTS with rate limiting
+- `generate-speech/` - Chatterbox TTS via Replicate with rate limiting
 - `gemini-script/` - Meditation script generation via Gemini
 - `chatterbox-clone/` - Voice cloning via Replicate's Chatterbox model
-- `chatterbox-tts/` - TTS via Chatterbox (alternative to ElevenLabs)
+- `chatterbox-tts/` - Direct Chatterbox TTS endpoint
 - `export-user-data/` - GDPR data export
-- `health/` - System health checks
+- `health/` - System health checks (verifies Replicate + Gemini)
 
 **Shared utilities** (`supabase/functions/_shared/`):
 - `rateLimit.ts` - Request rate limiting per user
@@ -85,7 +85,7 @@ Key trigger phrases for meditation generation:
 ### Database Schema
 
 Main tables (`supabase/schema.sql`, migrations in `supabase/migrations/`):
-- `voice_profiles` - User voice clones with provider voice IDs (ElevenLabs, Chatterbox)
+- `voice_profiles` - User voice clones with `provider_voice_id` and `voice_sample_url`
 - `voice_clones` - Audio samples for cloning
 - `meditation_history` - Past meditation sessions with audio storage
 - `voice_sessions` - Generated audio history
@@ -95,23 +95,34 @@ All tables have RLS policies - users can only access their own data.
 
 ### Voice Flow
 
-1. **Clone Voice**: Record 30+ sec → Convert WebM to WAV (`src/lib/audioConverter.ts`) → Edge Function → ElevenLabs or Chatterbox
+1. **Clone Voice**: Record 30+ sec → Convert WebM to WAV (`src/lib/audioConverter.ts`) → Edge Function → Chatterbox via Replicate
 2. **Generate Meditation**: User prompt → Agent conversation → Explicit request → Gemini script → TTS provider
 3. **Voice Selection**: Built-in voices (`constants.tsx`) + User clones (`voice_profiles` table)
+4. **Background Music**: 18 tracks from SoundHelix (free, CORS-enabled) - selected in MeditationEditor
 
 **Voice Providers** (`types.ts:VoiceProvider`):
-- `browser` - Web Speech API (free, no quality)
-- `elevenlabs` - ElevenLabs (high quality, paid)
-- `chatterbox` - Replicate Chatterbox (alternative, open source)
+- `browser` - Web Speech API (free, lower quality, works offline)
+- `chatterbox` - Chatterbox via Replicate (~$0.03/run, high quality, voice cloning)
+- `Gemini` - Built-in Gemini voices
 
 ## Key Files
 
-- `App.tsx` - Main application component (~1200 lines)
+- `App.tsx` - Main application component (~2400 lines), background music playback
 - `types.ts` - TypeScript definitions for views, voice profiles, audio tags
-- `constants.tsx` - Built-in voices, templates, background tracks, audio tags
-- `src/lib/edgeFunctions.ts` - Edge function API wrapper
-- `src/lib/voiceService.ts` - Voice operations (cloning, TTS)
+- `constants.tsx` - Built-in voices, templates, 18 background tracks (SoundHelix), audio tags
+- `src/lib/edgeFunctions.ts` - Edge function API wrapper (generateSpeech, chatterboxTTS, etc.)
+- `src/lib/voiceService.ts` - Voice routing (browser, chatterbox providers)
+- `src/components/MeditationEditor/` - Meditation creation UI with Voice/Music/Tags tabs
+- `lib/supabase.ts` - Database operations, voice profile management
 - `geminiService.ts` - Script generation prompts
+
+### Background Music
+
+Music is handled via HTML5 Audio in `App.tsx`:
+- `BACKGROUND_TRACKS` in `constants.tsx` - 18 tracks across 7 categories
+- `backgroundAudioRef` - Audio element reference for playback control
+- Categories: nature, ambient, instrumental, binaural, lofi, classical
+- All tracks use SoundHelix URLs (free, public domain, CORS-enabled)
 
 ## Environment Variables
 
@@ -124,9 +135,8 @@ VITE_SENTRY_DSN=https://...  # Optional
 
 Edge Function secrets (set in Supabase dashboard, not .env):
 ```
-ELEVENLABS_API_KEY=sk_...
-GEMINI_API_KEY=AI...
-REPLICATE_API_TOKEN=r8_...  # For Chatterbox
+REPLICATE_API_TOKEN=r8_...  # For Chatterbox TTS/voice cloning
+GEMINI_API_KEY=AI...        # For script generation
 ```
 
 ## Testing
