@@ -650,10 +650,10 @@ export const AgentChat: React.FC<AgentChatProps> = ({
 
   return (
     <div className={`flex flex-col h-full min-h-[100dvh] ${className}`}>
-      {/* Messages Area - only shown when there are messages and meditation panel is closed */}
+      {/* Messages Area - grows from bottom up, above the input */}
       {!showMeditationPanel && hasMessages && (
-        <div className="flex-1 overflow-y-auto px-4 md:px-6 py-6 pb-28">
-          <div className="max-w-xl mx-auto">
+        <div className="fixed left-0 right-0 bottom-32 top-20 overflow-y-auto px-4 md:px-6 z-40">
+          <div className="max-w-xl mx-auto h-full flex flex-col justify-end">
             {/* Message List */}
             <div className="space-y-1">
               {messages.map((message, index) => (
