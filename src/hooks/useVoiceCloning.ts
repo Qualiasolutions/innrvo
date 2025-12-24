@@ -8,6 +8,7 @@ import {
   VoiceProfile as DBVoiceProfile
 } from '../../lib/supabase';
 import { blobToBase64 } from '../../geminiService';
+import { convertToWAV, validateAudioForCloning } from '../lib/audioConverter';
 
 // All voice cloning now uses Chatterbox via Replicate (10x cheaper than ElevenLabs)
 const DEFAULT_CLONE_PROVIDER: VoiceProvider = 'chatterbox';
@@ -165,6 +166,21 @@ export function useVoiceCloning(
     const voiceMetadata = metadata || DEFAULT_VOICE_METADATA;
 
     try {
+      // Validate audio quality
+      const validation = await validateAudioForCloning(blob);
+      if (!validation.valid) {
+        setCloningStatus({
+          state: 'error',
+          message: validation.message || 'Audio validation failed',
+          canRetry: true
+        });
+        return;
+      }
+
+      // Convert WebM/MP4 to high-quality WAV for better voice cloning
+      setCloningStatus({ state: 'processing_audio' });
+      const wavBlob = await convertToWAV(blob);
+
       setCloningStatus({ state: 'uploading_to_chatterbox' });
 
       // Clone with Chatterbox via Replicate
@@ -172,7 +188,7 @@ export function useVoiceCloning(
       let cloneResult: { voiceProfileId: string; voiceSampleUrl: string };
       try {
         cloneResult = await chatterboxCloneVoice(
-          blob,
+          wavBlob, // Use converted WAV instead of original WebM
           name,
           'Meditation voice clone created with INrVO',
           voiceMetadata
@@ -275,11 +291,22 @@ export function useVoiceCloning(
       // Convert base64 to blob for Chatterbox
       const audioBlob = base64ToBlob(audioData, 'audio/webm');
 
+      // Validate audio quality
+      const validation = await validateAudioForCloning(audioBlob);
+      if (!validation.valid) {
+        onError?.(validation.message || 'Audio validation failed');
+        setIsSavingVoice(false);
+        return;
+      }
+
+      // Convert WebM to high-quality WAV for better voice cloning
+      const wavBlob = await convertToWAV(audioBlob);
+
       // Clone voice with Chatterbox via Replicate
       let cloneResult: { voiceProfileId: string; voiceSampleUrl: string };
       try {
         cloneResult = await chatterboxCloneVoice(
-          audioBlob,
+          wavBlob, // Use converted WAV instead of original WebM
           finalName,
           'Voice clone created with INrVO'
         );

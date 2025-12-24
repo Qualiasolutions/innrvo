@@ -49,10 +49,15 @@ async function runChatterboxTTS(
   log: ReturnType<typeof createLogger>
 ): Promise<string> {
   // Create prediction input - Chatterbox uses 'prompt' not 'text'
+  // Optimized parameters for natural, high-quality voice cloning:
+  // - exaggeration: 0.5 = neutral (0.3 was too flat, sounded robotic)
+  // - cfg_weight: 0.7 = higher quality (0.5 was lower quality)
+  // - temperature: 0.8 = natural variability (prevents monotone speech)
   const input: Record<string, unknown> = {
     prompt: text,
-    exaggeration: options.exaggeration ?? 0.3,  // Low for calm meditation
-    cfg_weight: options.cfgWeight ?? 0.5,
+    exaggeration: options.exaggeration ?? 0.5,  // Neutral for natural speech
+    cfg_weight: options.cfgWeight ?? 0.7,       // Higher for better quality
+    temperature: 0.8,                           // Natural variability
   };
 
   // Add audio prompt if we have a cloned voice reference for zero-shot cloning
@@ -236,12 +241,13 @@ serve(async (req) => {
     log.info('Starting TTS generation with Chatterbox', { textLength: text.length, voiceId, hasVoiceSample: !!audioPromptUrl });
 
     // Generate speech using Chatterbox via Replicate
+    // Use optimized settings for natural, high-quality voice
     const audioBase64 = await runChatterboxTTS(
       text,
       audioPromptUrl,
       {
-        exaggeration: voiceSettings?.exaggeration ?? 0.3,  // Calm for meditation
-        cfgWeight: voiceSettings?.cfgWeight ?? 0.5,
+        exaggeration: voiceSettings?.exaggeration ?? 0.5,  // Neutral for natural voice
+        cfgWeight: voiceSettings?.cfgWeight ?? 0.7,        // Higher for better quality
       },
       replicateApiKey,
       log

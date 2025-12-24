@@ -91,6 +91,7 @@ export type CloningStatus =
   | { state: 'idle' }
   | { state: 'recording' }
   | { state: 'validating' }
+  | { state: 'processing_audio' }                                         // Converting WebM to WAV
   | { state: 'uploading'; progress?: number; provider?: VoiceProvider }  // Generic upload state
   | { state: 'uploading_to_elevenlabs'; progress?: number }               // Legacy: ElevenLabs
   | { state: 'uploading_to_chatterbox'; progress?: number }               // Chatterbox via Replicate

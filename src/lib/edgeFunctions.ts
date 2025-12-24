@@ -245,13 +245,13 @@ export async function elevenLabsTTS(
     cfgWeight?: number;     // 0-1, quality weight
   }
 ): Promise<string> {
-  // Settings optimized for meditative, calm delivery
+  // Settings optimized for natural, high-quality voice cloning
   const response = await callEdgeFunction<{ success: boolean; audioBase64: string }>('generate-speech', {
     voiceId,
     text,
     voiceSettings: voiceSettings || {
-      exaggeration: 0.3,  // Low for calm meditation
-      cfgWeight: 0.5,
+      exaggeration: 0.5,  // Neutral for natural voice (0.3 was too flat)
+      cfgWeight: 0.7,     // Higher for better quality (0.5 was lower quality)
     },
   });
 
