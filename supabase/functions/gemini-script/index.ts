@@ -52,8 +52,9 @@ STRUCTURE (400-550 words):
 
 REQUIREMENTS:
 - Reference their specific situation in first 50 words
-- Use "you" throughout, present tense
-- Rich sensory details (5 senses)
+- Use FIRST PERSON "I" throughout (e.g., "I feel calm", "I breathe deeply", "I am safe")
+- This is a self-affirmation meditation the listener speaks to themselves
+- Rich sensory details (5 senses), present tense
 - Include: [pause], [long pause], [deep breath], [exhale slowly]
 - Natural ellipses for pacing...
 - Fresh language (avoid "journey", "sacred")

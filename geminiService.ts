@@ -107,7 +107,8 @@ Structure (400-550 words total):
 5. CLOSING (40-60 words): Gentle return with lasting calm/confidence
 
 Style requirements:
-- Use "you" throughout for intimacy
+- Use FIRST PERSON "I" throughout (e.g., "I feel calm", "I breathe deeply", "I am safe")
+- This is a self-affirmation meditation the listener speaks to themselves
 - Rich sensory details (5 senses)
 - Present tense
 - Include audio tags: [pause], [long pause], [deep breath], [exhale slowly]
