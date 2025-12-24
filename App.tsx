@@ -26,6 +26,7 @@ import { buildTimingMap, getCurrentWordIndex } from './src/lib/textSync';
 import { geminiService, blobToBase64 } from './geminiService';
 import { voiceService } from './src/lib/voiceService';
 import { chatterboxCloneVoice } from './src/lib/edgeFunctions';
+import { convertToWAV } from './src/lib/audioConverter';
 import { creditService } from './src/lib/credits';
 
 /**
@@ -617,11 +618,14 @@ const App: React.FC = () => {
       // Convert base64 to blob for Chatterbox
       const audioBlob = base64ToBlob(audioData, 'audio/webm');
 
+      // Convert WebM to WAV for Chatterbox (required format)
+      const wavBlob = await convertToWAV(audioBlob);
+
       // Clone voice with Chatterbox via Replicate
       let cloneResult: { voiceProfileId: string; voiceSampleUrl: string };
       try {
         cloneResult = await chatterboxCloneVoice(
-          audioBlob,
+          wavBlob,
           finalName,
           'Voice clone created with INrVO'
         );
@@ -725,13 +729,18 @@ const App: React.FC = () => {
     setCloningStatus({ state: 'validating' });
 
     try {
+      setCloningStatus({ state: 'processing_audio' });
+
+      // Convert to WAV for Chatterbox (required format)
+      const wavBlob = await convertToWAV(blob);
+
       setCloningStatus({ state: 'uploading_to_chatterbox' });
 
       // Clone with Chatterbox via Replicate
       let cloneResult: { voiceProfileId: string; voiceSampleUrl: string };
       try {
         cloneResult = await chatterboxCloneVoice(
-          blob,
+          wavBlob,
           name,
           'Meditation voice clone created with INrVO',
           metadata
