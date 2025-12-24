@@ -1621,60 +1621,30 @@ const App: React.FC = () => {
 
           {/* VIEW: HOME */}
           {currentView === View.HOME && (
-            <div className="w-full flex flex-col h-full animate-in fade-in duration-1000">
-              {/* Conditional: Show tagline OR script reader */}
-              {!isInlineMode ? (
-                <>
-                  {/* Tagline - fixed at top, independent of chat */}
-                  {!chatStarted && (
-                    <div className="fixed top-24 md:top-32 left-0 right-0 text-center z-10 px-4 animate-in fade-in slide-in-from-top-4 duration-500">
-                      <p className="text-2xl md:text-4xl font-light tracking-wide text-white/70">
-                        {tagline.main} <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-cyan-500 font-semibold">{tagline.highlight}</span>
-                      </p>
-                      <p className="text-base md:text-2xl text-slate-500 mt-1 md:mt-2 hidden sm:block">{tagline.sub}</p>
-                    </div>
-                  )}
-                </>
-              ) : (
-                // Script Reader (takes full space above player)
-                <Suspense fallback={<div className="flex-1 flex items-center justify-center"><div className="animate-pulse text-white/50">Loading...</div></div>}>
-                  <ScriptReader
-                    script={enhancedScript}
-                    currentWordIndex={currentWordIndex}
-                    isPlaying={isPlaying}
-                  />
-                </Suspense>
+            <div className="w-full h-full animate-in fade-in duration-1000">
+
+              {/* Tagline - shown before chat starts, not in inline mode */}
+              {!chatStarted && !isInlineMode && (
+                <div className="fixed top-24 md:top-32 left-0 right-0 text-center z-10 px-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                  <p className="text-2xl md:text-4xl font-light tracking-wide text-white/70">
+                    {tagline.main} <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-cyan-500 font-semibold">{tagline.highlight}</span>
+                  </p>
+                  <p className="text-base md:text-2xl text-slate-500 mt-1 md:mt-2 hidden sm:block">{tagline.sub}</p>
+                </div>
               )}
 
-              {/* Fixed bottom: Prompt box OR Inline Player */}
-              <div className="fixed bottom-0 left-0 right-0 z-40 px-2 md:px-6 pb-[max(1rem,env(safe-area-inset-bottom))] md:pb-[max(1.5rem,env(safe-area-inset-bottom))]">
-                <div className="w-full max-w-4xl mx-auto">
-                  {micError && !isInlineMode && (
-                    <div className="mb-4 text-center">
-                      <span className="px-4 py-1.5 rounded-full bg-rose-500/10 text-rose-400 text-[10px] font-bold uppercase tracking-widest border border-rose-500/20">
-                        {micError}
-                      </span>
-                    </div>
-                  )}
+              {/* Error message */}
+              {micError && !isInlineMode && (
+                <div className="fixed bottom-24 left-0 right-0 z-50 text-center">
+                  <span className="px-4 py-1.5 rounded-full bg-rose-500/10 text-rose-400 text-[10px] font-bold uppercase tracking-widest border border-rose-500/20">
+                    {micError}
+                  </span>
+                </div>
+              )}
 
-                  {isInlineMode ? (
-                    // Inline Player
-                    <InlinePlayer
-                      isPlaying={isPlaying}
-                      onPlayPause={handleInlineTogglePlayback}
-                      onStop={handleInlineStop}
-                      onExpand={handleExpandToPlayer}
-                      currentTime={currentTime}
-                      duration={duration}
-                      onSeek={handleInlineSeek}
-                      voiceName={selectedVoice?.name || 'Voice'}
-                      backgroundTrackName={selectedBackgroundTrack.name}
-                      backgroundVolume={backgroundVolume}
-                      onBackgroundVolumeChange={updateBackgroundVolume}
-                    />
-                  ) : (
-                    // AI Agent Chat Interface
-                    <AgentChat
+              {/* AI Agent Chat - Full screen when not in inline mode */}
+              {!isInlineMode && (
+                <AgentChat
                       onMeditationReady={(generatedScript, meditationType, userPrompt) => {
                         // Set the user's original prompt for display
                         setScript(userPrompt);
@@ -1807,9 +1777,38 @@ const App: React.FC = () => {
                       restoredScript={restoredScript}
                       onRestoredScriptClear={() => setRestoredScript(null)}
                     />
-                  )}
-                </div>
-              </div>
+              )}
+
+              {/* Inline Mode: Script Reader + Player */}
+              {isInlineMode && (
+                <>
+                  <Suspense fallback={<div className="flex-1 flex items-center justify-center"><div className="animate-pulse text-white/50">Loading...</div></div>}>
+                    <ScriptReader
+                      script={enhancedScript}
+                      currentWordIndex={currentWordIndex}
+                      isPlaying={isPlaying}
+                    />
+                  </Suspense>
+                  <div className="fixed bottom-0 left-0 right-0 z-40 px-2 md:px-6 pb-[max(1rem,env(safe-area-inset-bottom))] md:pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+                    <div className="w-full max-w-4xl mx-auto">
+                      <InlinePlayer
+                        isPlaying={isPlaying}
+                        onPlayPause={handleInlineTogglePlayback}
+                        onStop={handleInlineStop}
+                        onExpand={handleExpandToPlayer}
+                        currentTime={currentTime}
+                        duration={duration}
+                        onSeek={handleInlineSeek}
+                        voiceName={selectedVoice?.name || 'Voice'}
+                        backgroundTrackName={selectedBackgroundTrack.name}
+                        backgroundVolume={backgroundVolume}
+                        onBackgroundVolumeChange={updateBackgroundVolume}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+
             </div>
           )}
 
