@@ -45,6 +45,50 @@ function getSupabaseClient() {
 const REPLICATE_API_URL = 'https://api.replicate.com/v1/predictions';
 const CHATTERBOX_MODEL = 'resemble-ai/chatterbox:1b8422bc49635c20d0a84e387ed20879c0dd09254ecdb4e75dc4bec10ff94e97';
 
+// Fetch audio from URL and convert to base64 data URI
+async function fetchAudioAsDataUri(url: string, log: ReturnType<typeof createLogger>): Promise<string | null> {
+  try {
+    log.info('Fetching audio from storage', { url });
+    const response = await fetch(url);
+    if (!response.ok) {
+      log.error('Failed to fetch audio', { status: response.status });
+      return null;
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
+
+    // Validate WAV format
+    if (bytes.length < 12) {
+      log.error('Audio file too small');
+      return null;
+    }
+
+    const riff = String.fromCharCode(bytes[0], bytes[1], bytes[2], bytes[3]);
+    const wave = String.fromCharCode(bytes[8], bytes[9], bytes[10], bytes[11]);
+
+    if (riff !== 'RIFF' || wave !== 'WAVE') {
+      log.error('Audio not in WAV format', { firstBytes: riff, formatBytes: wave });
+      return null;
+    }
+
+    // Convert to base64
+    let binary = '';
+    const chunkSize = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
+      binary += String.fromCharCode(...chunk);
+    }
+    const base64 = btoa(binary);
+
+    log.info('Audio fetched and converted', { size: bytes.length, base64Length: base64.length });
+    return `data:audio/wav;base64,${base64}`;
+  } catch (error) {
+    log.error('Error fetching audio', { error: error.message });
+    return null;
+  }
+}
+
 async function runChatterboxTTS(
   text: string,
   audioPromptUrl: string | null,
@@ -65,8 +109,14 @@ async function runChatterboxTTS(
   };
 
   // Add audio prompt if we have a cloned voice reference for zero-shot cloning
+  // Fetch and send as base64 data URI to avoid URL access issues
   if (audioPromptUrl) {
-    input.audio_prompt = audioPromptUrl;
+    const dataUri = await fetchAudioAsDataUri(audioPromptUrl, log);
+    if (dataUri) {
+      input.audio_prompt = dataUri;
+    } else {
+      log.warn('Could not fetch audio, proceeding without voice clone');
+    }
   }
 
   log.info('Creating Replicate prediction', { model: CHATTERBOX_MODEL, textLength: text.length, hasVoiceSample: !!audioPromptUrl });

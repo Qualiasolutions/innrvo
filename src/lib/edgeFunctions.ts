@@ -258,18 +258,37 @@ export async function generateSpeech(
 }
 
 /**
- * Helper to convert Blob to base64
+ * Helper to convert Blob to base64 with WAV validation
  */
 async function blobToBase64(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64 = (reader.result as string).split(',')[1];
-      resolve(base64);
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
+  // First validate the blob contains valid WAV data
+  const arrayBuffer = await blob.arrayBuffer();
+  const bytes = new Uint8Array(arrayBuffer);
+
+  if (bytes.length < 44) {
+    console.error('[blobToBase64] Blob too small for WAV:', bytes.length);
+    throw new Error('Audio data too small to be valid WAV');
+  }
+
+  const riff = String.fromCharCode(bytes[0], bytes[1], bytes[2], bytes[3]);
+  const wave = String.fromCharCode(bytes[8], bytes[9], bytes[10], bytes[11]);
+
+  if (riff !== 'RIFF' || wave !== 'WAVE') {
+    console.error('[blobToBase64] Invalid WAV format detected:', { riff, wave, blobType: blob.type, size: bytes.length });
+    throw new Error(`Audio is not WAV format (detected: ${riff === 'RIFF' ? 'RIFF' : riff})`);
+  }
+
+  console.log('[blobToBase64] WAV validated, size:', bytes.length, 'type:', blob.type);
+
+  // Convert to base64 using chunked approach to avoid call stack issues
+  let binary = '';
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
+    binary += String.fromCharCode(...chunk);
+  }
+
+  return btoa(binary);
 }
 
 // ============================================================================

@@ -16,23 +16,49 @@
  * @returns Promise<Blob> - High-quality WAV blob suitable for voice cloning
  */
 export async function convertToWAV(blob: Blob): Promise<Blob> {
+  console.log('[convertToWAV] Starting conversion, input blob size:', blob.size, 'type:', blob.type);
+
   // Create audio context with high sample rate for better quality
   const audioContext = new AudioContext({ sampleRate: 48000 });
 
   try {
     // Decode the input audio to raw PCM data
     const arrayBuffer = await blob.arrayBuffer();
+    console.log('[convertToWAV] ArrayBuffer size:', arrayBuffer.byteLength);
+
     const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+    console.log('[convertToWAV] Decoded audio - duration:', audioBuffer.duration, 'sampleRate:', audioBuffer.sampleRate, 'channels:', audioBuffer.numberOfChannels, 'length:', audioBuffer.length);
 
     // Convert to mono if stereo (voice cloning doesn't need stereo)
     const channelData = audioBuffer.numberOfChannels > 1
       ? mergeChannels(audioBuffer)
       : audioBuffer.getChannelData(0);
 
+    console.log('[convertToWAV] Channel data length:', channelData.length);
+
+    if (channelData.length === 0) {
+      throw new Error('Audio decoding produced empty data');
+    }
+
     // Create WAV file with optimal settings for voice cloning
     const wavBlob = encodeWAV(channelData, audioBuffer.sampleRate);
 
+    // Validate the WAV blob has correct header
+    const wavArrayBuffer = await wavBlob.arrayBuffer();
+    const wavBytes = new Uint8Array(wavArrayBuffer);
+    const riff = String.fromCharCode(wavBytes[0], wavBytes[1], wavBytes[2], wavBytes[3]);
+    const wave = String.fromCharCode(wavBytes[8], wavBytes[9], wavBytes[10], wavBytes[11]);
+
+    if (riff !== 'RIFF' || wave !== 'WAVE') {
+      console.error('[convertToWAV] Invalid WAV headers:', { riff, wave });
+      throw new Error('WAV encoding failed - invalid headers');
+    }
+
+    console.log('[convertToWAV] Conversion successful - output size:', wavBlob.size, 'type:', wavBlob.type);
     return wavBlob;
+  } catch (error) {
+    console.error('[convertToWAV] Conversion failed:', error);
+    throw error;
   } finally {
     // Clean up audio context to free resources
     await audioContext.close();

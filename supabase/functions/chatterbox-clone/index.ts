@@ -59,6 +59,41 @@ function estimateAudioDuration(base64: string): number {
   return estimatedDuration;
 }
 
+// Validate that audio bytes are WAV format (check RIFF/WAVE headers)
+function isValidWavFormat(bytes: Uint8Array): { valid: boolean; detectedFormat?: string } {
+  if (bytes.length < 12) {
+    return { valid: false, detectedFormat: 'too-short' };
+  }
+
+  // Check for RIFF header (first 4 bytes)
+  const riff = String.fromCharCode(bytes[0], bytes[1], bytes[2], bytes[3]);
+
+  // Check for WAVE format (bytes 8-11)
+  const wave = String.fromCharCode(bytes[8], bytes[9], bytes[10], bytes[11]);
+
+  if (riff === 'RIFF' && wave === 'WAVE') {
+    return { valid: true };
+  }
+
+  // Detect WebM format (EBML header starts with 0x1A 0x45 0xDF 0xA3)
+  if (bytes[0] === 0x1A && bytes[1] === 0x45 && bytes[2] === 0xDF && bytes[3] === 0xA3) {
+    return { valid: false, detectedFormat: 'webm' };
+  }
+
+  // Detect MP3 (ID3 or sync word)
+  if ((bytes[0] === 0x49 && bytes[1] === 0x44 && bytes[2] === 0x33) || // ID3
+      (bytes[0] === 0xFF && (bytes[1] & 0xE0) === 0xE0)) { // MP3 sync
+    return { valid: false, detectedFormat: 'mp3' };
+  }
+
+  // Detect Ogg (OggS)
+  if (bytes[0] === 0x4F && bytes[1] === 0x67 && bytes[2] === 0x67 && bytes[3] === 0x53) {
+    return { valid: false, detectedFormat: 'ogg' };
+  }
+
+  return { valid: false, detectedFormat: 'unknown' };
+}
+
 serve(async (req) => {
   const origin = req.headers.get('origin');
   const corsHeaders = getCorsHeaders(origin);
@@ -144,7 +179,21 @@ serve(async (req) => {
       bytes[i] = binaryString.charCodeAt(i);
     }
 
-    log.info('Uploading audio to storage', { fileName, size: bytes.length });
+    // Validate WAV format - Replicate Chatterbox requires WAV
+    const formatCheck = isValidWavFormat(bytes);
+    if (!formatCheck.valid) {
+      log.error('Invalid audio format', { detectedFormat: formatCheck.detectedFormat, size: bytes.length });
+      return new Response(
+        JSON.stringify({
+          error: `Audio must be WAV format. Detected: ${formatCheck.detectedFormat || 'unknown'}. Please try recording again.`,
+          requestId,
+          detectedFormat: formatCheck.detectedFormat,
+        }),
+        { status: 400, headers: { ...allHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    log.info('WAV format validated, uploading to storage', { fileName, size: bytes.length });
 
     // Upload to Supabase Storage
     const { data: uploadData, error: uploadError } = await supabase.storage
