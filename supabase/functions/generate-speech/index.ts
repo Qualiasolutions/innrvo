@@ -37,9 +37,9 @@ function getSupabaseClient() {
   return supabaseClient;
 }
 
-// Replicate API for Chatterbox Pro
+// Replicate API for Chatterbox (supports audio_prompt for voice cloning)
 const REPLICATE_API_URL = 'https://api.replicate.com/v1/predictions';
-const CHATTERBOX_MODEL = 'resemble-ai/chatterbox-pro:301e12652e84fbba1524e5f2758a9a92c6bd205792304f53c057b7f9ab091342';
+const CHATTERBOX_MODEL = 'resemble-ai/chatterbox:676f4f148b9a009bac4bd7abd6a9e391743b25fccad7e82d447f4abcf90abc16';
 
 async function runChatterboxTTS(
   text: string,
@@ -48,14 +48,14 @@ async function runChatterboxTTS(
   apiKey: string,
   log: ReturnType<typeof createLogger>
 ): Promise<string> {
-  // Create prediction input
+  // Create prediction input - Chatterbox uses 'prompt' not 'text'
   const input: Record<string, unknown> = {
-    text,
+    prompt: text,
     exaggeration: options.exaggeration ?? 0.3,  // Low for calm meditation
     cfg_weight: options.cfgWeight ?? 0.5,
   };
 
-  // Add audio prompt if we have a cloned voice reference
+  // Add audio prompt if we have a cloned voice reference for zero-shot cloning
   if (audioPromptUrl) {
     input.audio_prompt = audioPromptUrl;
   }
