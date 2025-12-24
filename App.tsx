@@ -1559,21 +1559,6 @@ const App: React.FC = () => {
               </button>
             )}
 
-            {/* Desktop Navigation Links - Hidden on mobile */}
-            <div className="hidden md:flex items-center gap-1">
-              <button
-                onClick={() => setShowHowItWorks(true)}
-                className="px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors rounded-lg hover:bg-white/5"
-              >
-                How It Works
-              </button>
-              <button
-                onClick={() => setShowLibrary(true)}
-                className="px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors rounded-lg hover:bg-white/5"
-              >
-                Library
-              </button>
-            </div>
           </div>
 
           {/* Voice selector and user menu - compact on mobile */}
@@ -2605,24 +2590,41 @@ const App: React.FC = () => {
                 )}
               </div>
 
-              {/* Sign Out Button */}
-              {user && (
-                <div className="flex-shrink-0 px-4 pb-3">
-                  <div className="divider-premium mb-3" />
+              {/* Quick Actions Row */}
+              <div className="flex-shrink-0 px-4 pb-3">
+                <div className="divider-premium mb-3" />
+                <div className="flex items-center gap-2">
                   <button
-                    onClick={() => {
-                      setShowBurgerMenu(false);
-                      handleSignOut();
-                    }}
-                    className="signout-btn w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl bg-white/[0.02] text-slate-500 hover:text-rose-400 transition-all"
+                    onClick={() => { setShowBurgerMenu(false); setShowHowItWorks(true); }}
+                    className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2.5 rounded-lg bg-white/[0.03] text-slate-400 hover:text-cyan-400 hover:bg-white/[0.06] transition-all text-xs font-medium"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
                     </svg>
-                    <span className="text-sm font-medium">Sign Out</span>
+                    How
                   </button>
+                  <button
+                    onClick={() => { setShowBurgerMenu(false); setShowLibrary(true); }}
+                    className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2.5 rounded-lg bg-white/[0.03] text-slate-400 hover:text-cyan-400 hover:bg-white/[0.06] transition-all text-xs font-medium"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                    </svg>
+                    Library
+                  </button>
+                  {user && (
+                    <button
+                      onClick={() => { setShowBurgerMenu(false); handleSignOut(); }}
+                      className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2.5 rounded-lg bg-white/[0.03] text-slate-400 hover:text-rose-400 hover:bg-white/[0.06] transition-all text-xs font-medium"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                      </svg>
+                      Out
+                    </button>
+                  )}
                 </div>
-              )}
+              </div>
 
               {/* Footer */}
               <div className="flex-shrink-0 mt-auto p-4 pb-6 space-y-3 safe-bottom">

@@ -242,26 +242,15 @@ const MeditationPanel = memo<MeditationPanelProps>(({
       {/* Full screen meditation editor */}
       <div className="h-full flex flex-col">
 
-        {/* Header - frosted glass effect */}
-        <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-white/10 bg-black/50 backdrop-blur-md">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center">
-              <SparkleIcon className="w-4 h-4 text-white" />
-            </div>
-            <div>
-              <p className="text-white font-medium text-sm">Your Meditation</p>
-              <p className="text-white/50 text-xs">{wordCount} words · ~{estimatedDuration} min read</p>
-            </div>
-          </div>
-          <button
-            onClick={(e) => { e.stopPropagation(); onClose(); }}
-            className="z-[100] w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white hover:bg-white/30 transition-all active:scale-95 cursor-pointer"
-            aria-label="Close"
-            type="button"
-          >
-            <CloseIcon className="w-5 h-5" />
-          </button>
-        </div>
+        {/* Close button - top right */}
+        <button
+          onClick={(e) => { e.stopPropagation(); onClose(); }}
+          className="fixed top-4 right-4 z-[100] w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-all active:scale-95 cursor-pointer"
+          aria-label="Close"
+          type="button"
+        >
+          <CloseIcon className="w-5 h-5" />
+        </button>
 
         {/* Scrollable Script Area */}
         <div className="flex-1 overflow-y-auto min-h-0">
