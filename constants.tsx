@@ -177,41 +177,41 @@ export interface BackgroundTrack {
 }
 
 // Free royalty-free audio for background music
-// Using SoundHelix (public domain test audio that works with CORS)
-// Note: These are placeholder tracks - replace with actual meditation audio in production
+// Real meditation music from Archive.org (public domain, CORS-enabled)
+// Source: https://archive.org/details/meditation-music and related collections
 export const BACKGROUND_TRACKS: BackgroundTrack[] = [
   // No Music Option
   { id: 'none', name: 'No Music', description: 'Voice only, no background', category: 'ambient' },
 
-  // Nature Sounds - Ambient instrumental tracks
-  { id: 'rain', name: 'Gentle Rain', description: 'Soft ambient for relaxation', category: 'nature', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3' },
-  { id: 'ocean', name: 'Ocean Waves', description: 'Rhythmic ambient sounds', category: 'nature', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3' },
-  { id: 'forest', name: 'Forest Ambience', description: 'Peaceful background music', category: 'nature', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3' },
-  { id: 'spa', name: 'Spa Ambience', description: 'Relaxing spa music', category: 'nature', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3' },
-  { id: 'creek', name: 'Zen Garden', description: 'Tranquil garden sounds', category: 'nature', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3' },
+  // Japanese/Zen - Peaceful Asian-inspired tracks
+  { id: 'japanese-garden', name: 'Japanese Garden', description: 'Peaceful Japanese garden music', category: 'nature', audioUrl: 'https://archive.org/download/meditation-music/Japanese%20Garden%20Relaxing%20Music.mp3' },
+  { id: 'zen-spirit', name: 'Zen Spirit', description: 'Japanese relaxation sounds', category: 'nature', audioUrl: 'https://archive.org/download/RelaxingSpaMusicCalmingMusicRelaxationMusicMeditationMusicInstrumentalMusic689/Zen%20Spirit%20Japanese%20Music%20Relaxing%20Songs%20and%20Sounds%20of%20Nature.mp3' },
+  { id: 'samurai-relax', name: 'Samurai Meditation', description: 'Deep Japanese meditation', category: 'nature', audioUrl: 'https://archive.org/download/meditation-music/Samurai%20Relax%20Meditation%20Music.mp3' },
+  { id: 'relaxing-japanese', name: 'Relaxing Japanese', description: 'Calming Japanese melodies', category: 'nature', audioUrl: 'https://archive.org/download/meditation-music/Relaxing%20Japanese%20Music.mp3' },
 
-  // Ambient - Electronic ambient tracks
-  { id: 'space', name: 'Cosmic Drift', description: 'Deep ambient soundscape', category: 'ambient', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3' },
-  { id: 'drone', name: 'Healing Drone', description: 'Gentle ambient music', category: 'ambient', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3' },
-  { id: 'meditation-bells', name: 'Temple Bells', description: 'Meditative ambient', category: 'ambient', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3' },
+  // Flute & Nature - Wind instruments with nature sounds
+  { id: 'native-flute', name: 'Native Flute & Rain', description: 'Native American flutes with rain', category: 'nature', audioUrl: 'https://archive.org/download/RelaxingSpaMusicCalmingMusicRelaxationMusicMeditationMusicInstrumentalMusic689/Rain%20and%20Native%20American%20Flutes%20-%20Relaxing%20Music.mp3' },
+  { id: 'meditation-music', name: 'Deep Meditation', description: 'Calming meditation music', category: 'ambient', audioUrl: 'https://archive.org/download/meditation-music/Meditation%20Music.mp3' },
+  { id: 'morning-forest', name: 'Morning Forest', description: '8 hours of nature sounds', category: 'nature', audioUrl: 'https://archive.org/download/RelaxingSpaMusicCalmingMusicRelaxationMusicMeditationMusicInstrumentalMusic689/Morning%20in%20the%20Forest%208%20HOURS%20of%20Relaxing%20Nature%20Music%20-%20Meditation%20Yoga%20Calming%20Relaxation.mp3' },
 
-  // Instrumental - Soft relaxation music
-  { id: 'piano', name: 'Soft Piano', description: 'Gentle piano melodies', category: 'instrumental', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-9.mp3' },
-  { id: 'guitar', name: 'Acoustic Guitar', description: 'Calming instrumental', category: 'instrumental', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-10.mp3' },
-  { id: 'strings', name: 'Ambient Strings', description: 'Ethereal arrangements', category: 'instrumental', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-11.mp3' },
+  // Spiritual & Healing - Buddhist and healing frequencies
+  { id: 'buddhist', name: 'Buddhist Meditation', description: 'Positive energy music', category: 'ambient', audioUrl: 'https://archive.org/download/meditation-music/Buddhist%20Meditation%20Music%20for%20Positive%20Energy.mp3' },
+  { id: 'pure-energy', name: 'Pure Positive Energy', description: 'Healing vibration music', category: 'ambient', audioUrl: 'https://archive.org/download/RelaxingSpaMusicCalmingMusicRelaxationMusicMeditationMusicInstrumentalMusic689/Pure%20Clean%20Positive%20Energy%20Vibration%20Meditation%20Music%20Healing%20Music%20Relax%20Mind%20Body%20Soul.mp3' },
+  { id: 'cleanse-energy', name: 'Energy Cleanse', description: 'Cleanse negative energy', category: 'ambient', audioUrl: 'https://archive.org/download/RelaxingSpaMusicCalmingMusicRelaxationMusicMeditationMusicInstrumentalMusic689/Music%20to%20Cleanse%20of%20Negative%20Energy%20at%20Home%20Space.mp3' },
 
-  // Binaural/Meditation - Deep meditation tracks
-  { id: 'binaural-alpha', name: 'Alpha Waves', description: 'Relaxation and focus', category: 'binaural', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-12.mp3' },
-  { id: 'binaural-theta', name: 'Theta Waves', description: 'Deep meditation state', category: 'binaural', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-13.mp3' },
-  { id: 'binaural-delta', name: 'Delta Waves', description: 'Deep sleep inducing', category: 'binaural', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-14.mp3' },
+  // Yoga & Relaxation - For yoga and deep relaxation
+  { id: 'yoga-music', name: 'Yoga & Relaxation', description: 'Calming music for yoga', category: 'instrumental', audioUrl: 'https://archive.org/download/RelaxingSpaMusicCalmingMusicRelaxationMusicMeditationMusicInstrumentalMusic689/Yoga%20Music%20Relaxing%20Music%20Calming%20Music%20Stress%20Relief%20Music%20Peaceful%20Music%20Relax%20%E2%9C%BF2658C.mp3' },
+  { id: 'spa-relaxing', name: 'Spa Meditation', description: 'Relaxing spa instrumental', category: 'instrumental', audioUrl: 'https://archive.org/download/RelaxingSpaMusicCalmingMusicRelaxationMusicMeditationMusicInstrumentalMusic689/Relaxing%20Spa%20Music%20Calming%20Music%20Relaxation%20Music%20Meditation%20Music%20Instrumental%20Music%20%E2%98%AF689.mp3' },
+  { id: 'evening-meditation', name: 'Evening Meditation', description: '3 hours yoga & massage music', category: 'instrumental', audioUrl: 'https://archive.org/download/RelaxingSpaMusicCalmingMusicRelaxationMusicMeditationMusicInstrumentalMusic689/3%20HOURS%20Relaxing%20Music%20Evening%20Meditation%20Background%20for%20Yoga%20Massage%20Spa.mp3' },
 
-  // Lo-Fi - Chill ambient tracks
-  { id: 'lofi-chill', name: 'Lo-Fi Chill', description: 'Relaxing lo-fi beats', category: 'lofi', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-15.mp3' },
-  { id: 'lofi-rain', name: 'Lo-Fi Dreams', description: 'Dreamy lo-fi vibes', category: 'lofi', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-16.mp3' },
+  // Focus & Concentration - For work and study
+  { id: 'concentration', name: 'Focus & Concentration', description: 'Music for studying', category: 'instrumental', audioUrl: 'https://archive.org/download/RelaxingSpaMusicCalmingMusicRelaxationMusicMeditationMusicInstrumentalMusic689/Music%20for%20Concentration%20Studying%20and%20Stress%20Relief.mp3' },
+  { id: 'zen-balance', name: 'Zen Balance', description: 'Full album for relaxation', category: 'ambient', audioUrl: 'https://archive.org/download/RelaxingSpaMusicCalmingMusicRelaxationMusicMeditationMusicInstrumentalMusic689/ZEN%20MUSIC%20FOR%20BALANCE%20AND%20RELAXATION%5BFULL%20ALBUM%5DHD%20-%20YouTube.mp3' },
 
-  // Classical - Peaceful compositions
-  { id: 'classical-calm', name: 'Calm Classical', description: 'Peaceful classical music', category: 'classical', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3' },
-  { id: 'classical-nocturne', name: 'Nocturne', description: 'Nighttime piano music', category: 'classical', audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3' },
+  // Healing Frequencies - Binaural and frequency-based
+  { id: 'healing-528', name: '528Hz Healing', description: 'Full body regeneration', category: 'binaural', audioUrl: 'https://archive.org/download/RelaxingSpaMusicCalmingMusicRelaxationMusicMeditationMusicInstrumentalMusic689/528Hz%20-%20Whole%20Body%20Regeneration%20-%20Full%20Body%20Healing%20Emotional%20Physical%20Healing.mp3' },
+  { id: 'serotonin', name: 'Happiness Frequency', description: 'Serotonin & dopamine release', category: 'binaural', audioUrl: 'https://archive.org/download/RelaxingSpaMusicCalmingMusicRelaxationMusicMeditationMusicInstrumentalMusic689/Happiness%20Frequency%20-%20Serotonin%20Dopamine%20and%20Endorphin%20Release%20Music%2010%20Hz%20Binaural%20Beats.mp3' },
+  { id: 'earth-frequency', name: 'Earth Frequency 7.83Hz', description: 'Boost positive energy', category: 'binaural', audioUrl: 'https://archive.org/download/RelaxingSpaMusicCalmingMusicRelaxationMusicMeditationMusicInstrumentalMusic689/7.83%20Hz%20The%20Powerful%20Healing%20Frequency%20of%20Earths%20Magnetic%20Field%20Boost%20Positive%20Energy.mp3' },
 ];
 
 export const AUDIO_TAG_CATEGORIES: { id: string; name: string; color: string; bgColor: string; tags: { id: string; label: string; description: string }[] }[] = [

@@ -173,6 +173,24 @@ But don't lecture. Drop in wisdom sparingly and naturally.
 - Say "I hear you" at the start of every message
 - Force wisdom quotes into every response
 
+## ABSOLUTELY FORBIDDEN (CRITICAL RULE)
+
+**NEVER write meditation scripts, breathing exercises, visualization sequences, or guided content in your response UNLESS:**
+1. The user EXPLICITLY asked (e.g., "create a meditation", "give me a visualization", "make me a breathing exercise")
+2. AND you use one of the trigger phrases ("I'll craft a", "Let me create", "Creating your", etc.)
+
+**If you write meditation content without BOTH conditions, you are BREAKING the application.**
+
+These are CONVERSATION STARTERS, not meditation requests:
+- "about life" → Ask what aspects interest them
+- "I'm feeling down" → Ask what's going on
+- "stress" → Ask what's causing it
+- "anxiety" → Ask what's happening
+- "sleep" → Ask about their sleep issues
+- Generic topics like "peace", "calm", "relaxation" → Have a conversation about it
+
+**Your response to these should be 1-3 sentences asking questions or offering perspective, NOT a meditation script.**
+
 Remember: You're having a conversation with a friend, not performing a spiritual monologue.`;
 
 
@@ -427,6 +445,112 @@ Guide:`;
   }
 
   /**
+   * Detect if AI response contains meditation content when user didn't ask for it
+   * This is a safety check to prevent meditation scripts from appearing in chat
+   */
+  private detectMeditationContentInResponse(response: string): boolean {
+    const lowered = response.toLowerCase();
+
+    // Check for meditation indicators in AI response
+    const meditationIndicators = [
+      // Breathing instructions
+      /(?:take a (?:deep |slow )?breath|breathe (?:in|out|deeply)|inhale|exhale)/i,
+      // Body awareness
+      /(?:close your eyes|relax your|feel your body|notice your|let go of)/i,
+      // Visualization guidance
+      /(?:allow yourself|let yourself|imagine|visualize|picture yourself)/i,
+      // Audio tags (dead giveaway)
+      /\[(?:pause|breath|deep breath|silence|exhale|inhale)\]/i,
+      // Meditation endings
+      /(?:gently|slowly|when you're ready|return|come back|open your eyes)/i,
+      // Guided meditation language
+      /(?:inner peace|peaceful place|safe space|sanctuary|awareness|mindful)/i,
+    ];
+
+    // Count indicators - if 3+ present, likely meditation content
+    let count = 0;
+    for (const pattern of meditationIndicators) {
+      if (pattern.test(lowered)) count++;
+    }
+
+    // Also check response length (meditation scripts are typically long)
+    const isLongResponse = response.length > 500;
+
+    // Check for multiple paragraphs (meditation structure)
+    const paragraphCount = response.split(/\n\s*\n/).length;
+    const hasMultipleParagraphs = paragraphCount >= 3;
+
+    const isMeditationContent = count >= 3 && (isLongResponse || hasMultipleParagraphs);
+
+    if (isMeditationContent) {
+      console.log('[MeditationAgent] Detected meditation content in response:', {
+        indicatorCount: count,
+        responseLength: response.length,
+        paragraphCount,
+      });
+    }
+
+    return isMeditationContent;
+  }
+
+  /**
+   * Get a conversational fallback when AI generates unwanted meditation content
+   */
+  private getConversationalFallback(emotionalState?: string): string {
+    // State-specific conversational responses
+    if (emotionalState) {
+      const stateResponses: Record<string, string[]> = {
+        'anxious': [
+          "It sounds like there's some anxiety there. What's bringing that up?",
+          "Anxiety can be tough. What's on your mind?",
+          "I sense some unease. Want to talk about what's happening?",
+        ],
+        'stressed': [
+          "That sounds stressful. What's weighing on you most?",
+          "Stress can pile up. What's been happening?",
+          "I hear you. What's been the hardest part?",
+        ],
+        'sad': [
+          "I sense some heaviness. Would you like to talk about it?",
+          "That sounds difficult. What's going on?",
+          "I'm here to listen. What's been on your heart?",
+        ],
+        'overwhelmed': [
+          "That's a lot to carry. What feels most pressing right now?",
+          "It sounds like a lot. Where would you like to start?",
+          "When things pile up, it helps to just talk. What's the biggest thing?",
+        ],
+        'seeking_clarity': [
+          "That's a deep topic. What aspects are you curious about?",
+          "There's a lot to explore there. What draws you to this?",
+          "Interesting. What made you think about this?",
+        ],
+        'neutral': [
+          "Tell me more about what's on your mind.",
+          "What aspects of that interest you?",
+          "I'm curious - what brings this up for you?",
+        ],
+      };
+
+      const responses = stateResponses[emotionalState];
+      if (responses) {
+        return responses[Math.floor(Math.random() * responses.length)];
+      }
+    }
+
+    // Generic conversational fallbacks
+    const fallbacks = [
+      "That's interesting. Tell me more about what's on your mind.",
+      "I hear you. What aspects of that would you like to explore?",
+      "Life has many dimensions. What draws you to think about this?",
+      "That's a deep topic. What specifically resonates with you?",
+      "What made you think about this today?",
+    ];
+
+    return fallbacks[Math.floor(Math.random() * fallbacks.length)];
+  }
+
+  /**
    * Detect if user has pasted a ready-made meditation script
    * Returns the script if detected, null otherwise
    */
@@ -523,6 +647,18 @@ Guide:`;
     if (shouldGenerate) {
       response.shouldGenerateMeditation = true;
       response.meditationType = requestedMeditation || this.inferMeditationType(responseText);
+    }
+
+    // SAFETY CHECK: Detect if AI wrote meditation content without being asked
+    // This catches cases where Gemini ignores the system prompt and generates meditation scripts anyway
+    if (!shouldGenerate && !requestedMeditation) {
+      const hasMeditationContent = this.detectMeditationContentInResponse(responseText);
+
+      if (hasMeditationContent) {
+        console.warn('[MeditationAgent] AI generated meditation content without being asked - replacing with conversational response');
+        // Replace the meditation content with a conversational response
+        response.message = this.getConversationalFallback(emotionalState);
+      }
     }
 
     // Add suggested actions based on context

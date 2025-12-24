@@ -217,6 +217,8 @@ const App: React.FC = () => {
   // Background music refs
   const backgroundAudioRef = useRef<HTMLAudioElement | null>(null);
   const [backgroundVolume, setBackgroundVolume] = useState(0.3); // 30% default
+  const [isMusicPlaying, setIsMusicPlaying] = useState(false);
+  const [musicError, setMusicError] = useState<string | null>(null);
 
   // Auth states
   const [user, setUser] = useState<any>(null);
@@ -876,16 +878,18 @@ const App: React.FC = () => {
   const startBackgroundMusic = async (track: BackgroundTrack) => {
     // Stop any existing background music
     stopBackgroundMusic();
+    setMusicError(null);
 
     if (track.id === 'none' || !track.audioUrl) {
       console.log('[Music] No track selected or no audio URL');
+      setIsMusicPlaying(false);
       return;
     }
 
     try {
       console.log('[Music] Loading track:', track.name, track.audioUrl);
       const audio = new Audio();
-      audio.crossOrigin = 'anonymous';
+      // Note: crossOrigin not needed for playback-only, and causes CORS issues with some hosts
       audio.preload = 'auto';
       audio.loop = true;
       audio.volume = backgroundVolume;
@@ -893,12 +897,37 @@ const App: React.FC = () => {
       // Set up event handlers before setting src
       audio.onerror = (e) => {
         console.error('[Music] Audio error:', e, audio.error);
+        setIsMusicPlaying(false);
+        setMusicError(`Failed to load: ${track.name}`);
       };
       audio.oncanplaythrough = () => {
         console.log('[Music] Audio ready to play:', track.name);
       };
       audio.onplay = () => {
         console.log('[Music] Audio started playing:', track.name);
+        setIsMusicPlaying(true);
+        setMusicError(null);
+      };
+      audio.onpause = () => {
+        console.log('[Music] Audio paused:', track.name);
+        setIsMusicPlaying(false);
+      };
+      audio.onended = () => {
+        console.log('[Music] Audio ended:', track.name);
+        setIsMusicPlaying(false);
+      };
+
+      // Add load timeout
+      const loadTimeout = setTimeout(() => {
+        if (!audio.readyState || audio.readyState < 3) {
+          console.error('[Music] Load timeout for:', track.name);
+          setMusicError(`Timeout loading: ${track.name}`);
+          setIsMusicPlaying(false);
+        }
+      }, 15000);
+
+      audio.onloadeddata = () => {
+        clearTimeout(loadTimeout);
       };
 
       audio.src = track.audioUrl;
@@ -907,19 +936,37 @@ const App: React.FC = () => {
       // Wait for audio to be ready, then play
       await audio.play();
       console.log('[Music] Play called successfully');
-    } catch (error) {
+    } catch (error: any) {
       console.error('[Music] Failed to play background music:', error);
-      // Try without crossOrigin as fallback
-      try {
-        console.log('[Music] Retrying without crossOrigin...');
-        const audio = new Audio(track.audioUrl);
-        audio.loop = true;
-        audio.volume = backgroundVolume;
-        backgroundAudioRef.current = audio;
-        await audio.play();
-        console.log('[Music] Fallback play successful');
-      } catch (fallbackError) {
-        console.error('[Music] Fallback also failed:', fallbackError);
+
+      // Handle autoplay policy
+      if (error?.name === 'NotAllowedError') {
+        console.warn('[Music] Autoplay blocked - will retry on user interaction');
+        setMusicError('Tap to enable music');
+      } else {
+        // Try without crossOrigin as fallback
+        try {
+          console.log('[Music] Retrying without crossOrigin...');
+          const audio = new Audio(track.audioUrl);
+          audio.loop = true;
+          audio.volume = backgroundVolume;
+          audio.onplay = () => {
+            setIsMusicPlaying(true);
+            setMusicError(null);
+          };
+          audio.onpause = () => setIsMusicPlaying(false);
+          audio.onerror = () => {
+            setIsMusicPlaying(false);
+            setMusicError(`Failed to load: ${track.name}`);
+          };
+          backgroundAudioRef.current = audio;
+          await audio.play();
+          console.log('[Music] Fallback play successful');
+        } catch (fallbackError) {
+          console.error('[Music] Fallback also failed:', fallbackError);
+          setIsMusicPlaying(false);
+          setMusicError(`Could not play: ${track.name}`);
+        }
       }
     }
   };
@@ -932,6 +979,7 @@ const App: React.FC = () => {
       backgroundAudioRef.current.currentTime = 0;
       backgroundAudioRef.current = null;
     }
+    setIsMusicPlaying(false);
   };
 
   // Preview track toggle
@@ -1182,6 +1230,11 @@ const App: React.FC = () => {
   // Expand to full-screen PLAYER view
   const handleExpandToPlayer = useCallback(() => {
     setCurrentView(View.PLAYER);
+  }, []);
+
+  // Stable callback for closing burger menu when meditation panel opens
+  const handleMeditationPanelOpen = useCallback(() => {
+    setShowBurgerMenu(false);
   }, []);
 
   // Auto-generate from voice input (called after transcription)
@@ -1767,7 +1820,7 @@ const App: React.FC = () => {
                         }
                       }}
                       onChatStarted={() => setChatStarted(true)}
-                      onMeditationPanelOpen={() => setShowBurgerMenu(false)}
+                      onMeditationPanelOpen={handleMeditationPanelOpen}
                       onRequestVoiceSelection={() => setShowVoiceManager(true)}
                       selectedVoice={selectedVoice}
                       selectedMusic={selectedBackgroundTrack}
@@ -1877,18 +1930,33 @@ const App: React.FC = () => {
 
               {/* Background Music Volume Control */}
               {selectedBackgroundTrack.id !== 'none' && (
-                <div className="flex items-center gap-3 mt-4">
-                  <ICONS.Music className="w-4 h-4 text-slate-500" />
-                  <input
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.1"
-                    value={backgroundVolume}
-                    onChange={(e) => updateBackgroundVolume(parseFloat(e.target.value))}
-                    className="w-32 h-1 bg-white/10 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white"
-                  />
-                  <span className="text-xs text-slate-500 w-8">{Math.round(backgroundVolume * 100)}%</span>
+                <div className="flex flex-col gap-2 mt-4">
+                  <div className="flex items-center gap-3">
+                    <ICONS.Music className={`w-4 h-4 ${isMusicPlaying ? 'text-cyan-400 animate-pulse' : 'text-slate-500'}`} />
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.1"
+                      value={backgroundVolume}
+                      onChange={(e) => updateBackgroundVolume(parseFloat(e.target.value))}
+                      className="w-32 h-1 bg-white/10 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white"
+                    />
+                    <span className="text-xs text-slate-500 w-8">{Math.round(backgroundVolume * 100)}%</span>
+                  </div>
+                  {/* Music Status Indicator */}
+                  <div className="flex items-center gap-2 text-xs">
+                    {isMusicPlaying ? (
+                      <span className="text-cyan-400 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse" />
+                        Playing: {selectedBackgroundTrack.name}
+                      </span>
+                    ) : musicError ? (
+                      <span className="text-amber-400">{musicError}</span>
+                    ) : (
+                      <span className="text-slate-600">Music: {selectedBackgroundTrack.name}</span>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -3185,6 +3253,67 @@ const App: React.FC = () => {
                 </GlassCard>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Music Debug Panel (Development Only) */}
+        {import.meta.env.DEV && (
+          <div className="fixed bottom-4 right-4 bg-slate-900/95 border border-slate-700 p-4 rounded-lg text-xs font-mono z-[200] max-w-xs shadow-xl">
+            <h3 className="font-bold text-cyan-400 mb-2 flex items-center gap-2">
+              <ICONS.Music className="w-4 h-4" />
+              Music Debug
+            </h3>
+            <div className="space-y-1 text-slate-300">
+              <div className="flex justify-between">
+                <span className="text-slate-500">Selected:</span>
+                <span>{selectedBackgroundTrack.name}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Playing:</span>
+                <span className={isMusicPlaying ? 'text-green-400' : 'text-red-400'}>
+                  {isMusicPlaying ? 'Yes' : 'No'}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Audio Ref:</span>
+                <span className={backgroundAudioRef.current ? 'text-green-400' : 'text-slate-500'}>
+                  {backgroundAudioRef.current ? 'Active' : 'None'}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Volume:</span>
+                <span>{Math.round(backgroundVolume * 100)}%</span>
+              </div>
+              {musicError && (
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Error:</span>
+                  <span className="text-amber-400 truncate max-w-[120px]">{musicError}</span>
+                </div>
+              )}
+              {backgroundAudioRef.current && (
+                <>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Paused:</span>
+                    <span>{backgroundAudioRef.current.paused ? 'Yes' : 'No'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Ready:</span>
+                    <span>{backgroundAudioRef.current.readyState >= 3 ? 'Yes' : 'Loading...'}</span>
+                  </div>
+                </>
+              )}
+            </div>
+            <button
+              onClick={() => {
+                if (selectedBackgroundTrack.id !== 'none') {
+                  console.log('[Debug] Manual music test');
+                  startBackgroundMusic(selectedBackgroundTrack);
+                }
+              }}
+              className="mt-3 w-full bg-cyan-600 hover:bg-cyan-500 text-white py-1.5 px-3 rounded text-xs transition-colors"
+            >
+              Test Music
+            </button>
           </div>
         )}
 
