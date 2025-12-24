@@ -531,21 +531,52 @@ export const AgentChat: React.FC<AgentChatProps> = ({
   }, []);
 
   // Voice recording handlers
+  // Web Speech API with continuous:true doesn't auto-stop after silence.
+  // We implement our own silence detection by starting a 1.5s timeout
+  // after each final transcript. If the user continues speaking, the
+  // timeout resets. When the timeout expires, we auto-stop recognition
+  // and send the message. Users can also manually stop at any time.
+  const SILENCE_TIMEOUT = 1500; // 1.5 seconds after last final transcript
+
   const startVoiceRecording = useCallback(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) return;
+    if (!SpeechRecognition) {
+      console.warn('Speech recognition not supported in this browser');
+      return;
+    }
 
     const recognition = new SpeechRecognition();
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.lang = 'en-US';
+    recognition.maxAlternatives = 1;
 
     let accumulatedTranscript = '';
+    let silenceTimer: ReturnType<typeof setTimeout> | null = null;
+
+    // Helper to clear and reset silence timer
+    const resetSilenceTimer = () => {
+      if (silenceTimer) {
+        clearTimeout(silenceTimer);
+        silenceTimer = null;
+      }
+    };
+
+    // Helper to start auto-stop countdown after silence
+    const startSilenceTimer = () => {
+      resetSilenceTimer();
+      silenceTimer = setTimeout(() => {
+        console.log('Silence detected, auto-stopping recognition');
+        recognition.stop();
+      }, SILENCE_TIMEOUT);
+    };
 
     recognition.onstart = () => {
+      console.log('Speech recognition started');
       setIsRecording(true);
       setTranscribedText('');
       accumulatedTranscript = '';
+      resetSilenceTimer();
     };
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
@@ -561,17 +592,64 @@ export const AgentChat: React.FC<AgentChatProps> = ({
         }
       }
 
+      // Update accumulated transcript with final results
       if (finalTranscript) {
         accumulatedTranscript = (accumulatedTranscript + ' ' + finalTranscript).trim();
         setTranscribedText(accumulatedTranscript);
+        console.log('Final transcript received:', finalTranscript);
+
+        // Start/reset silence timer after receiving final transcript
+        if (accumulatedTranscript.trim()) {
+          startSilenceTimer();
+        }
       } else if (interimTranscript) {
+        // Show interim results but don't start timer yet
         setTranscribedText((accumulatedTranscript + ' ' + interimTranscript).trim());
       }
     };
 
-    recognition.onerror = () => setIsRecording(false);
-    recognition.onend = () => {
+    // Additional signal for speech ending
+    recognition.onspeechend = () => {
+      console.log('Speech ended (speechend event)');
+      // Start timer if we have accumulated content
+      if (accumulatedTranscript.trim()) {
+        startSilenceTimer();
+      }
+    };
+
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+      console.error('Speech recognition error:', event.error, event.message);
+
+      // Handle specific errors with appropriate user feedback
+      switch (event.error) {
+        case 'no-speech':
+          console.warn('No speech detected');
+          break;
+        case 'audio-capture':
+          console.error('Microphone not accessible - check permissions');
+          break;
+        case 'not-allowed':
+          console.error('Microphone permission denied');
+          break;
+        case 'network':
+          console.error('Network error during speech recognition');
+          break;
+        case 'aborted':
+          console.warn('Speech recognition aborted');
+          break;
+        default:
+          console.error('Unknown speech recognition error');
+      }
+
+      resetSilenceTimer();
       setIsRecording(false);
+    };
+
+    recognition.onend = () => {
+      console.log('Speech recognition ended. Transcript:', accumulatedTranscript);
+      resetSilenceTimer();
+      setIsRecording(false);
+
       if (accumulatedTranscript.trim()) {
         sendMessage(accumulatedTranscript.trim());
         setTranscribedText('');
@@ -583,6 +661,7 @@ export const AgentChat: React.FC<AgentChatProps> = ({
   }, [sendMessage]);
 
   const stopVoiceRecording = useCallback(() => {
+    console.log('Manually stopping voice recording');
     recognitionRef.current?.stop();
   }, []);
 
