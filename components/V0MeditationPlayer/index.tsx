@@ -1,6 +1,6 @@
-import React, { useCallback, memo } from 'react';
+import React, { useCallback, memo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Play, Pause, RotateCcw, RotateCw } from 'lucide-react';
+import { X, Play, Pause, RotateCcw, RotateCw, Volume2, Gauge } from 'lucide-react';
 
 /**
  * V0 Meditation Player - Clean, focused playback experience
@@ -26,9 +26,11 @@ interface MeditationPlayerProps {
   onBackgroundMusicToggle?: () => void;
   backgroundTrackName?: string;
 
-  // Voice volume (optional)
+  // Voice volume and playback rate
   voiceVolume?: number;
   onVoiceVolumeChange?: (volume: number) => void;
+  playbackRate?: number;
+  onPlaybackRateChange?: (rate: number) => void;
 
   // Save functionality
   userId?: string;
@@ -53,8 +55,10 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
   onBackgroundVolumeChange,
   onBackgroundMusicToggle,
   backgroundTrackName,
-  voiceVolume = 1,
+  voiceVolume = 0.7,
   onVoiceVolumeChange,
+  playbackRate = 0.9,
+  onPlaybackRateChange,
   userId,
   voiceId,
   voiceName,
@@ -62,6 +66,7 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
   onSleepTimer,
 }) => {
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+  const [showControls, setShowControls] = useState(false);
 
   const formatTime = useCallback((seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -205,6 +210,140 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
               <span className="absolute -bottom-1 text-[10px] font-medium">15</span>
             </motion.button>
           </div>
+
+          {/* Voice speed and volume toggle */}
+          <div className="flex items-center justify-center gap-4 mt-4">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setShowControls(!showControls)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 text-white/60 text-sm transition-colors hover:bg-white/10 hover:text-white/80"
+            >
+              <Gauge className="h-4 w-4" />
+              <span>{playbackRate.toFixed(1)}x</span>
+              <Volume2 className="h-4 w-4 ml-1" />
+              <span>{Math.round(voiceVolume * 100)}%</span>
+            </motion.button>
+          </div>
+
+          {/* Expanded controls panel */}
+          <AnimatePresence>
+            {showControls && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="pt-4 space-y-4">
+                  {/* Playback Speed */}
+                  {onPlaybackRateChange && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-white/50 flex items-center gap-2">
+                          <Gauge className="h-4 w-4" />
+                          Voice Speed
+                        </span>
+                        <span className="text-white/80 font-mono">{playbackRate.toFixed(1)}x</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-white/40">0.5x</span>
+                        <input
+                          type="range"
+                          min="0.5"
+                          max="1.5"
+                          step="0.1"
+                          value={playbackRate}
+                          onChange={(e) => onPlaybackRateChange(parseFloat(e.target.value))}
+                          className="flex-1 h-1.5 bg-white/10 rounded-full appearance-none cursor-pointer
+                            [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4
+                            [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-cyan-400
+                            [&::-webkit-slider-thumb]:shadow-[0_0_10px_rgba(94,234,212,0.5)]
+                            [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full
+                            [&::-moz-range-thumb]:bg-cyan-400 [&::-moz-range-thumb]:border-0"
+                        />
+                        <span className="text-xs text-white/40">1.5x</span>
+                      </div>
+                      <div className="flex justify-center gap-2">
+                        {[0.7, 0.8, 0.9, 1.0, 1.2].map((rate) => (
+                          <button
+                            key={rate}
+                            onClick={() => onPlaybackRateChange(rate)}
+                            className={`px-2 py-1 text-xs rounded transition-colors ${
+                              Math.abs(playbackRate - rate) < 0.05
+                                ? 'bg-cyan-400/20 text-cyan-300'
+                                : 'bg-white/5 text-white/50 hover:bg-white/10'
+                            }`}
+                          >
+                            {rate}x
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Voice Volume */}
+                  {onVoiceVolumeChange && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-white/50 flex items-center gap-2">
+                          <Volume2 className="h-4 w-4" />
+                          Voice Volume
+                        </span>
+                        <span className="text-white/80 font-mono">{Math.round(voiceVolume * 100)}%</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-white/40">0%</span>
+                        <input
+                          type="range"
+                          min="0"
+                          max="1"
+                          step="0.05"
+                          value={voiceVolume}
+                          onChange={(e) => onVoiceVolumeChange(parseFloat(e.target.value))}
+                          className="flex-1 h-1.5 bg-white/10 rounded-full appearance-none cursor-pointer
+                            [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4
+                            [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-purple-400
+                            [&::-webkit-slider-thumb]:shadow-[0_0_10px_rgba(168,85,247,0.5)]
+                            [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full
+                            [&::-moz-range-thumb]:bg-purple-400 [&::-moz-range-thumb]:border-0"
+                        />
+                        <span className="text-xs text-white/40">100%</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Background Music Volume (if enabled) */}
+                  {backgroundMusicEnabled && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-white/50">🎵 Music Volume</span>
+                        <span className="text-white/80 font-mono">{Math.round(backgroundVolume * 100)}%</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-white/40">0%</span>
+                        <input
+                          type="range"
+                          min="0"
+                          max="1"
+                          step="0.05"
+                          value={backgroundVolume}
+                          onChange={(e) => onBackgroundVolumeChange(parseFloat(e.target.value))}
+                          className="flex-1 h-1.5 bg-white/10 rounded-full appearance-none cursor-pointer
+                            [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4
+                            [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-indigo-400
+                            [&::-webkit-slider-thumb]:shadow-[0_0_10px_rgba(129,140,248,0.5)]
+                            [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full
+                            [&::-moz-range-thumb]:bg-indigo-400 [&::-moz-range-thumb]:border-0"
+                        />
+                        <span className="text-xs text-white/40">100%</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
         </motion.div>
       </div>

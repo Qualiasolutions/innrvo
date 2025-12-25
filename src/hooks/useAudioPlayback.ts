@@ -9,6 +9,8 @@ interface UseAudioPlaybackOptions {
   onError?: (error: Error) => void;
   defaultBackgroundVolume?: number;
   defaultBackgroundTrack?: BackgroundTrack;
+  defaultPlaybackRate?: number;
+  defaultVoiceVolume?: number;
 }
 
 interface UseAudioPlaybackReturn {
@@ -22,6 +24,10 @@ interface UseAudioPlaybackReturn {
   // Background music state
   backgroundVolume: number;
   selectedBackgroundTrack: BackgroundTrack;
+
+  // Voice/playback state
+  playbackRate: number;
+  voiceVolume: number;
 
   // Refs
   audioContextRef: RefObject<AudioContext | null>;
@@ -41,6 +47,10 @@ interface UseAudioPlaybackReturn {
   updateBackgroundVolume: (volume: number) => void;
   setSelectedBackgroundTrack: (track: BackgroundTrack) => void;
 
+  // Voice/playback actions
+  updatePlaybackRate: (rate: number) => void;
+  updateVoiceVolume: (volume: number) => void;
+
   // Utilities
   formatTime: (seconds: number) => string;
 }
@@ -53,7 +63,9 @@ export function useAudioPlayback(
     onEnded,
     onError,
     defaultBackgroundVolume = 0.3,
-    defaultBackgroundTrack = BACKGROUND_TRACKS[0]
+    defaultBackgroundTrack = BACKGROUND_TRACKS[0],
+    defaultPlaybackRate = 0.9,  // Slightly slower for meditation
+    defaultVoiceVolume = 0.7    // Lower than music by default for better balance
   } = options;
 
   // State
@@ -67,14 +79,20 @@ export function useAudioPlayback(
   const [backgroundVolume, setBackgroundVolume] = useState(defaultBackgroundVolume);
   const [selectedBackgroundTrack, setSelectedBackgroundTrack] = useState<BackgroundTrack>(defaultBackgroundTrack);
 
+  // Voice/playback state
+  const [playbackRate, setPlaybackRate] = useState(defaultPlaybackRate);
+  const [voiceVolume, setVoiceVolume] = useState(defaultVoiceVolume);
+
   // Refs
   const audioContextRef = useRef<AudioContext | null>(null);
+  const gainNodeRef = useRef<GainNode | null>(null);
   const audioSourceRef = useRef<AudioBufferSourceNode | null>(null);
   const audioBufferRef = useRef<AudioBuffer | null>(null);
   const playbackStartTimeRef = useRef(0);
   const pauseOffsetRef = useRef(0);
   const animationFrameRef = useRef<number | null>(null);
   const backgroundAudioRef = useRef<HTMLAudioElement | null>(null);
+  const playbackRateRef = useRef(defaultPlaybackRate);
 
   // Format time helper
   const formatTime = useCallback((seconds: number): string => {
@@ -87,7 +105,8 @@ export function useAudioPlayback(
   const updateProgress = useCallback(() => {
     if (!audioContextRef.current || !isPlaying) return;
 
-    const elapsed = audioContextRef.current.currentTime - playbackStartTimeRef.current;
+    // Elapsed time is affected by playback rate
+    const elapsed = (audioContextRef.current.currentTime - playbackStartTimeRef.current) * playbackRateRef.current;
     const newCurrentTime = Math.min(pauseOffsetRef.current + elapsed, duration);
 
     setCurrentTime(newCurrentTime);
@@ -126,6 +145,13 @@ export function useAudioPlayback(
         audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
       }
 
+      // Create gain node for voice volume control
+      if (!gainNodeRef.current || !audioContextRef.current) {
+        gainNodeRef.current = audioContextRef.current.createGain();
+        gainNodeRef.current.connect(audioContextRef.current.destination);
+      }
+      gainNodeRef.current.gain.value = voiceVolume;
+
       // Store buffer
       audioBufferRef.current = audioBuffer;
       const audioDuration = audioBuffer.duration;
@@ -144,10 +170,12 @@ export function useAudioPlayback(
         }
       }
 
-      // Create and start new source
+      // Create and start new source with playback rate
       const source = audioContextRef.current.createBufferSource();
       source.buffer = audioBuffer;
-      source.connect(audioContextRef.current.destination);
+      source.playbackRate.value = playbackRate;
+      playbackRateRef.current = playbackRate;
+      source.connect(gainNodeRef.current);
       source.start(0);
       audioSourceRef.current = source;
 
@@ -170,7 +198,7 @@ export function useAudioPlayback(
       console.error('Failed to load and play audio:', error);
       onError?.(error as Error);
     }
-  }, [onEnded, onError]);
+  }, [onEnded, onError, playbackRate, voiceVolume]);
 
   // Resume playback from pause
   const play = useCallback(() => {
@@ -182,12 +210,21 @@ export function useAudioPlayback(
         audioContextRef.current.resume();
       }
 
-      // Create new source
+      // Ensure gain node exists
+      if (!gainNodeRef.current) {
+        gainNodeRef.current = audioContextRef.current.createGain();
+        gainNodeRef.current.connect(audioContextRef.current.destination);
+      }
+      gainNodeRef.current.gain.value = voiceVolume;
+
+      // Create new source with playback rate
       const source = audioContextRef.current.createBufferSource();
       source.buffer = audioBufferRef.current;
-      source.connect(audioContextRef.current.destination);
+      source.playbackRate.value = playbackRate;
+      playbackRateRef.current = playbackRate;
+      source.connect(gainNodeRef.current);
 
-      // Start from offset
+      // Start from offset (adjusted for playback rate)
       source.start(0, pauseOffsetRef.current);
       audioSourceRef.current = source;
 
@@ -207,14 +244,14 @@ export function useAudioPlayback(
       console.error('Failed to resume playback:', error);
       onError?.(error as Error);
     }
-  }, [isPlaying, onEnded, onError]);
+  }, [isPlaying, onEnded, onError, playbackRate, voiceVolume]);
 
   // Pause playback
   const pause = useCallback(() => {
     if (!audioContextRef.current || !audioSourceRef.current || !isPlaying) return;
 
-    // Calculate current position
-    const elapsed = audioContextRef.current.currentTime - playbackStartTimeRef.current;
+    // Calculate current position (adjusted for playback rate)
+    const elapsed = (audioContextRef.current.currentTime - playbackStartTimeRef.current) * playbackRateRef.current;
     pauseOffsetRef.current = Math.min(pauseOffsetRef.current + elapsed, duration);
 
     // Stop the source
@@ -269,9 +306,18 @@ export function useAudioPlayback(
 
     // Resume if was playing
     if (wasPlaying && audioContextRef.current && audioBufferRef.current) {
+      // Ensure gain node exists
+      if (!gainNodeRef.current) {
+        gainNodeRef.current = audioContextRef.current.createGain();
+        gainNodeRef.current.connect(audioContextRef.current.destination);
+      }
+      gainNodeRef.current.gain.value = voiceVolume;
+
       const source = audioContextRef.current.createBufferSource();
       source.buffer = audioBufferRef.current;
-      source.connect(audioContextRef.current.destination);
+      source.playbackRate.value = playbackRate;
+      playbackRateRef.current = playbackRate;
+      source.connect(gainNodeRef.current);
       source.start(0, clampedTime);
       audioSourceRef.current = source;
 
@@ -288,7 +334,7 @@ export function useAudioPlayback(
     } else {
       setIsPlaying(false);
     }
-  }, [isPlaying, duration, timingMap, onEnded]);
+  }, [isPlaying, duration, timingMap, onEnded, playbackRate, voiceVolume]);
 
   // Stop and reset
   const stop = useCallback(() => {
@@ -371,6 +417,29 @@ export function useAudioPlayback(
     }
   }, []);
 
+  // Update playback rate (requires restart to take effect)
+  const updatePlaybackRate = useCallback((rate: number) => {
+    const clampedRate = Math.max(0.5, Math.min(2.0, rate));
+    setPlaybackRate(clampedRate);
+    playbackRateRef.current = clampedRate;
+
+    // If currently playing, update the source's playback rate directly
+    if (audioSourceRef.current && isPlaying) {
+      audioSourceRef.current.playbackRate.value = clampedRate;
+    }
+  }, [isPlaying]);
+
+  // Update voice volume
+  const updateVoiceVolume = useCallback((volume: number) => {
+    const clampedVolume = Math.max(0, Math.min(1, volume));
+    setVoiceVolume(clampedVolume);
+
+    // Update gain node in real-time
+    if (gainNodeRef.current) {
+      gainNodeRef.current.gain.value = clampedVolume;
+    }
+  }, []);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -404,6 +473,10 @@ export function useAudioPlayback(
     backgroundVolume,
     selectedBackgroundTrack,
 
+    // Voice/playback state
+    playbackRate,
+    voiceVolume,
+
     // Refs
     audioContextRef,
     audioSourceRef,
@@ -421,6 +494,10 @@ export function useAudioPlayback(
     stopBackgroundMusic,
     updateBackgroundVolume,
     setSelectedBackgroundTrack,
+
+    // Voice/playback actions
+    updatePlaybackRate,
+    updateVoiceVolume,
 
     // Utilities
     formatTime,

@@ -168,6 +168,12 @@ const App: React.FC = () => {
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
   const [musicError, setMusicError] = useState<string | null>(null);
 
+  // Voice playback controls
+  const [playbackRate, setPlaybackRate] = useState(0.9); // 0.9x default for slower meditation
+  const [voiceVolume, setVoiceVolume] = useState(0.7); // 70% default for better music balance
+  const gainNodeRef = useRef<GainNode | null>(null);
+  const playbackRateRef = useRef(0.9);
+
   // Auth states
   const [user, setUser] = useState<any>(null);
   const [savedVoices, setSavedVoices] = useState<DBVoiceProfile[]>([]);
@@ -1036,6 +1042,29 @@ const App: React.FC = () => {
     }
   };
 
+  // Update playback rate (can be changed during playback)
+  const updatePlaybackRate = useCallback((rate: number) => {
+    const clampedRate = Math.max(0.5, Math.min(2.0, rate));
+    setPlaybackRate(clampedRate);
+    playbackRateRef.current = clampedRate;
+
+    // Update the source's playback rate in real-time if playing
+    if (audioSourceRef.current && isPlaying) {
+      audioSourceRef.current.playbackRate.value = clampedRate;
+    }
+  }, [isPlaying]);
+
+  // Update voice volume (can be changed during playback)
+  const updateVoiceVolume = useCallback((volume: number) => {
+    const clampedVolume = Math.max(0, Math.min(1, volume));
+    setVoiceVolume(clampedVolume);
+
+    // Update gain node in real-time
+    if (gainNodeRef.current) {
+      gainNodeRef.current.gain.value = clampedVolume;
+    }
+  }, []);
+
   // Progress tracking for inline player
   // Optimized: Throttle setCurrentTime to 5Hz (200ms) instead of 60Hz
   // RAF still runs for smooth animation, but React state updates are throttled
@@ -1045,7 +1074,8 @@ const App: React.FC = () => {
   const updateProgress = useCallback(() => {
     if (!audioContextRef.current || !isPlaying) return;
 
-    const elapsed = audioContextRef.current.currentTime - playbackStartTimeRef.current;
+    // Account for playback rate when calculating elapsed time
+    const elapsed = (audioContextRef.current.currentTime - playbackStartTimeRef.current) * playbackRateRef.current;
     const newCurrentTime = Math.min(pauseOffsetRef.current + elapsed, duration);
     const now = Date.now();
 
@@ -1086,8 +1116,8 @@ const App: React.FC = () => {
   const handleInlinePause = useCallback(() => {
     if (!audioContextRef.current || !audioSourceRef.current || !isPlaying) return;
 
-    // Calculate current position
-    const elapsed = audioContextRef.current.currentTime - playbackStartTimeRef.current;
+    // Calculate current position (account for playback rate)
+    const elapsed = (audioContextRef.current.currentTime - playbackStartTimeRef.current) * playbackRateRef.current;
     pauseOffsetRef.current = Math.min(pauseOffsetRef.current + elapsed, duration);
 
     // Stop the source
@@ -1115,10 +1145,19 @@ const App: React.FC = () => {
       audioContextRef.current.resume();
     }
 
-    // Create new source
+    // Ensure gain node exists for volume control
+    if (!gainNodeRef.current) {
+      gainNodeRef.current = audioContextRef.current.createGain();
+      gainNodeRef.current.connect(audioContextRef.current.destination);
+    }
+    gainNodeRef.current.gain.value = voiceVolume;
+
+    // Create new source with playback rate
     const source = audioContextRef.current.createBufferSource();
     source.buffer = audioBufferRef.current;
-    source.connect(audioContextRef.current.destination);
+    source.playbackRate.value = playbackRate;
+    playbackRateRef.current = playbackRate;
+    source.connect(gainNodeRef.current);
 
     // Start from offset
     source.start(0, pauseOffsetRef.current);
@@ -1135,7 +1174,7 @@ const App: React.FC = () => {
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [isPlaying]);
+  }, [isPlaying, playbackRate, voiceVolume]);
 
   // Toggle play/pause for inline player
   const handleInlineTogglePlayback = useCallback(() => {
@@ -1173,9 +1212,18 @@ const App: React.FC = () => {
 
     // Resume if was playing
     if (wasPlaying && audioContextRef.current && audioBufferRef.current) {
+      // Ensure gain node exists
+      if (!gainNodeRef.current) {
+        gainNodeRef.current = audioContextRef.current.createGain();
+        gainNodeRef.current.connect(audioContextRef.current.destination);
+      }
+      gainNodeRef.current.gain.value = voiceVolume;
+
       const source = audioContextRef.current.createBufferSource();
       source.buffer = audioBufferRef.current;
-      source.connect(audioContextRef.current.destination);
+      source.playbackRate.value = playbackRate;
+      playbackRateRef.current = playbackRate;
+      source.connect(gainNodeRef.current);
       source.start(0, clampedTime);
       audioSourceRef.current = source;
 
@@ -1191,7 +1239,7 @@ const App: React.FC = () => {
     } else {
       setIsPlaying(false);
     }
-  }, [isPlaying, duration, timingMap]);
+  }, [isPlaying, duration, timingMap, playbackRate, voiceVolume]);
 
   // Stop and exit inline mode
   const handleInlineStop = useCallback(() => {
@@ -1421,10 +1469,19 @@ const App: React.FC = () => {
       setCurrentWordIndex(0);
       pauseOffsetRef.current = 0;
 
-      // Start playback
+      // Create gain node for voice volume control
+      if (!gainNodeRef.current) {
+        gainNodeRef.current = audioContextRef.current.createGain();
+        gainNodeRef.current.connect(audioContextRef.current.destination);
+      }
+      gainNodeRef.current.gain.value = voiceVolume;
+
+      // Start playback with playback rate
       const source = audioContextRef.current.createBufferSource();
       source.buffer = audioBuffer;
-      source.connect(audioContextRef.current.destination);
+      source.playbackRate.value = playbackRate;
+      playbackRateRef.current = playbackRate;
+      source.connect(gainNodeRef.current);
       source.start();
       audioSourceRef.current = source;
       playbackStartTimeRef.current = audioContextRef.current.currentTime;
@@ -1572,9 +1629,18 @@ const App: React.FC = () => {
         }
       }
 
+      // Create gain node for voice volume control
+      if (!gainNodeRef.current) {
+        gainNodeRef.current = audioContextRef.current.createGain();
+        gainNodeRef.current.connect(audioContextRef.current.destination);
+      }
+      gainNodeRef.current.gain.value = voiceVolume;
+
       const source = audioContextRef.current.createBufferSource();
       source.buffer = audioBuffer;
-      source.connect(audioContextRef.current.destination);
+      source.playbackRate.value = playbackRate;
+      playbackRateRef.current = playbackRate;
+      source.connect(gainNodeRef.current);
       source.start();
       audioSourceRef.current = source;
 
@@ -1764,10 +1830,19 @@ const App: React.FC = () => {
                           setCurrentWordIndex(0);
                           pauseOffsetRef.current = 0;
 
-                          // Start playback
+                          // Create gain node for voice volume control
+                          if (!gainNodeRef.current) {
+                            gainNodeRef.current = audioContextRef.current.createGain();
+                            gainNodeRef.current.connect(audioContextRef.current.destination);
+                          }
+                          gainNodeRef.current.gain.value = voiceVolume;
+
+                          // Start playback with playback rate
                           const source = audioContextRef.current.createBufferSource();
                           source.buffer = audioBuffer;
-                          source.connect(audioContextRef.current.destination);
+                          source.playbackRate.value = playbackRate;
+                          playbackRateRef.current = playbackRate;
+                          source.connect(gainNodeRef.current);
                           source.start();
                           audioSourceRef.current = source;
                           playbackStartTimeRef.current = audioContextRef.current.currentTime;
@@ -1872,6 +1947,10 @@ const App: React.FC = () => {
                   }
                 }}
                 backgroundTrackName={selectedBackgroundTrack.name}
+                voiceVolume={voiceVolume}
+                onVoiceVolumeChange={updateVoiceVolume}
+                playbackRate={playbackRate}
+                onPlaybackRateChange={updatePlaybackRate}
                 userId={user?.id}
                 voiceId={selectedVoice?.id}
                 voiceName={selectedVoice?.name}
