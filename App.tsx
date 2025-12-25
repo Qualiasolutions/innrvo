@@ -3195,7 +3195,7 @@ const App: React.FC = () => {
 
                 <GlassCard className="!p-6 !rounded-2xl">
                   <h3 className="text-lg font-bold text-white mb-3">4. Third-Party Services</h3>
-                  <p className="text-slate-400">We use Google Gemini for AI generation and Replicate (Chatterbox) for voice synthesis. These services have their own privacy policies. Voice data sent for cloning is processed according to Replicate's terms.</p>
+                  <p className="text-slate-400">We use secure AI services for meditation generation and voice synthesis. These services have their own privacy policies. Voice data sent for cloning is processed securely according to our providers' terms.</p>
                 </GlassCard>
 
                 <GlassCard className="!p-6 !rounded-2xl">

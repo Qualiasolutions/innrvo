@@ -47,11 +47,13 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const autoStopRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Voice cloning is always configured (using Chatterbox via Replicate)
+  // Voice cloning is always configured
   const isConfigured = true;
 
   // Derive state from cloningStatus
   const isProcessing = cloningStatus.state === 'validating' ||
+                       cloningStatus.state === 'processing_audio' ||
+                       cloningStatus.state === 'uploading_to_fish_audio' ||
                        cloningStatus.state === 'uploading_to_chatterbox' ||
                        cloningStatus.state === 'saving_to_database';
 
@@ -217,13 +219,16 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
   const getStatusMessage = () => {
     switch (cloningStatus.state) {
       case 'validating':
-        return 'Validating audio...';
+        return 'Analyzing your voice...';
+      case 'processing_audio':
+        return 'Preparing your recording...';
+      case 'uploading_to_fish_audio':
       case 'uploading_to_chatterbox':
         return cloningStatus.progress
-          ? `Creating voice clone... ${cloningStatus.progress}%`
-          : 'Creating voice clone (this may take a moment)...';
+          ? `Capturing your inner voice... ${cloningStatus.progress}%`
+          : 'Capturing your inner voice...';
       case 'saving_to_database':
-        return 'Saving profile...';
+        return 'Saving your voice profile...';
       case 'success':
         return `Voice "${cloningStatus.voiceName}" created!`;
       default:

@@ -7,10 +7,6 @@
     "filesystem": {
       "command": "npx",
       "args": ["-y", "@modelcontextprotocol/server-filesystem", "/home/qualiasolutions/Desktop/Projects/voice/inrvo"]
-    },
-    "web-reader": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-web-reader"]
     }
   }
 }
