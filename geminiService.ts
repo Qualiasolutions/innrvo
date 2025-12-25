@@ -16,18 +16,44 @@ async function getAI() {
   return new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
 }
 
+/**
+ * Calculate word count and structure based on duration minutes
+ * At meditation pace: ~2 words/second (with pauses for breathing)
+ */
+function calculateWordStructure(durationMinutes: number): string {
+  const clampedMinutes = Math.max(1, Math.min(30, durationMinutes));
+  const targetWords = Math.round(clampedMinutes * 60 * 2);
+  const minWords = Math.round(targetWords * 0.9);
+  const maxWords = Math.round(targetWords * 1.1);
+
+  // Calculate proportional section lengths
+  const opening = Math.round(targetWords * 0.10);
+  const grounding = Math.round(targetWords * 0.15);
+  const core = Math.round(targetWords * 0.50);
+  const integration = Math.round(targetWords * 0.15);
+  const closing = Math.round(targetWords * 0.10);
+
+  return `Structure (${minWords}-${maxWords} words total for ${clampedMinutes} minute meditation):
+1. OPENING (${opening} words): Acknowledge exactly where they are emotionally. Make them feel SEEN.
+2. GROUNDING (${grounding} words): Breath awareness, body settling
+3. CORE EXPERIENCE (${core} words): The main visualization/practice
+4. INTEGRATION (${integration} words): Connecting the experience to their situation
+5. CLOSING (${closing} words): Gentle return with lasting calm/confidence`;
+}
+
 export const geminiService = {
   /**
    * Fast script generation using gemini-2.0-flash
    * Uses Edge Functions for secure API key handling
    * @param thought - The user's meditation idea/prompt
    * @param audioTags - Optional array of audio tag labels to incorporate
+   * @param durationMinutes - Target duration in minutes (default: 5)
    */
-  async enhanceScript(thought: string, audioTags?: string[]): Promise<string> {
+  async enhanceScript(thought: string, audioTags?: string[], durationMinutes?: number): Promise<string> {
     try {
       // Use Edge Functions if available (secure, API key server-side)
       if (USE_EDGE_FUNCTIONS && await isEdgeFunctionAvailable()) {
-        return geminiGenerateScript(thought, audioTags);
+        return geminiGenerateScript(thought, audioTags, durationMinutes);
       }
 
       // Legacy fallback for unauthenticated users (dynamically loads 250KB SDK)
@@ -44,6 +70,10 @@ AUDIO CUES TO INCORPORATE: ${audioTags.join(', ')}
 Weave these naturally into the script where they enhance the experience.`;
       }
 
+      // Use duration or default to 5 minutes
+      const targetDuration = durationMinutes || 5;
+      const structureGuide = calculateWordStructure(targetDuration);
+
       const response = await ai.models.generateContent({
         model: 'gemini-2.0-flash',
         contents: `You are an expert meditation guide creating HIGHLY PERSONALIZED content. Your meditation must feel like it was written specifically for THIS person's exact situation.
@@ -51,6 +81,8 @@ Weave these naturally into the script where they enhance the experience.`;
 === USER'S REQUEST ===
 "${thought}"
 === END REQUEST ===
+
+TARGET DURATION: ${targetDuration} minutes
 
 ## STEP 1: DEEP ANALYSIS (internal only)
 
@@ -97,12 +129,7 @@ YOUR MEDITATION MUST:
 
 ## STEP 4: WRITE THE SCRIPT
 
-Structure (400-550 words total):
-1. OPENING (40-60 words): Acknowledge exactly where they are emotionally. Make them feel SEEN.
-2. GROUNDING (50-70 words): Breath awareness, body settling
-3. CORE EXPERIENCE (200-280 words): The main visualization/practice
-4. INTEGRATION (50-70 words): Connecting the experience to their situation
-5. CLOSING (40-60 words): Gentle return with lasting calm/confidence
+${structureGuide}
 
 Style requirements:
 - Use FIRST PERSON "I" throughout (e.g., "I feel calm", "I breathe deeply", "I am safe")
@@ -112,6 +139,7 @@ Style requirements:
 - Include audio tags: [pause], [long pause], [deep breath], [exhale slowly]
 - Natural ellipses for pacing...
 - Fresh language (avoid "journey", "sacred", overused meditation clichés)
+- CRITICAL: The meditation MUST be ${targetDuration} minutes long when read at meditation pace
 
 ${audioTagsInstruction}
 
@@ -127,6 +155,7 @@ Before writing, verify:
 ✓ Am I using the setting they requested (or an appropriate one)?
 ✓ Does the tone match their needs (sleep vs. energy vs. confidence)?
 ✓ Would this feel personally written for THEM, not generic?
+✓ Is the script the correct length for ${targetDuration} minutes?
 
 If you cannot answer YES to all of these, revise your approach.`,
       });

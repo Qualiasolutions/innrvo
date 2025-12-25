@@ -10,6 +10,7 @@ interface GeminiScriptRequest {
   audioTags?: string[];
   operation?: 'generate' | 'extend';
   existingScript?: string;
+  durationMinutes?: number;  // Target duration in minutes (default: 5)
 }
 
 interface GeminiScriptResponse {
@@ -32,10 +33,45 @@ GUIDELINES:
 
 OUTPUT: Complete expanded script only, no explanations.`;
 
-const GENERATE_PROMPT_TEMPLATE = `Create a PERSONALIZED meditation for this person's exact situation.
+/**
+ * Calculate word count based on duration minutes
+ * At meditation pace: ~2 words/second (with pauses for breathing)
+ */
+function calculateWordRange(durationMinutes: number): { wordRange: string; structure: string } {
+  const clampedMinutes = Math.max(1, Math.min(30, durationMinutes));
+  const targetWords = Math.round(clampedMinutes * 60 * 2);  // 2 words per second
+  const minWords = Math.round(targetWords * 0.9);
+  const maxWords = Math.round(targetWords * 1.1);
 
-REQUEST: "{{THOUGHT}}"
-{{AUDIO_TAGS}}
+  // Calculate proportional section lengths
+  const opening = Math.round(targetWords * 0.10);   // 10%
+  const grounding = Math.round(targetWords * 0.15); // 15%
+  const core = Math.round(targetWords * 0.50);      // 50%
+  const integration = Math.round(targetWords * 0.15); // 15%
+  const closing = Math.round(targetWords * 0.10);   // 10%
+
+  return {
+    wordRange: `${minWords}-${maxWords}`,
+    structure: `STRUCTURE (${minWords}-${maxWords} words for ${clampedMinutes} minute meditation):
+1. OPENING (${opening} words): Acknowledge their emotional state. Make them feel seen.
+2. GROUNDING (${grounding} words): Breath awareness, settling
+3. CORE (${core} words): Main visualization matching their needs
+4. INTEGRATION (${integration} words): Connect to their situation
+5. CLOSING (${closing} words): Gentle return with calm/confidence`,
+  };
+}
+
+function buildGeneratePrompt(thought: string, audioTags: string[], durationMinutes: number): string {
+  const { structure } = calculateWordRange(durationMinutes);
+  const audioTagsLine = audioTags.length > 0
+    ? `AUDIO CUES: ${audioTags.join(', ')} (weave naturally into script)`
+    : '';
+
+  return `Create a PERSONALIZED meditation for this person's exact situation.
+
+REQUEST: "${thought}"
+${audioTagsLine}
+TARGET DURATION: ${durationMinutes} minutes
 
 ANALYZE (internal):
 - Situation: What specific challenge? (interview, can't sleep, etc.)
@@ -43,12 +79,7 @@ ANALYZE (internal):
 - Setting: Requested place? (beach, forest, space)
 - Goal: Calm, sleep, confidence, clarity?
 
-STRUCTURE (400-550 words):
-1. OPENING (50 words): Acknowledge their emotional state. Make them feel seen.
-2. GROUNDING (60 words): Breath awareness, settling
-3. CORE (240 words): Main visualization matching their needs
-4. INTEGRATION (60 words): Connect to their situation
-5. CLOSING (50 words): Gentle return with calm/confidence
+${structure}
 
 REQUIREMENTS:
 - Reference their specific situation in first 50 words
@@ -59,8 +90,10 @@ REQUIREMENTS:
 - Natural ellipses for pacing...
 - Fresh language (avoid "journey", "sacred")
 - Match tone to need (drowsy for sleep, energizing for confidence)
+- CRITICAL: The meditation MUST be ${durationMinutes} minutes long when read at meditation pace
 
 OUTPUT: Only the meditation script. No titles, headers, or explanations. Start immediately.`;
+}
 
 // Lazy-load Supabase client to reduce cold start
 let supabaseClient: ReturnType<typeof createClient> | null = null;
@@ -121,7 +154,7 @@ serve(async (req) => {
     }
 
     // Parse request body
-    const { thought, audioTags, operation = 'generate', existingScript }: GeminiScriptRequest = await req.json();
+    const { thought, audioTags, operation = 'generate', existingScript, durationMinutes = 5 }: GeminiScriptRequest = await req.json();
 
     // Validate input based on operation
     if (operation === 'extend') {
@@ -150,19 +183,14 @@ serve(async (req) => {
       );
     }
 
-    log.info('Starting script generation', { operation, thoughtLength: thought?.length || 0 });
+    log.info('Starting script generation', { operation, thoughtLength: thought?.length || 0, durationMinutes });
 
-    // Build prompt using pre-compiled templates
+    // Build prompt using dynamic template with duration
     let prompt: string;
     if (operation === 'extend') {
       prompt = EXTEND_PROMPT_TEMPLATE.replace('{{SCRIPT}}', existingScript!);
     } else {
-      const audioTagsLine = audioTags?.length
-        ? `AUDIO CUES: ${audioTags.join(', ')} (weave naturally into script)`
-        : '';
-      prompt = GENERATE_PROMPT_TEMPLATE
-        .replace('{{THOUGHT}}', thought)
-        .replace('{{AUDIO_TAGS}}', audioTagsLine);
+      prompt = buildGeneratePrompt(thought, audioTags || [], durationMinutes);
     }
 
     // Call Gemini API with circuit breaker and timeout
@@ -183,7 +211,8 @@ serve(async (req) => {
                 contents: [{ parts: [{ text: prompt }] }],
                 generationConfig: {
                   temperature: 0.7,
-                  maxOutputTokens: operation === 'extend' ? 1500 : 1200,
+                  // Scale tokens with duration: ~1.5 tokens per word, plus buffer
+                  maxOutputTokens: operation === 'extend' ? 1500 : Math.max(1200, durationMinutes * 60 * 2 * 1.5),
                 }
               }),
               signal: controller.signal,

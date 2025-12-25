@@ -342,15 +342,20 @@ export interface GeminiScriptResponse {
 /**
  * Generate meditation script using Gemini via Edge Function
  * API key is stored server-side
+ * @param thought - The meditation prompt/idea
+ * @param audioTags - Optional audio cues to incorporate
+ * @param durationMinutes - Target duration in minutes (default: 5)
  */
 export async function geminiGenerateScript(
   thought: string,
-  audioTags?: string[]
+  audioTags?: string[],
+  durationMinutes?: number
 ): Promise<string> {
   const response = await callEdgeFunction<GeminiScriptResponse>('gemini-script', {
     thought,
     audioTags,
     operation: 'generate',
+    durationMinutes: durationMinutes || 5,
   });
 
   return response.script;

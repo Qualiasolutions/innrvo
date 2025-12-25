@@ -70,13 +70,37 @@ export interface MeditationSuggestion {
 // ============================================================================
 
 /**
+ * Calculate word count and duration based on requested minutes
+ * At meditation pace (~2 words/second with pauses), we calculate the appropriate word range
+ */
+function calculateDurationParams(durationMinutes: number): { wordRange: string; seconds: number } {
+  // Clamp duration between 1 and 30 minutes
+  const clampedMinutes = Math.max(1, Math.min(30, durationMinutes));
+  const seconds = clampedMinutes * 60;
+
+  // At meditation pace: ~2 words/second (with pauses for breathing, silence)
+  const wordsPerSecond = 2;
+  const targetWords = Math.round(seconds * wordsPerSecond);
+
+  // Allow ±10% variance for natural flow
+  const minWords = Math.round(targetWords * 0.9);
+  const maxWords = Math.round(targetWords * 1.1);
+
+  return {
+    wordRange: `${minWords}-${maxWords}`,
+    seconds,
+  };
+}
+
+/**
  * Generate a personalized meditation script using Gemini
  */
 export async function generateMeditationScript(
   prompt: string,
   meditationType: MeditationType = 'guided_visualization',
   options?: {
-    duration?: 'short' | 'medium' | 'long';
+    durationMinutes?: number;  // Exact duration in minutes (preferred)
+    duration?: 'short' | 'medium' | 'long';  // Legacy fallback
     tradition?: string;
     teacherInfluence?: string;
     audioTags?: string[];
@@ -90,15 +114,27 @@ export async function generateMeditationScript(
     }
 
     // Determine word count based on duration
-    // At meditative pace (~2 words/second with pauses), these create proper meditation lengths
-    const durationMap = {
-      short: { words: '300-400', seconds: 180 },    // 3-4 minutes
-      medium: { words: '450-550', seconds: 300 },   // 5-6 minutes
-      long: { words: '600-800', seconds: 480 },     // 8-10 minutes
-    };
-    const duration = options?.duration || 'medium';
-    const wordRange = durationMap[duration].words;
-    const estimatedSeconds = durationMap[duration].seconds;
+    // Prefer exact durationMinutes, fall back to legacy category mapping
+    let wordRange: string;
+    let estimatedSeconds: number;
+
+    if (options?.durationMinutes) {
+      // Use exact duration in minutes
+      const params = calculateDurationParams(options.durationMinutes);
+      wordRange = params.wordRange;
+      estimatedSeconds = params.seconds;
+    } else {
+      // Legacy fallback: map categories to approximate durations
+      const legacyDurationMap = {
+        short: 3,    // 3 minutes
+        medium: 5,   // 5 minutes
+        long: 10,    // 10 minutes
+      };
+      const durationMinutes = legacyDurationMap[options?.duration || 'medium'];
+      const params = calculateDurationParams(durationMinutes);
+      wordRange = params.wordRange;
+      estimatedSeconds = params.seconds;
+    }
 
     // Build enhanced prompt with wisdom tradition context
     let enhancedPrompt = prompt;
@@ -119,12 +155,13 @@ export async function generateMeditationScript(
       }
     }
 
-    // Add meditation type context
+    // Add meditation type context with exact duration
+    const durationMinutes = Math.round(estimatedSeconds / 60);
     enhancedPrompt += ` This is a ${typeInfo.name.toLowerCase()} meditation focused on ${typeInfo.benefits.slice(0, 2).join(' and ')}.`;
-    enhancedPrompt += ` Target length: ${wordRange} words.`;
+    enhancedPrompt += ` Target duration: exactly ${durationMinutes} minutes (${wordRange} words).`;
 
     // Generate the script
-    const script = await geminiService.enhanceScript(enhancedPrompt, options?.audioTags);
+    const script = await geminiService.enhanceScript(enhancedPrompt, options?.audioTags, durationMinutes);
 
     return {
       success: true,

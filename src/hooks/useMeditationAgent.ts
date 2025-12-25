@@ -273,16 +273,12 @@ export function useMeditationAgent(): UseMeditationAgentReturn {
       // Analyze the request for additional context
       const analysis = agentTools.analyzeUserRequest(prompt);
 
-      // Determine duration
-      let duration: 'short' | 'medium' | 'long' = 'medium';
-      if (analysis.mentionedDuration) {
-        if (analysis.mentionedDuration <= 5) duration = 'short';
-        else if (analysis.mentionedDuration >= 15) duration = 'long';
-      }
+      // Use exact duration if mentioned, otherwise default to 5 minutes
+      const durationMinutes = analysis.mentionedDuration || 5;
 
-      // Generate the meditation script
+      // Generate the meditation script with exact duration
       const result = await agentTools.generateMeditationScript(prompt, type, {
-        duration,
+        durationMinutes,  // Pass exact duration in minutes
         tradition: analysis.mentionedTradition,
         teacherInfluence: analysis.mentionedTeacher,
         audioTags: ['[deep breath]', '[pause]'], // Default tags
