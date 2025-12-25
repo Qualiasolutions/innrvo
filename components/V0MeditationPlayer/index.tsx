@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback, memo } from 'react';
+import React, { useState, useCallback, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Play, Pause, RotateCcw, RotateCw, Volume2, VolumeX, Music, Moon, Heart } from 'lucide-react';
+import { X, Play, Pause, RotateCcw, RotateCw, Volume2, VolumeX } from 'lucide-react';
 
 /**
  * V0 Meditation Player - Clean, focused playback experience
@@ -63,7 +63,6 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
 }) => {
   const [isMuted, setIsMuted] = useState(false);
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
@@ -94,14 +93,6 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
     }
   }, [isMuted, onVoiceVolumeChange]);
 
-  // Meditation is already saved when generated (in App.tsx).
-  // This button now just shows a visual confirmation that it's saved.
-  const handleSave = useCallback(() => {
-    if (!userId || isSaved) return;
-    // Just mark as saved in UI - no duplicate database entry needed
-    setIsSaved(true);
-  }, [userId, isSaved]);
-
   return (
     <div className="fixed inset-0 z-[100] w-full overflow-hidden bg-[#0f172a]">
       {/* Animated gradient background */}
@@ -122,9 +113,9 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
       <FloatingParticles />
 
       {/* Content */}
-      <div className="relative z-10 flex min-h-[100dvh] flex-col items-center justify-between px-4 sm:px-6 pb-6 sm:pb-8 pt-10 sm:pt-12 safe-top safe-bottom">
+      <div className="relative z-10 flex min-h-[100dvh] flex-col items-center justify-between px-4 sm:px-6 pb-6 sm:pb-8 pt-16 sm:pt-14 safe-top safe-bottom">
         {/* Header with close button */}
-        <div className="w-full max-w-lg">
+        <div className="w-full max-w-lg mt-2">
           <motion.button
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -272,80 +263,6 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
             </AnimatePresence>
           </div>
 
-          {/* Bottom options */}
-          <div className="flex items-center justify-center gap-8 sm:gap-10 pt-2 sm:pt-4">
-            {onBackgroundMusicToggle && (
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={onBackgroundMusicToggle}
-                className={`flex flex-col items-center gap-1 transition-colors ${
-                  backgroundMusicEnabled ? 'text-cyan-400/80' : 'text-white/40'
-                }`}
-                aria-label="Toggle background music"
-              >
-                <Music className="h-5 w-5" />
-                <span className="text-[10px]">Music</span>
-              </motion.button>
-            )}
-
-            {onSleepTimer && (
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={onSleepTimer}
-                className="flex flex-col items-center gap-1 text-white/40 transition-colors hover:text-white/70"
-                aria-label="Sleep timer"
-              >
-                <Moon className="h-5 w-5" />
-                <span className="text-[10px]">Sleep</span>
-              </motion.button>
-            )}
-
-            {userId && (
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleSave}
-                disabled={isSaved}
-                className={`flex flex-col items-center gap-1 transition-colors ${
-                  isSaved ? 'text-purple-400/80' : 'text-white/40 hover:text-white/70'
-                }`}
-                aria-label={isSaved ? 'Saved' : 'Save to library'}
-              >
-                <Heart className={`h-5 w-5 ${isSaved ? 'fill-purple-400/80' : ''}`} />
-                <span className="text-[10px]">{isSaved ? 'Saved' : 'Save'}</span>
-              </motion.button>
-            )}
-          </div>
-
-          {/* Background music info */}
-          {backgroundMusicEnabled && backgroundTrackName && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="flex items-center justify-center gap-3 pt-2"
-            >
-              <div className="flex items-center gap-2 text-xs text-white/40">
-                <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse" />
-                <span>{backgroundTrackName}</span>
-              </div>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={backgroundVolume * 100}
-                onChange={(e) => onBackgroundVolumeChange(parseFloat(e.target.value) / 100)}
-                className="w-16 h-1 bg-white/10 rounded-full appearance-none cursor-pointer
-                  [&::-webkit-slider-thumb]:appearance-none
-                  [&::-webkit-slider-thumb]:w-2.5
-                  [&::-webkit-slider-thumb]:h-2.5
-                  [&::-webkit-slider-thumb]:rounded-full
-                  [&::-webkit-slider-thumb]:bg-white/60"
-              />
-              <span className="text-[10px] text-white/40 w-6">{Math.round(backgroundVolume * 100)}%</span>
-            </motion.div>
-          )}
         </motion.div>
       </div>
     </div>

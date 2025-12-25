@@ -1118,9 +1118,9 @@ const App: React.FC = () => {
     }
   }, [isPlaying, duration, timingMap]);
 
-  // Start progress tracking when playing in inline mode
+  // Start progress tracking when playing (inline mode or player view)
   useEffect(() => {
-    if (isPlaying && isInlineMode) {
+    if (isPlaying && (isInlineMode || currentView === View.PLAYER)) {
       animationFrameRef.current = requestAnimationFrame(updateProgress);
     }
 
@@ -1129,7 +1129,7 @@ const App: React.FC = () => {
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [isPlaying, isInlineMode, updateProgress]);
+  }, [isPlaying, isInlineMode, currentView, updateProgress]);
 
   // Pause playback for inline player
   const handleInlinePause = useCallback(() => {
