@@ -30,6 +30,8 @@ export default defineConfig(({ mode }) => {
               'sentry-vendor': ['@sentry/react'],
               // Google GenAI in separate chunk for better caching (large dependency)
               'genai-vendor': ['@google/genai'],
+              // Framer Motion is large (~120KB), separate for better caching
+              'framer-motion-vendor': ['framer-motion'],
             },
           },
         },

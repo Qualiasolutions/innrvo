@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useMemo, ReactNode } from 'react';
+import React, { createContext, useContext, useReducer, useCallback, useMemo, ReactNode } from 'react';
 
 /**
  * All modal types in the application.
@@ -40,8 +40,117 @@ interface ModalState {
   voiceManager: boolean;
 }
 
+// Action types for reducer
+type ModalAction =
+  | { type: 'OPEN'; modal: ModalType }
+  | { type: 'CLOSE'; modal: ModalType }
+  | { type: 'TOGGLE'; modal: ModalType }
+  | { type: 'SET'; modal: ModalType; value: boolean }
+  | { type: 'CLOSE_ALL' };
+
+// Initial state - all modals closed
+const initialState: ModalState = {
+  clone: false,
+  templates: false,
+  music: false,
+  audioTags: false,
+  burgerMenu: false,
+  howItWorks: false,
+  library: false,
+  pricing: false,
+  aboutUs: false,
+  terms: false,
+  privacy: false,
+  promptMenu: false,
+  auth: false,
+  voiceManager: false,
+};
+
+// Reducer for modal state - more efficient than useState with object
+function modalReducer(state: ModalState, action: ModalAction): ModalState {
+  switch (action.type) {
+    case 'OPEN':
+      return state[action.modal] ? state : { ...state, [action.modal]: true };
+    case 'CLOSE':
+      return !state[action.modal] ? state : { ...state, [action.modal]: false };
+    case 'TOGGLE':
+      return { ...state, [action.modal]: !state[action.modal] };
+    case 'SET':
+      return state[action.modal] === action.value ? state : { ...state, [action.modal]: action.value };
+    case 'CLOSE_ALL':
+      return initialState;
+    default:
+      return state;
+  }
+}
+
 /**
- * Context value interface
+ * Dispatch context - stable reference, never changes
+ */
+type ModalDispatch = React.Dispatch<ModalAction>;
+const ModalDispatchContext = createContext<ModalDispatch | undefined>(undefined);
+
+/**
+ * State context - changes when modals change
+ */
+const ModalStateContext = createContext<ModalState | undefined>(undefined);
+
+/**
+ * Modal Provider component - wraps the app to provide modal state
+ * Uses useReducer for more efficient updates
+ */
+export const ModalProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [state, dispatch] = useReducer(modalReducer, initialState);
+
+  return (
+    <ModalDispatchContext.Provider value={dispatch}>
+      <ModalStateContext.Provider value={state}>
+        {children}
+      </ModalStateContext.Provider>
+    </ModalDispatchContext.Provider>
+  );
+};
+
+/**
+ * Hook to get dispatch function - stable reference
+ */
+function useModalDispatch(): ModalDispatch {
+  const dispatch = useContext(ModalDispatchContext);
+  if (dispatch === undefined) {
+    throw new Error('useModalDispatch must be used within a ModalProvider');
+  }
+  return dispatch;
+}
+
+/**
+ * Hook to get modal state
+ */
+function useModalState(): ModalState {
+  const state = useContext(ModalStateContext);
+  if (state === undefined) {
+    throw new Error('useModalState must be used within a ModalProvider');
+  }
+  return state;
+}
+
+/**
+ * Hook for a single modal - only re-renders when this specific modal changes
+ * Use this for components that only care about one modal
+ */
+export function useModal(modal: ModalType): [boolean, (show: boolean) => void] {
+  const state = useModalState();
+  const dispatch = useModalDispatch();
+
+  const isOpen = state[modal];
+  const setOpen = useCallback((show: boolean) => {
+    dispatch({ type: 'SET', modal, value: show });
+  }, [dispatch, modal]);
+
+  return [isOpen, setOpen];
+}
+
+/**
+ * Context value interface (for backwards compatibility)
  */
 interface ModalContextValue {
   // State
@@ -86,62 +195,49 @@ interface ModalContextValue {
   setShowVoiceManager: (show: boolean) => void;
 }
 
-// Initial state - all modals closed
-const initialState: ModalState = {
-  clone: false,
-  templates: false,
-  music: false,
-  audioTags: false,
-  burgerMenu: false,
-  howItWorks: false,
-  library: false,
-  pricing: false,
-  aboutUs: false,
-  terms: false,
-  privacy: false,
-  promptMenu: false,
-  auth: false,
-  voiceManager: false,
-};
-
-// Create context with undefined default (will throw if used outside provider)
-const ModalContext = createContext<ModalContextValue | undefined>(undefined);
-
 /**
- * Modal Provider component - wraps the app to provide modal state
+ * Custom hook to access modal context (backwards compatible)
+ * For new code, prefer useModal() for single modals to avoid unnecessary re-renders
  */
-export const ModalProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [modals, setModals] = useState<ModalState>(initialState);
+export const useModals = (): ModalContextValue => {
+  const modals = useModalState();
+  const dispatch = useModalDispatch();
 
-  // Open a specific modal
+  // Memoize action creators - these never change
   const openModal = useCallback((modal: ModalType) => {
-    setModals(prev => ({ ...prev, [modal]: true }));
-  }, []);
+    dispatch({ type: 'OPEN', modal });
+  }, [dispatch]);
 
-  // Close a specific modal
   const closeModal = useCallback((modal: ModalType) => {
-    setModals(prev => ({ ...prev, [modal]: false }));
-  }, []);
+    dispatch({ type: 'CLOSE', modal });
+  }, [dispatch]);
 
-  // Toggle a specific modal
   const toggleModal = useCallback((modal: ModalType) => {
-    setModals(prev => ({ ...prev, [modal]: !prev[modal] }));
-  }, []);
+    dispatch({ type: 'TOGGLE', modal });
+  }, [dispatch]);
 
-  // Close all modals at once
   const closeAllModals = useCallback(() => {
-    setModals(initialState);
-  }, []);
+    dispatch({ type: 'CLOSE_ALL' });
+  }, [dispatch]);
 
-  // Create setter functions for backwards compatibility
-  const createSetter = useCallback((modal: ModalType) => {
-    return (show: boolean) => {
-      setModals(prev => ({ ...prev, [modal]: show }));
-    };
-  }, []);
+  // Memoize individual setters - stable references
+  const setShowCloneModal = useCallback((show: boolean) => dispatch({ type: 'SET', modal: 'clone', value: show }), [dispatch]);
+  const setShowTemplatesModal = useCallback((show: boolean) => dispatch({ type: 'SET', modal: 'templates', value: show }), [dispatch]);
+  const setShowMusicModal = useCallback((show: boolean) => dispatch({ type: 'SET', modal: 'music', value: show }), [dispatch]);
+  const setShowAudioTagsModal = useCallback((show: boolean) => dispatch({ type: 'SET', modal: 'audioTags', value: show }), [dispatch]);
+  const setShowBurgerMenu = useCallback((show: boolean) => dispatch({ type: 'SET', modal: 'burgerMenu', value: show }), [dispatch]);
+  const setShowHowItWorks = useCallback((show: boolean) => dispatch({ type: 'SET', modal: 'howItWorks', value: show }), [dispatch]);
+  const setShowLibrary = useCallback((show: boolean) => dispatch({ type: 'SET', modal: 'library', value: show }), [dispatch]);
+  const setShowPricing = useCallback((show: boolean) => dispatch({ type: 'SET', modal: 'pricing', value: show }), [dispatch]);
+  const setShowAboutUs = useCallback((show: boolean) => dispatch({ type: 'SET', modal: 'aboutUs', value: show }), [dispatch]);
+  const setShowTerms = useCallback((show: boolean) => dispatch({ type: 'SET', modal: 'terms', value: show }), [dispatch]);
+  const setShowPrivacy = useCallback((show: boolean) => dispatch({ type: 'SET', modal: 'privacy', value: show }), [dispatch]);
+  const setShowPromptMenu = useCallback((show: boolean) => dispatch({ type: 'SET', modal: 'promptMenu', value: show }), [dispatch]);
+  const setShowAuthModal = useCallback((show: boolean) => dispatch({ type: 'SET', modal: 'auth', value: show }), [dispatch]);
+  const setShowVoiceManager = useCallback((show: boolean) => dispatch({ type: 'SET', modal: 'voiceManager', value: show }), [dispatch]);
 
-  // Memoize the context value to prevent unnecessary re-renders
-  const value = useMemo<ModalContextValue>(() => ({
+  // Memoize the full value object
+  return useMemo(() => ({
     modals,
     openModal,
     closeModal,
@@ -164,40 +260,42 @@ export const ModalProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     showAuthModal: modals.auth,
     showVoiceManager: modals.voiceManager,
 
-    // Convenience setters
-    setShowCloneModal: createSetter('clone'),
-    setShowTemplatesModal: createSetter('templates'),
-    setShowMusicModal: createSetter('music'),
-    setShowAudioTagsModal: createSetter('audioTags'),
-    setShowBurgerMenu: createSetter('burgerMenu'),
-    setShowHowItWorks: createSetter('howItWorks'),
-    setShowLibrary: createSetter('library'),
-    setShowPricing: createSetter('pricing'),
-    setShowAboutUs: createSetter('aboutUs'),
-    setShowTerms: createSetter('terms'),
-    setShowPrivacy: createSetter('privacy'),
-    setShowPromptMenu: createSetter('promptMenu'),
-    setShowAuthModal: createSetter('auth'),
-    setShowVoiceManager: createSetter('voiceManager'),
-  }), [modals, openModal, closeModal, toggleModal, closeAllModals, createSetter]);
-
-  return (
-    <ModalContext.Provider value={value}>
-      {children}
-    </ModalContext.Provider>
-  );
-};
-
-/**
- * Custom hook to access modal context
- * @throws Error if used outside of ModalProvider
- */
-export const useModals = (): ModalContextValue => {
-  const context = useContext(ModalContext);
-  if (context === undefined) {
-    throw new Error('useModals must be used within a ModalProvider');
-  }
-  return context;
+    // Convenience setters (stable references)
+    setShowCloneModal,
+    setShowTemplatesModal,
+    setShowMusicModal,
+    setShowAudioTagsModal,
+    setShowBurgerMenu,
+    setShowHowItWorks,
+    setShowLibrary,
+    setShowPricing,
+    setShowAboutUs,
+    setShowTerms,
+    setShowPrivacy,
+    setShowPromptMenu,
+    setShowAuthModal,
+    setShowVoiceManager,
+  }), [
+    modals,
+    openModal,
+    closeModal,
+    toggleModal,
+    closeAllModals,
+    setShowCloneModal,
+    setShowTemplatesModal,
+    setShowMusicModal,
+    setShowAudioTagsModal,
+    setShowBurgerMenu,
+    setShowHowItWorks,
+    setShowLibrary,
+    setShowPricing,
+    setShowAboutUs,
+    setShowTerms,
+    setShowPrivacy,
+    setShowPromptMenu,
+    setShowAuthModal,
+    setShowVoiceManager,
+  ]);
 };
 
 /**
@@ -205,8 +303,8 @@ export const useModals = (): ModalContextValue => {
  * Useful for preventing background interactions
  */
 export const useIsAnyModalOpen = (): boolean => {
-  const { modals } = useModals();
+  const modals = useModalState();
   return Object.values(modals).some(Boolean);
 };
 
-export default ModalContext;
+export default ModalStateContext;

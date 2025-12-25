@@ -9,6 +9,7 @@ interface VoiceManagerProps {
   onClose: () => void;
   onSelectVoice: (voice: VoiceProfile) => void;
   onCloneVoice: () => void;
+  onVoiceDeleted?: (deletedVoiceId: string) => void;  // Callback when a voice is deleted
   currentVoiceId?: string;
 }
 
@@ -17,6 +18,7 @@ const VoiceManager: React.FC<VoiceManagerProps> = ({
   onClose,
   onSelectVoice,
   onCloneVoice,
+  onVoiceDeleted,
   currentVoiceId
 }) => {
   const [voices, setVoices] = useState<VoiceProfile[]>([]);
@@ -48,6 +50,8 @@ const VoiceManager: React.FC<VoiceManagerProps> = ({
     try {
       await deleteVoiceProfile(id);
       setVoices(voices.filter(v => v.id !== id));
+      // Notify parent that a voice was deleted (so it can reload voices and clear selection if needed)
+      onVoiceDeleted?.(id);
     } catch (error) {
       console.error('Failed to delete voice:', error);
     }

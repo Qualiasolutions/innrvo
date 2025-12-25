@@ -37,7 +37,9 @@ export interface VoiceProfile {
   voiceName: string;
   description: string;
   isCloned?: boolean;
-  providerVoiceId?: string;        // Provider voice ID (Chatterbox, etc.)
+  providerVoiceId?: string;        // Legacy provider voice ID (Chatterbox via Replicate)
+  fishAudioModelId?: string;       // Fish Audio model ID (primary provider)
+  voiceSampleUrl?: string;         // URL to voice sample in Supabase Storage (fallback for Chatterbox)
 }
 
 export interface BackgroundMusic {

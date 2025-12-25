@@ -8,21 +8,31 @@ INrVO is a personalized meditation app that generates custom meditations using A
 
 **Key technologies:** React 19, Vite, TypeScript, Supabase (auth + database + storage + edge functions), Tailwind CSS v4, Framer Motion
 
+**Node requirement:** >=20.0.0
+
 ## Commands
 
 ```bash
 # Development
 npm run dev              # Start dev server on port 3000
 
-# Build & Preview
+# Build & Type Check
 npm run build            # Production build (outputs to dist/)
 npm run preview          # Preview production build
+npx tsc --noEmit         # Type check without emitting
 
 # Testing
 npm run test             # Run tests in watch mode
 npm run test:run         # Run tests once
 npm run test:ui          # Run tests with Vitest UI
 npm run test:coverage    # Run tests with coverage report
+npx vitest run src/lib/credits.test.ts  # Run single test file
+
+# Supabase (local development)
+npx supabase start       # Start local Supabase
+npx supabase stop        # Stop local Supabase
+npx supabase db push     # Push migrations to remote
+npx supabase functions serve  # Serve edge functions locally
 ```
 
 ## Architecture
@@ -48,7 +58,11 @@ src/
     ModalContext.tsx  # Centralized modal state management
     AudioContext.tsx  # Audio playback state
     VoiceContext.tsx  # Voice selection state
-  hooks/              # Custom hooks (useVoiceCloning, useMeditationAgent, etc.)
+  hooks/
+    useVoiceCloning.ts      # Voice cloning workflow (record → process → upload)
+    useMeditationAgent.ts   # AI conversation with MeditationAgent
+    useVoiceGeneration.ts   # TTS generation workflow
+    useAudioPlayback.ts     # Audio player controls
   lib/
     agent/            # MeditationAgent - conversational AI with wisdom teachers
       MeditationAgent.ts     # Main agent class - handles conversation, meditation generation
@@ -74,22 +88,23 @@ supabase/functions/
   generate-speech/    # Unified TTS endpoint - routes to Fish Audio or Chatterbox
   health/             # Health check endpoint
   export-user-data/   # GDPR data export
-  _shared/            # Shared utilities (rate limiting, circuit breaker, tracing)
+  _shared/            # Shared utilities (rate limiting, circuit breaker, tracing, compression)
 ```
 
 ### Voice Provider Architecture
 
-Fish Audio is the primary provider (best quality, real-time API). Chatterbox via Replicate is the automatic fallback.
+Provider priority: Fish Audio (primary) → ElevenLabs (legacy) → Chatterbox (fallback)
 
 ```
 Voice Cloning Flow:
   Record audio → Convert to WAV → fish-audio-clone → Creates Fish Audio model
                                                    → Also stores in Supabase Storage (fallback)
 
-TTS Flow:
-  1. Check fish_audio_model_id → Use Fish Audio API (primary)
-  2. If fails → Check voice_sample_url → Use Chatterbox (fallback)
-  3. Circuit breaker prevents cascading failures
+TTS Flow (generate-speech endpoint):
+  1. Check fish_audio_model_id → Use Fish Audio API (primary, best quality)
+  2. Check elevenlabs_voice_id → Use ElevenLabs API (legacy cloned voices)
+  3. Check voice_sample_url → Use Chatterbox via Replicate (zero-shot fallback)
+  4. Circuit breaker prevents cascading failures
 ```
 
 ### Database (Supabase)
@@ -127,13 +142,18 @@ Edge Function secrets (set in Supabase Dashboard):
 GEMINI_API_KEY=AI...
 FISH_AUDIO_API_KEY=fa_...    # Primary TTS/cloning provider
 REPLICATE_API_TOKEN=r8_...   # Fallback provider (Chatterbox)
+ELEVENLABS_API_KEY=xi_...    # Legacy voice support (optional)
 ```
 
 ## Important Patterns
 
 ### Modal Management
-All modals use centralized `ModalContext`. Access via `useModals()` hook:
+All modals use centralized `ModalContext`. Two hook options:
 ```tsx
+// For single modal - more efficient, only re-renders when this modal changes
+const [isOpen, setOpen] = useModal('clone');
+
+// For multiple modals - backwards compatible, re-renders on any modal change
 const { showCloneModal, setShowCloneModal, closeAllModals } = useModals();
 ```
 
@@ -166,6 +186,14 @@ The player focuses on playback controls without displaying script text:
 - Voice volume control
 - Supabase save integration
 - Floating particle animations
+
+### MeditationAgent Conversation Flow
+The agent (`src/lib/agent/MeditationAgent.ts`) is conversational by default:
+- Detects emotional state from user input
+- Only generates meditations when explicitly requested (trigger phrases like "I'll craft a", "Let me create")
+- Validates responses to prevent unwanted meditation content in chat
+- Supports pasted meditation scripts (bypasses AI processing)
+- Builds personalized prompts using extracted context (situation, settings, goals, duration)
 
 ## Testing
 

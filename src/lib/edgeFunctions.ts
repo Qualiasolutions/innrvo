@@ -10,6 +10,35 @@ import { VoiceMetadata } from '../../types';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
 // ============================================================================
+// Auth Token Cache - Avoid fetching session on every API call
+// ============================================================================
+
+let cachedAuthToken: string | null = null;
+let tokenExpiresAt: number = 0;
+
+// Initialize auth listener to keep token cached
+if (supabase) {
+  supabase.auth.onAuthStateChange((event, session) => {
+    if (session?.access_token) {
+      cachedAuthToken = session.access_token;
+      // JWT tokens typically expire in 1 hour, refresh 5 min before
+      tokenExpiresAt = Date.now() + (55 * 60 * 1000);
+    } else {
+      cachedAuthToken = null;
+      tokenExpiresAt = 0;
+    }
+  });
+
+  // Also get initial session
+  supabase.auth.getSession().then(({ data: { session } }) => {
+    if (session?.access_token) {
+      cachedAuthToken = session.access_token;
+      tokenExpiresAt = Date.now() + (55 * 60 * 1000);
+    }
+  });
+}
+
+// ============================================================================
 // Request ID generation for distributed tracing
 // ============================================================================
 
@@ -82,17 +111,28 @@ function calculateBackoffDelay(
 
 /**
  * Get the current session token for authenticated requests
+ * Uses cached token to avoid database round-trip on every API call
  */
 async function getAuthToken(): Promise<string> {
   if (!supabase) {
     throw new Error('Supabase not configured');
   }
 
+  // Use cached token if valid and not expired
+  if (cachedAuthToken && Date.now() < tokenExpiresAt) {
+    return cachedAuthToken;
+  }
+
+  // Fallback to fetching session (also refreshes cache)
   const { data: { session }, error } = await supabase.auth.getSession();
 
   if (error || !session?.access_token) {
     throw new Error('Not authenticated. Please sign in.');
   }
+
+  // Update cache
+  cachedAuthToken = session.access_token;
+  tokenExpiresAt = Date.now() + (55 * 60 * 1000);
 
   return session.access_token;
 }

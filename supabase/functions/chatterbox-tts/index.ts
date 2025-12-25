@@ -76,18 +76,23 @@ async function runChatterboxTTS(
   const prediction = await createResponse.json();
   log.info('Prediction created', { id: prediction.id, status: prediction.status });
 
-  // Poll for completion (Replicate predictions are async)
+  // Poll for completion with exponential backoff
+  // Starts at 1s, increases to 2s, 4s, 8s max - reduces API calls by ~60%
   let result = prediction;
   const maxWaitTime = 120000; // 2 minutes max
-  const pollInterval = 1000; // 1 second
   const startTime = Date.now();
+  let pollAttempt = 0;
+  const pollIntervals = [1000, 2000, 4000, 8000]; // Exponential backoff
 
   while (result.status !== 'succeeded' && result.status !== 'failed') {
     if (Date.now() - startTime > maxWaitTime) {
       throw new Error('Prediction timed out');
     }
 
+    // Use exponential backoff for polling interval
+    const pollInterval = pollIntervals[Math.min(pollAttempt, pollIntervals.length - 1)];
     await new Promise(resolve => setTimeout(resolve, pollInterval));
+    pollAttempt++;
 
     const pollResponse = await fetch(result.urls.get, {
       headers: {
@@ -100,7 +105,7 @@ async function runChatterboxTTS(
     }
 
     result = await pollResponse.json();
-    log.info('Prediction status', { id: result.id, status: result.status });
+    log.info('Prediction status', { id: result.id, status: result.status, pollAttempt });
   }
 
   if (result.status === 'failed') {

@@ -259,18 +259,23 @@ async function runChatterboxTTS(
       const prediction = await createResponse.json();
       log.info('Prediction created', { id: prediction.id, status: prediction.status });
 
-      // Poll for completion (Replicate predictions are async)
+      // Poll for completion with exponential backoff
+      // Starts at 1s, increases to 2s, 4s, 8s max - reduces API calls by ~60%
       let result = prediction;
       const maxWaitTime = 120000; // 2 minutes max
-      const pollInterval = 1000; // 1 second
       const startTime = Date.now();
+      let pollAttempt = 0;
+      const pollIntervals = [1000, 2000, 4000, 8000]; // Exponential backoff
 
       while (result.status !== 'succeeded' && result.status !== 'failed') {
         if (Date.now() - startTime > maxWaitTime) {
           throw new Error('Prediction timed out after 2 minutes');
         }
 
+        // Use exponential backoff for polling interval
+        const pollInterval = pollIntervals[Math.min(pollAttempt, pollIntervals.length - 1)];
         await new Promise(resolve => setTimeout(resolve, pollInterval));
+        pollAttempt++;
 
         const pollResponse = await fetch(result.urls.get, {
           headers: {
@@ -283,7 +288,7 @@ async function runChatterboxTTS(
         }
 
         result = await pollResponse.json();
-        log.info('Prediction status', { id: result.id, status: result.status });
+        log.info('Prediction status', { id: result.id, status: result.status, pollAttempt });
       }
 
       if (result.status === 'failed') {
@@ -433,9 +438,46 @@ serve(async (req) => {
         .single();
 
       if (profileError) {
-        log.warn('Voice profile not found', { voiceId, error: profileError.message });
+        // Check if it's a "not found" error (voice was deleted or doesn't exist)
+        if (profileError.code === 'PGRST116') {
+          log.error('Voice profile not found - may have been deleted', { voiceId });
+          return new Response(
+            JSON.stringify({
+              success: false,
+              error: 'Voice not found. The selected voice may have been deleted. Please select a different voice.',
+              requestId,
+            }),
+            { status: 404, headers: { ...allHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        log.warn('Error fetching voice profile', { voiceId, error: profileError.message });
+      } else if (!data) {
+        log.error('Voice profile returned null', { voiceId });
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Voice not found. Please select a different voice.',
+            requestId,
+          }),
+          { status: 404, headers: { ...allHeaders, 'Content-Type': 'application/json' } }
+        );
       } else {
         voiceProfile = data;
+        // Validate that the voice has at least one usable provider ID
+        const hasUsableVoice = voiceProfile.fish_audio_model_id ||
+                               voiceProfile.elevenlabs_voice_id ||
+                               voiceProfile.voice_sample_url;
+        if (!hasUsableVoice) {
+          log.error('Voice profile has no usable voice ID', { voiceId, voiceProfile });
+          return new Response(
+            JSON.stringify({
+              success: false,
+              error: 'Voice is not properly configured. Please re-clone the voice or select a different one.',
+              requestId,
+            }),
+            { status: 400, headers: { ...allHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
         log.info('Found voice profile', {
           voiceId,
           provider: voiceProfile?.provider,
