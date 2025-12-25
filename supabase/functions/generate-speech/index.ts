@@ -162,6 +162,66 @@ async function runFishAudioTTS(
 const REPLICATE_API_URL = 'https://api.replicate.com/v1/predictions';
 const CHATTERBOX_MODEL = 'resemble-ai/chatterbox:1b8422bc49635c20d0a84e387ed20879c0dd09254ecdb4e75dc4bec10ff94e97';
 
+// Maximum characters per Chatterbox chunk to avoid CUDA errors
+// 2000 chars is safe; longer texts cause GPU memory issues
+const CHATTERBOX_MAX_CHUNK_SIZE = 2000;
+
+/**
+ * Split text into chunks at sentence boundaries for Chatterbox
+ * Keeps chunks under maxSize characters to prevent CUDA errors
+ */
+function splitTextIntoChunks(text: string, maxSize: number): string[] {
+  if (text.length <= maxSize) {
+    return [text];
+  }
+
+  const chunks: string[] = [];
+  // Split on sentence boundaries (. ! ?)
+  const sentences = text.split(/(?<=[.!?])\s+/);
+  let currentChunk = '';
+
+  for (const sentence of sentences) {
+    // If adding this sentence exceeds max size
+    if ((currentChunk + ' ' + sentence).length > maxSize) {
+      // Save current chunk if not empty
+      if (currentChunk.trim()) {
+        chunks.push(currentChunk.trim());
+      }
+      // Start new chunk with this sentence
+      // If single sentence is too long, split on commas
+      if (sentence.length > maxSize) {
+        const subParts = sentence.split(/(?<=,)\s+/);
+        for (const part of subParts) {
+          if (part.length > maxSize) {
+            // Last resort: split at maxSize
+            for (let i = 0; i < part.length; i += maxSize) {
+              chunks.push(part.slice(i, i + maxSize));
+            }
+          } else {
+            if ((currentChunk + ' ' + part).length > maxSize) {
+              if (currentChunk.trim()) chunks.push(currentChunk.trim());
+              currentChunk = part;
+            } else {
+              currentChunk = currentChunk ? currentChunk + ' ' + part : part;
+            }
+          }
+        }
+      } else {
+        currentChunk = sentence;
+      }
+    } else {
+      currentChunk = currentChunk ? currentChunk + ' ' + sentence : sentence;
+    }
+  }
+
+  // Don't forget the last chunk
+  if (currentChunk.trim()) {
+    chunks.push(currentChunk.trim());
+  }
+
+  return chunks;
+}
+
 // Fetch audio from URL and convert to base64 data URI
 async function fetchAudioAsDataUri(url: string, log: ReturnType<typeof createLogger>): Promise<string | null> {
   try {
@@ -206,42 +266,34 @@ async function fetchAudioAsDataUri(url: string, log: ReturnType<typeof createLog
   }
 }
 
-async function runChatterboxTTS(
+/**
+ * Process a single chunk through Chatterbox
+ * Returns raw audio bytes (for concatenation)
+ */
+async function processChatterboxChunk(
   text: string,
-  audioPromptUrl: string | null,
+  audioPromptDataUri: string | null,
   options: { exaggeration?: number; cfgWeight?: number },
   apiKey: string,
-  log: ReturnType<typeof createLogger>
-): Promise<string> {
-  // Create prediction input - Chatterbox uses 'prompt' not 'text'
-  // Optimized parameters for natural, high-quality voice cloning:
-  // - exaggeration: 0.5 = neutral (0.3 was too flat, sounded robotic)
-  // - cfg_weight: 0.7 = higher quality (0.5 was lower quality)
-  // - temperature: 0.8 = natural variability (prevents monotone speech)
+  log: ReturnType<typeof createLogger>,
+  chunkIndex?: number
+): Promise<Uint8Array> {
+  const chunkLabel = chunkIndex !== undefined ? ` (chunk ${chunkIndex + 1})` : '';
+
   const input: Record<string, unknown> = {
     prompt: text,
-    exaggeration: options.exaggeration ?? 0.5,  // Neutral for natural speech
-    cfg_weight: options.cfgWeight ?? 0.7,       // Higher for better quality
-    temperature: 0.8,                           // Natural variability
+    exaggeration: options.exaggeration ?? 0.5,
+    cfg_weight: options.cfgWeight ?? 0.7,
+    temperature: 0.8,
   };
 
-  // Add audio prompt if we have a cloned voice reference for zero-shot cloning
-  // Fetch and send as base64 data URI to avoid URL access issues
-  if (audioPromptUrl) {
-    const dataUri = await fetchAudioAsDataUri(audioPromptUrl, log);
-    if (dataUri) {
-      input.audio_prompt = dataUri;
-    } else {
-      log.warn('Could not fetch audio, proceeding without voice clone');
-    }
+  if (audioPromptDataUri) {
+    input.audio_prompt = audioPromptDataUri;
   }
 
-  log.info('Creating Replicate prediction', { model: CHATTERBOX_MODEL, textLength: text.length, hasVoiceSample: !!audioPromptUrl });
+  log.info(`Creating Replicate prediction${chunkLabel}`, { textLength: text.length });
 
-  // Retry logic for rate limits (429)
   const maxRetries = 3;
-  let lastError: Error | null = null;
-
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     const createResponse = await fetch(REPLICATE_API_URL, {
       method: 'POST',
@@ -257,30 +309,24 @@ async function runChatterboxTTS(
 
     if (createResponse.ok) {
       const prediction = await createResponse.json();
-      log.info('Prediction created', { id: prediction.id, status: prediction.status });
 
-      // Poll for completion with exponential backoff
-      // Starts at 1s, increases to 2s, 4s, 8s max - reduces API calls by ~60%
       let result = prediction;
-      const maxWaitTime = 120000; // 2 minutes max
+      const maxWaitTime = 120000;
       const startTime = Date.now();
       let pollAttempt = 0;
-      const pollIntervals = [1000, 2000, 4000, 8000]; // Exponential backoff
+      const pollIntervals = [1000, 2000, 4000, 8000];
 
       while (result.status !== 'succeeded' && result.status !== 'failed') {
         if (Date.now() - startTime > maxWaitTime) {
-          throw new Error('Prediction timed out after 2 minutes');
+          throw new Error(`Prediction timed out${chunkLabel}`);
         }
 
-        // Use exponential backoff for polling interval
         const pollInterval = pollIntervals[Math.min(pollAttempt, pollIntervals.length - 1)];
         await new Promise(resolve => setTimeout(resolve, pollInterval));
         pollAttempt++;
 
         const pollResponse = await fetch(result.urls.get, {
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-          },
+          headers: { 'Authorization': `Bearer ${apiKey}` },
         });
 
         if (!pollResponse.ok) {
@@ -288,73 +334,180 @@ async function runChatterboxTTS(
         }
 
         result = await pollResponse.json();
-        log.info('Prediction status', { id: result.id, status: result.status, pollAttempt });
       }
 
       if (result.status === 'failed') {
-        log.error('Prediction failed', { error: result.error });
+        log.error(`Prediction failed${chunkLabel}`, { error: result.error });
         throw new Error(result.error || 'TTS prediction failed');
       }
 
-      // Get the audio URL from the output
       const audioUrl = result.output;
       if (!audioUrl) {
         throw new Error('No audio URL in prediction output');
       }
 
-      log.info('Downloading audio from Replicate', { url: audioUrl });
-
-      // Download the audio and convert to base64
       const audioResponse = await fetch(audioUrl);
       if (!audioResponse.ok) {
         throw new Error(`Failed to download audio: ${audioResponse.status}`);
       }
 
-      const audioBlob = await audioResponse.blob();
-      const buffer = await audioBlob.arrayBuffer();
-      const bytes = new Uint8Array(buffer);
-
-      // Convert to base64 with chunked processing
-      let binary = '';
-      const chunkSize = 0x8000;
-      for (let i = 0; i < bytes.length; i += chunkSize) {
-        const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
-        binary += String.fromCharCode(...chunk);
-      }
-
-      return btoa(binary);
+      const buffer = await audioResponse.arrayBuffer();
+      return new Uint8Array(buffer);
     }
 
-    // Handle rate limit (429) with retry
     if (createResponse.status === 429) {
       const errorData = await createResponse.json().catch(() => ({}));
-      const retryAfter = errorData.retry_after || (attempt + 1) * 5; // Default: 5s, 10s, 15s
+      const retryAfter = errorData.retry_after || (attempt + 1) * 5;
 
-      log.warn('Rate limited by Replicate, retrying...', {
-        attempt: attempt + 1,
-        retryAfter,
-        detail: errorData.detail
-      });
+      log.warn(`Rate limited${chunkLabel}, retrying...`, { attempt: attempt + 1, retryAfter });
 
       if (attempt < maxRetries - 1) {
         await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
         continue;
       }
 
-      // Last attempt failed - throw user-friendly error
-      throw new Error(
-        'Voice generation is temporarily busy. Please wait a few seconds and try again. ' +
-        '(Tip: Add Replicate credits to increase rate limits)'
-      );
+      throw new Error('Voice generation is temporarily busy. Please wait and try again.');
     }
 
-    // Other errors - don't retry
     const errorText = await createResponse.text();
-    log.error('Failed to create Replicate prediction', { status: createResponse.status, error: errorText });
     throw new Error(`Failed to create prediction: ${createResponse.status} - ${errorText}`);
   }
 
-  throw lastError || new Error('Failed to create prediction after retries');
+  throw new Error('Failed after retries');
+}
+
+/**
+ * Concatenate multiple WAV audio chunks into a single WAV file
+ * Handles header creation and audio data merging
+ */
+function concatenateWavChunks(chunks: Uint8Array[]): Uint8Array {
+  if (chunks.length === 0) throw new Error('No audio chunks to concatenate');
+  if (chunks.length === 1) return chunks[0];
+
+  // Extract audio data from each chunk (skip 44-byte WAV header)
+  const audioDataParts: Uint8Array[] = [];
+  let sampleRate = 24000; // Default for Chatterbox
+  let numChannels = 1;
+  let bitsPerSample = 16;
+
+  for (const chunk of chunks) {
+    if (chunk.length < 44) {
+      throw new Error('Invalid WAV chunk: too small');
+    }
+
+    // Read format from first chunk
+    if (audioDataParts.length === 0) {
+      const view = new DataView(chunk.buffer, chunk.byteOffset, chunk.byteLength);
+      numChannels = view.getUint16(22, true);
+      sampleRate = view.getUint32(24, true);
+      bitsPerSample = view.getUint16(34, true);
+    }
+
+    // Find the 'data' subchunk
+    let dataOffset = 12;
+    while (dataOffset < chunk.length - 8) {
+      const subchunkId = String.fromCharCode(chunk[dataOffset], chunk[dataOffset + 1], chunk[dataOffset + 2], chunk[dataOffset + 3]);
+      const subchunkSize = new DataView(chunk.buffer, chunk.byteOffset + dataOffset + 4, 4).getUint32(0, true);
+
+      if (subchunkId === 'data') {
+        audioDataParts.push(chunk.slice(dataOffset + 8, dataOffset + 8 + subchunkSize));
+        break;
+      }
+      dataOffset += 8 + subchunkSize;
+    }
+  }
+
+  // Calculate total data size
+  const totalDataSize = audioDataParts.reduce((sum, part) => sum + part.length, 0);
+
+  // Create new WAV file
+  const wavBuffer = new ArrayBuffer(44 + totalDataSize);
+  const view = new DataView(wavBuffer);
+  const byteRate = sampleRate * numChannels * (bitsPerSample / 8);
+  const blockAlign = numChannels * (bitsPerSample / 8);
+
+  // Write WAV header
+  const setString = (offset: number, str: string) => {
+    for (let i = 0; i < str.length; i++) {
+      view.setUint8(offset + i, str.charCodeAt(i));
+    }
+  };
+
+  setString(0, 'RIFF');
+  view.setUint32(4, 36 + totalDataSize, true);
+  setString(8, 'WAVE');
+  setString(12, 'fmt ');
+  view.setUint32(16, 16, true); // PCM format chunk size
+  view.setUint16(20, 1, true); // PCM format
+  view.setUint16(22, numChannels, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, byteRate, true);
+  view.setUint16(32, blockAlign, true);
+  view.setUint16(34, bitsPerSample, true);
+  setString(36, 'data');
+  view.setUint32(40, totalDataSize, true);
+
+  // Copy audio data
+  const outputBytes = new Uint8Array(wavBuffer);
+  let offset = 44;
+  for (const part of audioDataParts) {
+    outputBytes.set(part, offset);
+    offset += part.length;
+  }
+
+  return outputBytes;
+}
+
+async function runChatterboxTTS(
+  text: string,
+  audioPromptUrl: string | null,
+  options: { exaggeration?: number; cfgWeight?: number },
+  apiKey: string,
+  log: ReturnType<typeof createLogger>
+): Promise<string> {
+  // Fetch audio prompt once if available
+  let audioPromptDataUri: string | null = null;
+  if (audioPromptUrl) {
+    audioPromptDataUri = await fetchAudioAsDataUri(audioPromptUrl, log);
+    if (!audioPromptDataUri) {
+      log.warn('Could not fetch audio, proceeding without voice clone');
+    }
+  }
+
+  // Split text into chunks if needed to avoid CUDA errors
+  const chunks = splitTextIntoChunks(text, CHATTERBOX_MAX_CHUNK_SIZE);
+  log.info('Processing text', { totalLength: text.length, chunkCount: chunks.length });
+
+  // Process each chunk
+  const audioChunks: Uint8Array[] = [];
+  for (let i = 0; i < chunks.length; i++) {
+    const chunkAudio = await processChatterboxChunk(
+      chunks[i],
+      audioPromptDataUri,
+      options,
+      apiKey,
+      log,
+      chunks.length > 1 ? i : undefined
+    );
+    audioChunks.push(chunkAudio);
+  }
+
+  // Concatenate chunks if multiple
+  const finalAudio = chunks.length > 1
+    ? concatenateWavChunks(audioChunks)
+    : audioChunks[0];
+
+  log.info('Chatterbox TTS complete', { totalChunks: chunks.length, finalSize: finalAudio.length });
+
+  // Convert to base64
+  let binary = '';
+  const chunkSize = 0x8000;
+  for (let i = 0; i < finalAudio.length; i += chunkSize) {
+    const chunk = finalAudio.subarray(i, Math.min(i + chunkSize, finalAudio.length));
+    binary += String.fromCharCode(...chunk);
+  }
+
+  return btoa(binary);
 }
 
 serve(async (req) => {

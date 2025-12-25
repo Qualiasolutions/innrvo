@@ -115,27 +115,27 @@ export const ControlPanel = memo<ControlPanelProps>(
     }, []);
 
     return (
-      <div className="flex-shrink-0 bg-black/60 backdrop-blur-xl border-t border-white/10">
+      <div className="flex-shrink-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent backdrop-blur-xl">
         {/* Status Row */}
         <div className="flex items-center gap-2 px-4 py-3">
           {/* Options Toggle */}
           <button
             onClick={toggleExpanded}
-            className={`flex-shrink-0 h-9 px-3 rounded-full flex items-center justify-center gap-1.5 text-xs font-medium border transition-all
+            className={`flex-shrink-0 h-10 w-10 sm:w-auto sm:px-4 rounded-xl flex items-center justify-center gap-2 text-xs font-medium border transition-all duration-200
               ${
                 expanded
-                  ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30'
-                  : 'bg-white/10 text-white/50 border-white/10 hover:bg-white/15 hover:text-white/70 hover:border-white/20'
+                  ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30 shadow-lg shadow-cyan-500/10'
+                  : 'bg-white/5 text-white/60 border-white/10 hover:bg-white/10 hover:text-white hover:border-white/20'
               }`}
             aria-expanded={expanded}
             aria-label={expanded ? 'Close options' : 'Open options'}
           >
             <PlusIcon
-              className={`w-3.5 h-3.5 transition-transform duration-200 ${
+              className={`w-4 h-4 transition-transform duration-300 ${
                 expanded ? 'rotate-45' : ''
               }`}
             />
-            <span className="hidden sm:inline">
+            <span className="hidden sm:inline font-medium">
               {expanded ? 'Close' : 'Options'}
             </span>
           </button>
@@ -145,27 +145,30 @@ export const ControlPanel = memo<ControlPanelProps>(
             {/* Voice Chip */}
             <button
               onClick={onVoiceSelect}
-              className={`flex-shrink-0 h-9 px-3 rounded-full text-xs font-medium flex items-center gap-1.5 border transition-all
+              className={`flex-shrink-0 h-10 px-4 rounded-xl text-xs font-semibold flex items-center gap-2 border transition-all duration-200
                 ${
                   selectedVoice
-                    ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30'
-                    : 'bg-white/10 text-amber-400 border-amber-500/30 animate-pulse'
+                    ? 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30 hover:bg-cyan-500/25'
+                    : 'bg-amber-500/15 text-amber-300 border-amber-500/30 hover:bg-amber-500/25 animate-pulse'
                 }`}
             >
-              <VoiceIcon className="w-3.5 h-3.5" />
-              <span className="truncate max-w-[120px]">
+              <VoiceIcon className="w-4 h-4" />
+              <span className="truncate max-w-[100px] sm:max-w-[140px]">
                 {selectedVoice ? selectedVoice.name : 'Select Voice'}
               </span>
             </button>
 
             {/* Music Chip */}
             {selectedMusic && selectedMusic.id !== 'none' && (
-              <span className="flex-shrink-0 h-9 px-3 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-medium border border-emerald-500/30 flex items-center gap-1.5">
-                <MusicIcon className="w-3.5 h-3.5" />
-                <span className="truncate max-w-[100px]">
+              <button
+                onClick={toggleExpanded}
+                className="flex-shrink-0 h-10 px-4 rounded-xl bg-emerald-500/15 text-emerald-300 text-xs font-semibold border border-emerald-500/30 flex items-center gap-2 hover:bg-emerald-500/25 transition-all duration-200"
+              >
+                <MusicIcon className="w-4 h-4" />
+                <span className="truncate max-w-[80px] sm:max-w-[120px]">
                   {selectedMusic.name}
                 </span>
-              </span>
+              </button>
             )}
           </div>
         </div>

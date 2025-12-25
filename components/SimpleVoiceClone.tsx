@@ -4,8 +4,6 @@ import {
   CloningStatus,
   CreditInfo,
   VoiceMetadata,
-  VOICE_LANGUAGES,
-  getAccentsForLanguage,
   DEFAULT_VOICE_METADATA
 } from '../types';
 import { AIVoiceInput } from './ui/ai-voice-input';
@@ -33,13 +31,6 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
   const [profileName, setProfileName] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
   const [recordingDuration, setRecordingDuration] = useState(0);
-
-  // Voice metadata state
-  const [metadata, setMetadata] = useState<VoiceMetadata>(DEFAULT_VOICE_METADATA);
-  const [currentStep, setCurrentStep] = useState<'metadata' | 'recording' | 'complete'>('metadata');
-
-  // Get available accents based on selected language
-  const availableAccents = getAccentsForLanguage(metadata.language);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -180,32 +171,7 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
     }
 
     const voiceName = profileName.trim() || `My Voice ${new Date().toLocaleDateString()}`;
-    await onRecordingComplete(recordedBlob, voiceName, metadata);
-  };
-
-  // Handle metadata change
-  const updateMetadata = (key: keyof VoiceMetadata, value: any) => {
-    setMetadata(prev => {
-      const updated = { ...prev, [key]: value };
-      // Reset accent when language changes
-      if (key === 'language') {
-        const newAccents = getAccentsForLanguage(value);
-        updated.accent = newAccents[0]?.value || 'native';
-      }
-      return updated;
-    });
-  };
-
-  // Proceed to recording step
-  const handleProceedToRecording = () => {
-    setCurrentStep('recording');
-  };
-
-  // Go back to metadata step
-  const handleBackToMetadata = () => {
-    setCurrentStep('metadata');
-    setRecordedBlob(null);
-    setRecordingDuration(0);
+    await onRecordingComplete(recordedBlob, voiceName, DEFAULT_VOICE_METADATA);
   };
 
   const resetRecording = () => {
@@ -276,32 +242,9 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
           <div className="text-center space-y-2">
             <h2 className="text-2xl font-bold text-white">Clone Your Voice</h2>
             <p className="text-slate-400 text-sm">
-              {currentStep === 'metadata'
-                ? 'Tell us about your voice for better accuracy'
-                : 'Record your voice for a personalized meditation experience'}
+              Record your voice for a personalized meditation experience
             </p>
           </div>
-
-          {/* Step indicator */}
-          {!isSuccess && (
-            <div className="flex items-center justify-center gap-2 text-xs">
-              <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${
-                currentStep === 'metadata' ? 'bg-cyan-500/20 text-cyan-400' : 'bg-white/5 text-slate-500'
-              }`}>
-                <span className="w-5 h-5 rounded-full bg-current/20 flex items-center justify-center text-[10px] font-bold">1</span>
-                <span>Voice Profile</span>
-              </div>
-              <svg className="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-              <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${
-                currentStep === 'recording' ? 'bg-cyan-500/20 text-cyan-400' : 'bg-white/5 text-slate-500'
-              }`}>
-                <span className="w-5 h-5 rounded-full bg-current/20 flex items-center justify-center text-[10px] font-bold">2</span>
-                <span>Record</span>
-              </div>
-            </div>
-          )}
 
           {/* Service Warning */}
           {!isConfigured && (
@@ -356,132 +299,24 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
             </div>
           )}
 
-          {/* STEP 1: Metadata Form */}
-          {currentStep === 'metadata' && !isSuccess && (
-            <div className="space-y-4">
-              {/* Voice Name */}
-              <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                  Voice Name
-                </label>
-                <input
-                  type="text"
-                  value={profileName}
-                  onChange={(e) => setProfileName(e.target.value)}
-                  placeholder="My Meditation Voice"
-                  className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder:text-slate-600 focus:outline-none focus:border-cyan-500 transition-all"
-                />
-              </div>
-
-              {/* Language & Accent Row */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                    Language
-                  </label>
-                  <select
-                    value={metadata.language}
-                    onChange={(e) => updateMetadata('language', e.target.value)}
-                    className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:border-cyan-500 transition-all appearance-none cursor-pointer"
-                  >
-                    {VOICE_LANGUAGES.map(lang => (
-                      <option key={lang.code} value={lang.code} className="bg-slate-900">
-                        {lang.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                    Accent
-                  </label>
-                  <select
-                    value={metadata.accent}
-                    onChange={(e) => updateMetadata('accent', e.target.value)}
-                    className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:border-cyan-500 transition-all appearance-none cursor-pointer"
-                  >
-                    {availableAccents.map(accent => (
-                      <option key={accent.value} value={accent.value} className="bg-slate-900">
-                        {accent.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Gender */}
-              <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                  Voice Type
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(['female', 'male', 'other'] as const).map(gender => (
-                    <button
-                      key={gender}
-                      type="button"
-                      onClick={() => updateMetadata('gender', gender)}
-                      className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                        metadata.gender === gender
-                          ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400 border'
-                          : 'bg-white/5 border border-white/10 text-slate-400 hover:bg-white/10'
-                      }`}
-                    >
-                      {gender.charAt(0).toUpperCase() + gender.slice(1)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Age Range */}
-              <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                  Age Range
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {([
-                    { value: 'young', label: 'Young (18-30)' },
-                    { value: 'middle-aged', label: 'Middle (30-50)' },
-                    { value: 'mature', label: 'Mature (50+)' }
-                  ] as const).map(age => (
-                    <button
-                      key={age.value}
-                      type="button"
-                      onClick={() => updateMetadata('ageRange', age.value)}
-                      className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                        metadata.ageRange === age.value
-                          ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400 border'
-                          : 'bg-white/5 border border-white/10 text-slate-400 hover:bg-white/10'
-                      }`}
-                    >
-                      {age.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Background Noise Toggle */}
-              <div className="flex items-center justify-between p-4 rounded-lg bg-white/5 border border-white/10">
-                <div>
-                  <p className="text-sm font-medium text-white">Recording environment has noise?</p>
-                  <p className="text-xs text-slate-500">Enable noise removal if you're not in a quiet room</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => updateMetadata('hasBackgroundNoise', !metadata.hasBackgroundNoise)}
-                  className={`relative w-12 h-6 rounded-full transition-all ${
-                    metadata.hasBackgroundNoise ? 'bg-cyan-500' : 'bg-white/20'
-                  }`}
-                >
-                  <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${
-                    metadata.hasBackgroundNoise ? 'left-7' : 'left-1'
-                  }`} />
-                </button>
-              </div>
+          {/* Voice Name Input */}
+          {!isSuccess && (
+            <div className="space-y-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                Voice Name (optional)
+              </label>
+              <input
+                type="text"
+                value={profileName}
+                onChange={(e) => setProfileName(e.target.value)}
+                placeholder="My Meditation Voice"
+                className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder:text-slate-600 focus:outline-none focus:border-cyan-500 transition-all"
+              />
             </div>
           )}
 
-          {/* STEP 2: Recording */}
-          {currentStep === 'recording' && !isSuccess && (
+          {/* Recording */}
+          {!isSuccess && (
             <div className="space-y-4">
               {/* Recording tips */}
               {!recordedBlob && !isRecording && (
@@ -606,48 +441,22 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
 
         {/* Sticky footer with action buttons */}
         <div className="flex-shrink-0 p-6 pt-4 border-t border-white/10 bg-slate-900/50">
-          {/* STEP 1: Metadata - Continue button */}
-          {currentStep === 'metadata' && !isSuccess && (
+          {/* Clone button */}
+          {!isSuccess && (
             <button
-              onClick={handleProceedToRecording}
-              disabled={!creditInfo.canClone || !isConfigured}
+              onClick={handleCloneVoice}
+              disabled={!canSubmit || isProcessing || !creditInfo.canClone || !isConfigured}
               className="w-full px-4 py-3 rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              Continue to Recording
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
+              {isProcessing ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white"></div>
+                  Processing...
+                </>
+              ) : (
+                'Clone Voice'
+              )}
             </button>
-          )}
-
-          {/* STEP 2: Recording - Back and Clone buttons */}
-          {currentStep === 'recording' && !isSuccess && (
-            <div className="flex gap-3">
-              <button
-                onClick={handleBackToMetadata}
-                disabled={isProcessing}
-                className="flex-1 px-4 py-3 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 font-medium transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-                Back
-              </button>
-              <button
-                onClick={handleCloneVoice}
-                disabled={!canSubmit || isProcessing || !creditInfo.canClone || !isConfigured}
-                className="flex-1 px-4 py-3 rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {isProcessing ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white"></div>
-                    Processing...
-                  </>
-                ) : (
-                  'Clone Voice'
-                )}
-              </button>
-            </div>
           )}
 
           {/* Success state - Done button */}

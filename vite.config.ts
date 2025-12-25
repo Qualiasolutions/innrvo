@@ -28,8 +28,8 @@ export default defineConfig(({ mode }) => {
               'react-vendor': ['react', 'react-dom'],
               'supabase-vendor': ['@supabase/supabase-js'],
               'sentry-vendor': ['@sentry/react'],
-              // Google GenAI in separate chunk for better caching (large dependency)
-              'genai-vendor': ['@google/genai'],
+              // Google GenAI removed from manual chunks - already lazy-loaded in geminiService.ts
+              // This saves ~50KB gzipped from initial bundle (only loads when fallback needed)
               // Framer Motion is large (~120KB), separate for better caching
               'framer-motion-vendor': ['framer-motion'],
             },

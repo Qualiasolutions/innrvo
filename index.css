@@ -754,6 +754,27 @@
   100% { transform: translateX(100%) rotate(45deg); }
 }
 
+/* Button shimmer effect */
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.animate-shimmer {
+  animation: shimmer 2.5s ease-in-out infinite;
+}
+
+/* Animated gradient for loading state */
+@keyframes gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animate-gradient {
+  animation: gradient 2s ease infinite;
+}
+
 /* Icon float animation */
 @keyframes iconFloat {
   0%, 100% {

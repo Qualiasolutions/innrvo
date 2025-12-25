@@ -210,9 +210,10 @@ export const voiceService = {
       bytes[i] = binaryString.charCodeAt(i);
     }
 
-    // Convert to ArrayBuffer - decodeAudioData works directly with raw audio data
-    // and automatically detects the format (MP3, WAV, etc.)
-    const arrayBuffer = bytes.buffer;
+    // Convert to ArrayBuffer - MUST use slice() to create properly-bounded copy
+    // bytes.buffer returns the underlying ArrayBuffer which may have different size/offset
+    // than the Uint8Array view, causing decodeAudioData to receive garbage data
+    const arrayBuffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
 
     try {
       // Decode audio data - this auto-detects MP3, WAV, OGG, etc.

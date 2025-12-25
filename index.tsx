@@ -3,13 +3,21 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import * as Sentry from '@sentry/react';
 import { Analytics } from '@vercel/analytics/react';
-import { onCLS, onFCP, onLCP, onTTFB, onINP, type Metric } from 'web-vitals';
 import './index.css';
 import App from './App';
 import { ModalProvider } from './src/contexts/ModalContext';
 import { AudioProvider } from './src/contexts/AudioContext';
 import { VoiceProvider } from './src/contexts/VoiceContext';
 import ErrorBoundary from './components/ErrorBoundary';
+
+// Web vitals types for lazy-loaded module
+type Metric = {
+  name: string;
+  value: number;
+  rating: 'good' | 'needs-improvement' | 'poor';
+  delta: number;
+  id: string;
+};
 
 // Initialize Sentry for error tracking
 // DSN should be set via environment variable in production
@@ -103,9 +111,23 @@ const reportWebVitals = (metric: Metric) => {
   }
 };
 
-// Register all Core Web Vitals metrics
-onCLS(reportWebVitals);  // Cumulative Layout Shift
-onFCP(reportWebVitals);  // First Contentful Paint
-onINP(reportWebVitals);  // Interaction to Next Paint (replaces FID as of 2024)
-onLCP(reportWebVitals);  // Largest Contentful Paint
-onTTFB(reportWebVitals); // Time to First Byte
+// Lazy-load web-vitals for better initial bundle size (~5KB gzipped savings)
+// Only load in production when Sentry is available for reporting
+if (import.meta.env.PROD && SENTRY_DSN) {
+  import('web-vitals').then(({ onCLS, onFCP, onLCP, onTTFB, onINP }) => {
+    onCLS(reportWebVitals);  // Cumulative Layout Shift
+    onFCP(reportWebVitals);  // First Contentful Paint
+    onINP(reportWebVitals);  // Interaction to Next Paint (replaces FID as of 2024)
+    onLCP(reportWebVitals);  // Largest Contentful Paint
+    onTTFB(reportWebVitals); // Time to First Byte
+  });
+} else if (import.meta.env.DEV) {
+  // In development, still load for debugging
+  import('web-vitals').then(({ onCLS, onFCP, onLCP, onTTFB, onINP }) => {
+    onCLS(reportWebVitals);
+    onFCP(reportWebVitals);
+    onINP(reportWebVitals);
+    onLCP(reportWebVitals);
+    onTTFB(reportWebVitals);
+  });
+}

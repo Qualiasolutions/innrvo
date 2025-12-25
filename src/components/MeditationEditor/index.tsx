@@ -182,27 +182,6 @@ export const MeditationEditor = memo<MeditationEditorProps>(
             meditationType={meditationType}
           />
 
-          {/* Mobile Stats (shown below header on small screens) */}
-          <div className="md:hidden flex items-center justify-center gap-3 px-4 py-2 bg-white/[0.02] border-b border-white/5 text-xs">
-            <div className="flex items-center gap-1.5">
-              <span className="text-white/50">Words:</span>
-              <span className="text-white font-medium">{stats.wordCount}</span>
-            </div>
-            <div className="w-px h-3 bg-white/10" />
-            <div className="flex items-center gap-1.5">
-              <span className="text-white/50">~</span>
-              <span className="text-white font-medium">
-                {stats.estimatedMinutes}
-              </span>
-              <span className="text-white/50">min</span>
-            </div>
-            <div className="w-px h-3 bg-white/10" />
-            <div className="flex items-center gap-1.5">
-              <span className="text-white/50">Tags:</span>
-              <span className="text-white font-medium">{stats.tagCount}</span>
-            </div>
-          </div>
-
           {/* Script Editing Area */}
           <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 px-4 md:px-6 py-4">
             <div className="relative h-full">

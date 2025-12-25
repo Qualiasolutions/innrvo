@@ -24,7 +24,8 @@ import OfflineIndicator from './components/OfflineIndicator';
 import { buildTimingMap, getCurrentWordIndex } from './src/lib/textSync';
 import { geminiService, blobToBase64 } from './geminiService';
 import { voiceService } from './src/lib/voiceService';
-import { fishAudioCloneVoice } from './src/lib/edgeFunctions';
+// fishAudioCloneVoice dynamically imported to avoid bundle bloat and duplicate import warning
+// See: voiceService.ts also imports edgeFunctions dynamically
 import { convertToWAV } from './src/lib/audioConverter';
 import { creditService } from './src/lib/credits';
 
@@ -769,8 +770,10 @@ const App: React.FC = () => {
       setCloningStatus({ state: 'uploading_to_fish_audio' });
 
       // Clone with Fish Audio (primary, with Chatterbox backup storage)
+      // Dynamic import to avoid duplicate import warning and reduce initial bundle size
       let cloneResult: { voiceProfileId: string; fishAudioModelId: string | null; voiceSampleUrl: string | null };
       try {
+        const { fishAudioCloneVoice } = await import('./src/lib/edgeFunctions');
         cloneResult = await fishAudioCloneVoice(
           wavBlob,
           name,
