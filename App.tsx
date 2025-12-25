@@ -18,7 +18,7 @@ const VoiceManager = lazy(() => import('./components/VoiceManager'));
 const SimpleVoiceClone = lazy(() => import('./components/SimpleVoiceClone').then(m => ({ default: m.SimpleVoiceClone })));
 const ScriptReader = lazy(() => import('./components/ScriptReader'));
 const MeditationEditor = lazy(() => import('./src/components/MeditationEditor'));
-const MeditationPlayer = lazy(() => import('./components/MeditationPlayer'));
+const MeditationPlayer = lazy(() => import('./components/V0MeditationPlayer'));
 import InlinePlayer from './components/InlinePlayer';
 import { AgentChat } from './components/AgentChat';
 import OfflineIndicator from './components/OfflineIndicator';
@@ -1904,8 +1904,6 @@ const App: React.FC = () => {
                     setCurrentView(View.HOME);
                   }
                 }}
-                title={script.substring(0, 50) + (script.length > 50 ? '...' : '')}
-                script={script}
                 backgroundMusicEnabled={selectedBackgroundTrack.id !== 'none' && isMusicPlaying}
                 backgroundVolume={backgroundVolume}
                 onBackgroundVolumeChange={updateBackgroundVolume}
