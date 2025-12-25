@@ -38,6 +38,20 @@ const CloseIcon = ({ className = 'w-5 h-5' }: { className?: string }) => (
   </svg>
 );
 
+const MenuIcon = ({ className = 'w-5 h-5' }: { className?: string }) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M3 12h18M3 6h18M3 18h18" />
+  </svg>
+);
+
 const EditIcon = ({ className = 'w-4 h-4' }: { className?: string }) => (
   <svg
     className={className}
@@ -194,33 +208,55 @@ export const MeditationEditor = memo<MeditationEditorProps>(
             style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))' }}
           >
             <div className="relative h-full">
-              {/* Top Bar - Stats left, Edit hint center, Close right */}
+              {/* Top Bar - Responsive layout */}
               <div className="flex items-center justify-between py-3 mb-2">
-                {/* Left: Duration stat */}
-                <div className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/5 border border-white/10">
-                  <span className="text-cyan-400 font-bold text-sm">
-                    {stats.estimatedMinutes}
-                  </span>
-                  <span className="text-white/50 text-xs">min</span>
+                {/* Left section */}
+                <div className="flex items-center gap-2">
+                  {/* Mobile: Menu button */}
+                  <button
+                    onClick={onVoiceSelect}
+                    aria-label="Open options"
+                    className="md:hidden w-9 h-9 flex items-center justify-center text-white/40 hover:text-white transition-colors duration-200 active:scale-95"
+                  >
+                    <MenuIcon className="w-5 h-5" />
+                  </button>
+
+                  {/* Desktop: Duration stat */}
+                  <div className="hidden md:flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/5 border border-white/10">
+                    <span className="text-cyan-400 font-bold text-sm">
+                      {stats.estimatedMinutes}
+                    </span>
+                    <span className="text-white/50 text-xs">min</span>
+                  </div>
                 </div>
 
                 {/* Center: Edit hint */}
                 {!readOnly && (
                   <div className="flex items-center gap-1 text-[10px] md:text-xs text-white/40">
                     <EditIcon className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">Tap to edit</span>
-                    <span className="sm:hidden">Tap to edit</span>
+                    <span>Tap to edit</span>
                   </div>
                 )}
 
-                {/* Right: Close button */}
-                <button
-                  onClick={onClose}
-                  aria-label="Close editor"
-                  className="w-9 h-9 flex items-center justify-center text-white/40 hover:text-white transition-colors duration-200 active:scale-95"
-                >
-                  <CloseIcon className="w-5 h-5" />
-                </button>
+                {/* Right section */}
+                <div className="flex items-center gap-1.5">
+                  {/* Mobile: Duration stat */}
+                  <div className="md:hidden flex items-center gap-1 px-2 py-1 rounded-lg bg-white/5 border border-white/10">
+                    <span className="text-cyan-400 font-bold text-xs">
+                      {stats.estimatedMinutes}
+                    </span>
+                    <span className="text-white/50 text-[10px]">min</span>
+                  </div>
+
+                  {/* Close button */}
+                  <button
+                    onClick={onClose}
+                    aria-label="Close editor"
+                    className="w-9 h-9 flex items-center justify-center text-white/40 hover:text-white transition-colors duration-200 active:scale-95"
+                  >
+                    <CloseIcon className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
 
               {/* Editable Area */}
