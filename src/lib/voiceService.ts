@@ -93,7 +93,8 @@ export const voiceService = {
       return 'fish-audio';
     }
 
-    // ElevenLabs voices go through unified endpoint (routes internally)
+    // Legacy ElevenLabs voices go through unified endpoint (routes internally)
+    // @ts-ignore - voice.provider may have legacy 'ElevenLabs' value from database
     if (voice.provider === 'ElevenLabs') {
       return 'fish-audio';  // Unified endpoint handles fallback
     }
@@ -153,17 +154,11 @@ export const voiceService = {
     // Call generate-speech edge function (handles Fish Audio with Chatterbox fallback)
     const base64 = await generateSpeech(voiceId, text);
 
-    // Decode to AudioBuffer if needed (Fish Audio returns MP3, Chatterbox returns WAV)
+    // Decode to AudioBuffer if needed
+    // decodeAudio automatically detects format (MP3 from Fish Audio, WAV from Chatterbox)
     if (audioContext) {
-      // Try MP3 first (Fish Audio), fall back to WAV (Chatterbox)
-      try {
-        const audioBuffer = await this.decodeAudio(base64, audioContext, 'audio/mpeg');
-        return { audioBuffer, base64 };
-      } catch {
-        // Fallback to WAV decoding
-        const audioBuffer = await this.decodeAudio(base64, audioContext, 'audio/wav');
-        return { audioBuffer, base64 };
-      }
+      const audioBuffer = await this.decodeAudio(base64, audioContext);
+      return { audioBuffer, base64 };
     }
 
     return { audioBuffer: null, base64 };
@@ -186,9 +181,10 @@ export const voiceService = {
     // Call generate-speech edge function
     const base64 = await generateSpeech(voiceId, text);
 
-    // Decode to AudioBuffer if needed (Chatterbox returns WAV)
+    // Decode to AudioBuffer if needed
+    // decodeAudio automatically detects format
     if (audioContext) {
-      const audioBuffer = await this.decodeAudio(base64, audioContext, 'audio/wav');
+      const audioBuffer = await this.decodeAudio(base64, audioContext);
       return { audioBuffer, base64 };
     }
 
@@ -198,27 +194,47 @@ export const voiceService = {
   /**
    * Generic audio decoder for base64 audio data
    * Supports MP3, WAV, and other formats
+   *
+   * Note: Web Audio API's decodeAudioData is format-agnostic and automatically
+   * detects the audio format from the binary data, so MIME type is not needed.
    */
   async decodeAudio(
     base64: string,
     audioContext: AudioContext,
-    mimeType: string = 'audio/mpeg'
+    mimeType: string = 'audio/mpeg'  // Kept for backward compatibility, but unused
   ): Promise<AudioBuffer> {
+    // Decode base64 to binary
     const binaryString = atob(base64);
     const bytes = new Uint8Array(binaryString.length);
     for (let i = 0; i < binaryString.length; i++) {
       bytes[i] = binaryString.charCodeAt(i);
     }
 
-    const blob = new Blob([bytes], { type: mimeType });
-    const objectUrl = URL.createObjectURL(blob);
+    // Convert to ArrayBuffer - decodeAudioData works directly with raw audio data
+    // and automatically detects the format (MP3, WAV, etc.)
+    const arrayBuffer = bytes.buffer;
 
     try {
-      const response = await fetch(objectUrl);
-      const arrayBuffer = await response.arrayBuffer();
-      return audioContext.decodeAudioData(arrayBuffer);
-    } finally {
-      URL.revokeObjectURL(objectUrl);
+      // Decode audio data - this auto-detects MP3, WAV, OGG, etc.
+      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+      // Log successful decode for debugging
+      console.log('[voiceService] Audio decoded successfully:', {
+        duration: audioBuffer.duration.toFixed(2) + 's',
+        sampleRate: audioBuffer.sampleRate + 'Hz',
+        channels: audioBuffer.numberOfChannels,
+        expectedMimeType: mimeType,
+      });
+
+      return audioBuffer;
+    } catch (error) {
+      console.error('[voiceService] Failed to decode audio:', {
+        error,
+        audioSize: bytes.length,
+        expectedMimeType: mimeType,
+        firstBytes: Array.from(bytes.slice(0, 12)).map(b => b.toString(16).padStart(2, '0')).join(' '),
+      });
+      throw new Error(`Failed to decode audio: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   },
 
