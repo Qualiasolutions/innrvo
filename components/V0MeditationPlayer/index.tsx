@@ -1,6 +1,6 @@
-import React, { useState, useCallback, memo } from 'react';
+import React, { useCallback, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Play, Pause, RotateCcw, RotateCw, Volume2, VolumeX } from 'lucide-react';
+import { X, Play, Pause, RotateCcw, RotateCw } from 'lucide-react';
 
 /**
  * V0 Meditation Player - Clean, focused playback experience
@@ -61,9 +61,6 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
   meditationType,
   onSleepTimer,
 }) => {
-  const [isMuted, setIsMuted] = useState(false);
-  const [showVolumeSlider, setShowVolumeSlider] = useState(false);
-
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   const formatTime = useCallback((seconds: number) => {
@@ -77,21 +74,6 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
     const percent = (e.clientX - rect.left) / rect.width;
     onSeek(percent * duration);
   }, [onSeek, duration]);
-
-  const handleVolumeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseFloat(e.target.value);
-    if (onVoiceVolumeChange) {
-      onVoiceVolumeChange(value / 100);
-    }
-    setIsMuted(value === 0);
-  }, [onVoiceVolumeChange]);
-
-  const toggleMute = useCallback(() => {
-    setIsMuted(prev => !prev);
-    if (onVoiceVolumeChange) {
-      onVoiceVolumeChange(isMuted ? 0.8 : 0);
-    }
-  }, [isMuted, onVoiceVolumeChange]);
 
   return (
     <div className="fixed inset-0 z-[100] w-full overflow-hidden bg-[#0f172a]">
@@ -222,45 +204,6 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
               <RotateCw className="h-6 w-6" />
               <span className="absolute -bottom-1 text-[10px] font-medium">15</span>
             </motion.button>
-          </div>
-
-          {/* Volume control */}
-          <div className="flex items-center justify-center gap-4">
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={toggleMute}
-              onMouseEnter={() => setShowVolumeSlider(true)}
-              className="text-white/50 transition-colors hover:text-white/80"
-              aria-label={isMuted ? 'Unmute' : 'Mute'}
-            >
-              {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
-            </motion.button>
-            <AnimatePresence>
-              {showVolumeSlider && (
-                <motion.div
-                  initial={{ opacity: 0, width: 0 }}
-                  animate={{ opacity: 1, width: 100 }}
-                  exit={{ opacity: 0, width: 0 }}
-                  onMouseLeave={() => setShowVolumeSlider(false)}
-                  className="overflow-hidden"
-                >
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={isMuted ? 0 : voiceVolume * 100}
-                    onChange={handleVolumeChange}
-                    className="w-24 h-1 bg-white/20 rounded-full appearance-none cursor-pointer
-                      [&::-webkit-slider-thumb]:appearance-none
-                      [&::-webkit-slider-thumb]:w-3
-                      [&::-webkit-slider-thumb]:h-3
-                      [&::-webkit-slider-thumb]:rounded-full
-                      [&::-webkit-slider-thumb]:bg-white/80"
-                  />
-                </motion.div>
-              )}
-            </AnimatePresence>
           </div>
 
         </motion.div>
