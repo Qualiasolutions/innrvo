@@ -69,8 +69,9 @@ export function useAudioTags(script: string): UseAudioTagsReturn {
       .split(/\s+/)
       .filter((word) => word.length > 0).length;
 
-    // ~100 words per minute at meditative pace
-    const estimatedMinutes = Math.ceil(wordCount / 100);
+    // 120 words per minute (2 words/second) at meditative pace
+    // This matches the generation logic in agentTools.ts
+    const estimatedMinutes = Math.round(wordCount / 120) || 1;
 
     // Count audio tags
     const tagMatches = script.match(/\[[^\]]+\]/g);
