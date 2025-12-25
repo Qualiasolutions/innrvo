@@ -28,11 +28,12 @@ npm run test:ui          # Run tests with Vitest UI
 npm run test:coverage    # Run tests with coverage report
 npx vitest run src/lib/credits.test.ts  # Run single test file
 
-# Supabase (local development)
+# Supabase
 npx supabase start       # Start local Supabase
 npx supabase stop        # Stop local Supabase
 npx supabase db push     # Push migrations to remote
 npx supabase functions serve  # Serve edge functions locally
+npx supabase functions deploy <name>  # Deploy single function
 ```
 
 ## Architecture
@@ -46,7 +47,7 @@ types.ts              # Shared TypeScript types (View, VoiceProfile, CloningStat
 constants.tsx         # Template categories, voice profiles, audio tags
 
 components/           # UI components
-  V0MeditationPlayer/ # Audio player - playback controls, breathing visualizer, no script display
+  V0MeditationPlayer/ # Audio player - playback controls, breathing visualizer
   MeditationEditor/   # Script editing with audio tags
   AgentChat.tsx       # AI conversation interface
   SimpleVoiceClone.tsx # Voice cloning UI (records audio, uploads via Fish Audio)
@@ -67,8 +68,8 @@ src/
     agent/            # MeditationAgent - conversational AI with wisdom teachers
       MeditationAgent.ts     # Main agent class - handles conversation, meditation generation
       knowledgeBase.ts       # Wisdom teachers (Buddha, Rumi, Thich Nhat Hanh, etc.)
-    edgeFunctions.ts  # Client for Supabase Edge Functions (Fish Audio, Chatterbox, Gemini)
-    voiceService.ts   # TTS service abstraction - routes to appropriate provider
+    edgeFunctions.ts  # Client for Supabase Edge Functions
+    voiceService.ts   # TTS service abstraction
     credits.ts        # Credit system for voice cloning
 lib/
   supabase.ts         # Supabase client + database operations
@@ -76,41 +77,38 @@ lib/
 
 ### Backend (Supabase Edge Functions)
 
-All API keys (Gemini, Fish Audio, Replicate) are stored server-side in Edge Functions. Frontend only sends JWT tokens.
+All API keys are stored server-side in Edge Functions. Frontend only sends JWT tokens.
 
 ```
 supabase/functions/
+  generate-speech/    # TTS endpoint (Fish Audio primary, ElevenLabs legacy)
+  fish-audio-clone/   # Voice cloning via Fish Audio
   gemini-script/      # Generate meditation scripts via Gemini 2.0 Flash
-  fish-audio-tts/     # Primary TTS via Fish Audio (best quality, real-time)
-  fish-audio-clone/   # Primary voice cloning via Fish Audio
-  chatterbox-tts/     # Fallback TTS via Chatterbox (Replicate)
-  chatterbox-clone/   # Fallback voice cloning - stores audio in Supabase Storage
-  generate-speech/    # Unified TTS endpoint - routes to Fish Audio or Chatterbox
   health/             # Health check endpoint
   export-user-data/   # GDPR data export
-  _shared/            # Shared utilities (rate limiting, circuit breaker, tracing, compression)
+  _shared/            # Shared utilities (rate limiting, tracing, compression)
 ```
 
 ### Voice Provider Architecture
 
-Provider priority: Fish Audio (primary) → ElevenLabs (legacy) → Chatterbox (fallback)
+**Fish Audio is the primary (and only) TTS provider.**
+ElevenLabs is retained only for legacy cloned voices.
 
 ```
 Voice Cloning Flow:
   Record audio → Convert to WAV → fish-audio-clone → Creates Fish Audio model
-                                                   → Also stores in Supabase Storage (fallback)
+                                                   → Stores sample in Supabase Storage
 
 TTS Flow (generate-speech endpoint):
-  1. Check fish_audio_model_id → Use Fish Audio API (primary, best quality)
-  2. Check elevenlabs_voice_id → Use ElevenLabs API (legacy cloned voices)
-  3. Check voice_sample_url → Use Chatterbox via Replicate (zero-shot fallback)
-  4. Circuit breaker prevents cascading failures
+  1. Check fish_audio_model_id → Use Fish Audio API (primary)
+  2. Check elevenlabs_voice_id → Use ElevenLabs API (legacy only)
+  3. No fallback - errors are surfaced to user
 ```
 
 ### Database (Supabase)
 
 Key tables with RLS enabled:
-- `voice_profiles` - User voice profiles with `fish_audio_model_id` and `voice_sample_url`
+- `voice_profiles` - User voice profiles with `fish_audio_model_id`
 - `voice_clones` - Base64 audio samples for cloning
 - `meditation_history` - Saved meditations with audio storage paths
 - `users` - Extended auth.users with preferences
@@ -123,10 +121,10 @@ Migrations are in `supabase/migrations/` (numbered SQL files).
    User prompt → `AgentChat` → `MeditationAgent.chat()` → Gemini Edge Function → Script → Editor view
 
 2. **TTS Playback:**
-   Script + Voice → `generate-speech` Edge Function → Fish Audio (or Chatterbox fallback) → Audio → V0MeditationPlayer
+   Script + Voice → `generate-speech` Edge Function → Fish Audio → Audio → V0MeditationPlayer
 
 3. **Voice Cloning:**
-   Record audio → Convert to WAV → `fish-audio-clone` Edge Function → Voice profile saved (Fish Audio model + Supabase backup)
+   Record audio → Convert to WAV → `fish-audio-clone` Edge Function → Voice profile saved
 
 ## Environment Variables
 
@@ -137,11 +135,10 @@ VITE_SUPABASE_ANON_KEY=eyJ...
 VITE_SENTRY_DSN=https://...  # Optional
 ```
 
-Edge Function secrets (set in Supabase Dashboard):
+Edge Function secrets (set via `npx supabase secrets set`):
 ```
 GEMINI_API_KEY=AI...
-FISH_AUDIO_API_KEY=fa_...    # Primary TTS/cloning provider
-REPLICATE_API_TOKEN=r8_...   # Fallback provider (Chatterbox)
+FISH_AUDIO_API_KEY=...       # Primary TTS/cloning provider (required)
 ELEVENLABS_API_KEY=xi_...    # Legacy voice support (optional)
 ```
 
@@ -161,7 +158,7 @@ const { showCloneModal, setShowCloneModal, closeAllModals } = useModals();
 `@/` maps to project root. Use for imports: `import { supabase } from '@/lib/supabase'`
 
 ### Audio Handling
-- WebM recordings are converted to WAV before cloning (required by voice APIs)
+- WebM recordings are converted to WAV before cloning (required by Fish Audio)
 - Audio is stored as base64 in database or in Supabase Storage (`meditation-audio`, `voice-samples` buckets)
 
 ### Edge Function Calls
@@ -170,13 +167,6 @@ All edge function calls go through `src/lib/edgeFunctions.ts` which handles:
 - Request ID generation for tracing
 - Retry with exponential backoff
 - Timeout handling
-- Circuit breaker integration
-
-### Circuit Breaker
-Located in `supabase/functions/_shared/circuitBreaker.ts`. Prevents cascading failures:
-- Fish Audio: 3 failures → 45s cooldown
-- Replicate: 3 failures → 60s cooldown
-- Gemini: 5 failures → 30s cooldown
 
 ### Meditation Player (V0MeditationPlayer)
 The player focuses on playback controls without displaying script text:
