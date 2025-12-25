@@ -3,7 +3,6 @@ import React, { useState, useRef, useEffect, useCallback, useMemo, lazy, Suspens
 import { View, VoiceProfile, ScriptTimingMap, CloningStatus, CreditInfo, VoiceMetadata } from './types';
 import { TEMPLATE_CATEGORIES, VOICE_PROFILES, ICONS, BACKGROUND_TRACKS, BackgroundTrack, AUDIO_TAG_CATEGORIES } from './constants';
 import { useModals } from './src/contexts/ModalContext';
-import { useAudio } from './src/contexts/AudioContext';
 import { useVoice } from './src/contexts/VoiceContext';
 import GlassCard from './components/GlassCard';
 import Starfield from './components/Starfield';
@@ -19,7 +18,7 @@ const SimpleVoiceClone = lazy(() => import('./components/SimpleVoiceClone').then
 const ScriptReader = lazy(() => import('./components/ScriptReader'));
 const MeditationEditor = lazy(() => import('./src/components/MeditationEditor'));
 const MeditationPlayer = lazy(() => import('./components/V0MeditationPlayer'));
-import InlinePlayer from './components/InlinePlayer';
+// InlinePlayer removed - using only V0MeditationPlayer now
 import { AgentChat } from './components/AgentChat';
 import OfflineIndicator from './components/OfflineIndicator';
 import { buildTimingMap, getCurrentWordIndex } from './src/lib/textSync';
@@ -41,7 +40,7 @@ function base64ToBlob(base64: string, mimeType: string): Blob {
   return new Blob([bytes], { type: mimeType });
 }
 import { throttleLeading } from './src/utils/debounce';
-import { supabase, getCurrentUser, signOut, createVoiceProfile, getUserVoiceProfiles, getVoiceProfileById, VoiceProfile as DBVoiceProfile, createVoiceClone, saveMeditationHistory, getMeditationHistory, deleteMeditationHistory, MeditationHistory, getAudioTagPreferences, updateAudioTagPreferences, AudioTagPreference, getMeditationAudioSignedUrl, toggleMeditationFavorite } from './lib/supabase';
+import { supabase, getCurrentUser, signOut, createVoiceProfile, getUserVoiceProfiles, getVoiceProfileById, VoiceProfile as DBVoiceProfile, createVoiceClone, saveMeditationHistory, getMeditationHistoryPaginated, deleteMeditationHistory, MeditationHistory, getAudioTagPreferences, updateAudioTagPreferences, AudioTagPreference, getMeditationAudioSignedUrl, toggleMeditationFavorite } from './lib/supabase';
 
 // Rotating taglines - one shown randomly per session
 const TAGLINES = [
@@ -175,10 +174,13 @@ const App: React.FC = () => {
     'classical': { label: 'Classical', color: 'text-rose-400', bgColor: 'bg-rose-500/10' },
   } as Record<string, { label: string; color: string; bgColor: string }>), []);
 
-  // Library state
+  // Library state with pagination
   const [libraryTab, setLibraryTab] = useState<'all' | 'favorites'>('all');
   const [meditationHistory, setMeditationHistory] = useState<MeditationHistory[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [historyPage, setHistoryPage] = useState(0);
+  const [hasMoreHistory, setHasMoreHistory] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [libraryPlayingId, setLibraryPlayingId] = useState<string | null>(null);
   const [libraryAudioRef, setLibraryAudioRef] = useState<HTMLAudioElement | null>(null);
 
@@ -272,16 +274,38 @@ const App: React.FC = () => {
     };
   }, []);
 
-  // Fetch meditation history when library or burger menu opens
+  // Fetch meditation history when library or burger menu opens (with pagination)
   useEffect(() => {
-    if ((showLibrary || showBurgerMenu) && user) {
+    if ((showLibrary || showBurgerMenu) && user && meditationHistory.length === 0) {
       setIsLoadingHistory(true);
-      getMeditationHistory(50)
-        .then(history => setMeditationHistory(history))
+      setHistoryPage(0);
+      getMeditationHistoryPaginated(0, 20)
+        .then(result => {
+          setMeditationHistory(result.data);
+          setHasMoreHistory(result.hasMore);
+        })
         .catch(err => console.error('Failed to load history:', err))
         .finally(() => setIsLoadingHistory(false));
     }
   }, [showLibrary, showBurgerMenu, user]);
+
+  // Load more meditation history
+  const loadMoreHistory = useCallback(async () => {
+    if (isLoadingMore || !hasMoreHistory) return;
+
+    setIsLoadingMore(true);
+    try {
+      const nextPage = historyPage + 1;
+      const result = await getMeditationHistoryPaginated(nextPage, 20);
+      setMeditationHistory(prev => [...prev, ...result.data]);
+      setHistoryPage(nextPage);
+      setHasMoreHistory(result.hasMore);
+    } catch (err) {
+      console.error('Failed to load more history:', err);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [historyPage, hasMoreHistory, isLoadingMore]);
 
   // Library audio playback functions
   const playLibraryMeditation = async (meditation: MeditationHistory) => {
@@ -404,17 +428,25 @@ const App: React.FC = () => {
       setSavedVoices(voices);
 
       // Add saved voices to available voices (cloned voices only)
+      // A voice is cloned if it has fish_audio_model_id OR voice_sample_url
       const clonedVoiceProfiles = voices
-        .filter(v => v.voice_sample_url || v.provider_voice_id) // Include voices with Chatterbox sample
-        .map(v => ({
-          id: v.id,
-          name: v.name,
-          provider: 'chatterbox' as const,
-          voiceName: v.name, // Use voice name for display
-          description: v.description || 'Your personalized voice clone',
-          isCloned: true,
-          providerVoiceId: v.provider_voice_id
-        }));
+        .filter(v => v.fish_audio_model_id || v.voice_sample_url || v.provider_voice_id)
+        .map(v => {
+          // Determine the correct provider based on available IDs
+          // Priority: fish-audio > chatterbox
+          const provider = v.fish_audio_model_id ? 'fish-audio' as const : 'chatterbox' as const;
+          return {
+            id: v.id,
+            name: v.name,
+            provider,
+            voiceName: v.name,
+            description: v.description || 'Your personalized voice clone',
+            isCloned: true,
+            providerVoiceId: v.provider_voice_id,
+            fishAudioModelId: v.fish_audio_model_id,
+            voiceSampleUrl: v.voice_sample_url,
+          };
+        });
 
       setAvailableVoices(clonedVoiceProfiles);
 
@@ -1446,7 +1478,7 @@ const App: React.FC = () => {
       setScript(editableScript);
       setEnhancedScript(editableScript);
       setIsPlaying(true);
-      setIsInlineMode(true);
+      setCurrentView(View.PLAYER);  // Go directly to V0MeditationPlayer
       setIsGenerating(false);
       setGenerationStage('idle');
 
@@ -1782,7 +1814,7 @@ const App: React.FC = () => {
 
                           // Update state
                           setIsPlaying(true);
-                          setIsInlineMode(true);
+                          setCurrentView(View.PLAYER);  // Go directly to V0MeditationPlayer
                           setIsGenerating(false);
                           setGenerationStage('idle');
 
@@ -1844,35 +1876,7 @@ const App: React.FC = () => {
                     />
               )}
 
-              {/* Inline Mode: Script Reader + Player */}
-              {isInlineMode && (
-                <>
-                  <Suspense fallback={<div className="flex-1 flex items-center justify-center"><div className="animate-pulse text-white/50">Loading...</div></div>}>
-                    <ScriptReader
-                      script={enhancedScript}
-                      currentWordIndex={currentWordIndex}
-                      isPlaying={isPlaying}
-                    />
-                  </Suspense>
-                  <div className="fixed bottom-0 left-0 right-0 z-40 px-2 md:px-6 pb-[max(1rem,env(safe-area-inset-bottom))] md:pb-[max(1.5rem,env(safe-area-inset-bottom))]">
-                    <div className="w-full max-w-4xl mx-auto">
-                      <InlinePlayer
-                        isPlaying={isPlaying}
-                        onPlayPause={handleInlineTogglePlayback}
-                        onStop={handleInlineStop}
-                        onExpand={handleExpandToPlayer}
-                        currentTime={currentTime}
-                        duration={duration}
-                        onSeek={handleInlineSeek}
-                        voiceName={selectedVoice?.name || 'Voice'}
-                        backgroundTrackName={selectedBackgroundTrack.name}
-                        backgroundVolume={backgroundVolume}
-                        onBackgroundVolumeChange={updateBackgroundVolume}
-                      />
-                    </div>
-                  </div>
-                </>
-              )}
+              {/* InlinePlayer removed - using only V0MeditationPlayer now */}
 
             </div>
           )}
@@ -2408,14 +2412,18 @@ const App: React.FC = () => {
             isOpen={showVoiceManager}
             onClose={() => setShowVoiceManager(false)}
             onSelectVoice={(voice) => {
+              // Determine provider based on available IDs (fish-audio > chatterbox)
+              const provider = voice.fish_audio_model_id ? 'fish-audio' as const : 'chatterbox' as const;
               const voiceProfile: VoiceProfile = {
                 id: voice.id,
                 name: voice.name,
-                provider: 'chatterbox',
+                provider,
                 voiceName: voice.name,
                 description: voice.description || 'Your personalized voice clone',
                 isCloned: true,
-                providerVoiceId: voice.provider_voice_id
+                providerVoiceId: voice.provider_voice_id,
+                fishAudioModelId: voice.fish_audio_model_id,
+                voiceSampleUrl: voice.voice_sample_url,
               };
               setSelectedVoice(voiceProfile);
               setShowVoiceManager(false);
@@ -2423,6 +2431,14 @@ const App: React.FC = () => {
             onCloneVoice={() => {
               openCloneModal();
               setMicError(null);
+            }}
+            onVoiceDeleted={(deletedVoiceId) => {
+              // Clear selection if deleted voice was selected
+              if (selectedVoice?.id === deletedVoiceId) {
+                setSelectedVoice(null);
+              }
+              // Remove from available voices
+              setAvailableVoices(prev => prev.filter(v => v.id !== deletedVoiceId));
             }}
             currentVoiceId={selectedVoice?.id}
           />
@@ -2863,6 +2879,31 @@ const App: React.FC = () => {
                                   </div>
                                 ))}
                               </div>
+                            </div>
+                          )}
+
+                          {/* Load More Button */}
+                          {hasMoreHistory && libraryTab === 'all' && (
+                            <div className="flex justify-center pt-4">
+                              <button
+                                onClick={loadMoreHistory}
+                                disabled={isLoadingMore}
+                                className="px-6 py-3 rounded-full bg-white/5 hover:bg-white/10 text-white font-medium text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                              >
+                                {isLoadingMore ? (
+                                  <>
+                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    Loading...
+                                  </>
+                                ) : (
+                                  <>
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                    Load More
+                                  </>
+                                )}
+                              </button>
                             </div>
                           )}
                         </div>
