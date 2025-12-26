@@ -38,11 +38,8 @@ const WaveIcon = () => (
   </svg>
 );
 
-const SparkleIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 0L14.59 9.41L24 12L14.59 14.59L12 24L9.41 14.59L0 12L9.41 9.41L12 0Z" />
-  </svg>
-);
+// Chronos Engine import for agent avatar and loading states
+import { ChronosEngine, ChronosMiniLoader } from '@/components/ui/chronos-engine';
 
 // ============================================================================
 // SUB-COMPONENTS
@@ -60,9 +57,9 @@ const MessageBubble = memo<MessageBubbleProps>(({ message, isLast }) => {
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4`}>
       {!isUser && (
         <div className="flex-shrink-0 mr-3 mt-1">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-purple-600
-                        flex items-center justify-center shadow-lg shadow-cyan-500/30">
-            <SparkleIcon className="w-4 h-4 text-white" />
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500/20 to-purple-600/20
+                        flex items-center justify-center shadow-lg shadow-cyan-500/20 overflow-hidden">
+            <ChronosEngine variant="avatar" showSparks={false} />
           </div>
         </div>
       )}
@@ -77,14 +74,7 @@ const MessageBubble = memo<MessageBubbleProps>(({ message, isLast }) => {
         `}
       >
         {message.isLoading ? (
-          <div className="flex items-center gap-3 py-1">
-            <div className="flex gap-1">
-              <span className="w-1.5 h-1.5 bg-cyan-400/70 rounded-full animate-pulse" style={{ animationDelay: '0ms', animationDuration: '1s' }} />
-              <span className="w-1.5 h-1.5 bg-cyan-400/70 rounded-full animate-pulse" style={{ animationDelay: '200ms', animationDuration: '1s' }} />
-              <span className="w-1.5 h-1.5 bg-cyan-400/70 rounded-full animate-pulse" style={{ animationDelay: '400ms', animationDuration: '1s' }} />
-            </div>
-            <span className="text-white/40 text-sm">Thinking...</span>
-          </div>
+          <ChronosMiniLoader />
         ) : (
           <div className="text-base leading-relaxed whitespace-pre-wrap">{message.content}</div>
         )}

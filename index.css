@@ -925,3 +925,192 @@
 .generate-btn:hover::before {
   transform: translateX(100%) rotate(45deg);
 }
+
+/* ============================================================================
+   CHRONOS ENGINE - Animated Gear Component
+   Used for agent avatar and loading states
+   ============================================================================ */
+
+/* Core pulse animation - the central glowing element */
+@keyframes core-pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 8px rgba(6, 182, 212, 0.8), 0 0 16px rgba(6, 182, 212, 0.5), 0 0 24px rgba(168, 85, 247, 0.3);
+  }
+  50% {
+    transform: scale(1.15);
+    box-shadow: 0 0 12px rgba(6, 182, 212, 1), 0 0 24px rgba(6, 182, 212, 0.7), 0 0 36px rgba(168, 85, 247, 0.5);
+  }
+}
+
+/* Gear rotation animation */
+@keyframes gear-rotate {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+@keyframes gear-rotate-reverse {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(-360deg); }
+}
+
+/* Spark particle travel animation */
+@keyframes spark-travel {
+  0% {
+    transform: translate(calc(var(--spawn-x) * 1px), calc(var(--spawn-y) * 1px));
+    opacity: 1;
+  }
+  100% {
+    transform: translate(calc(var(--travel-x) * 1px), calc(var(--travel-y) * 1px));
+    opacity: 0;
+  }
+}
+
+/* Chronos Engine container */
+.chronos-engine {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Power Core - Central element */
+.power-core {
+  background: radial-gradient(circle, rgba(6, 182, 212, 0.9) 0%, rgba(168, 85, 247, 0.7) 50%, rgba(6, 182, 212, 0.4) 100%);
+  animation: core-pulse 2s ease-in-out infinite;
+  z-index: 10;
+}
+
+/* Base gear styles */
+.gear {
+  border-radius: 50%;
+  position: relative;
+}
+
+/* Gear teeth pattern using conic gradient */
+.gear::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    rgba(6, 182, 212, 0.6) 15deg,
+    transparent 30deg,
+    transparent 45deg,
+    rgba(168, 85, 247, 0.5) 60deg,
+    transparent 75deg,
+    transparent 90deg,
+    rgba(6, 182, 212, 0.6) 105deg,
+    transparent 120deg,
+    transparent 135deg,
+    rgba(168, 85, 247, 0.5) 150deg,
+    transparent 165deg,
+    transparent 180deg,
+    rgba(6, 182, 212, 0.6) 195deg,
+    transparent 210deg,
+    transparent 225deg,
+    rgba(168, 85, 247, 0.5) 240deg,
+    transparent 255deg,
+    transparent 270deg,
+    rgba(6, 182, 212, 0.6) 285deg,
+    transparent 300deg,
+    transparent 315deg,
+    rgba(168, 85, 247, 0.5) 330deg,
+    transparent 345deg,
+    transparent 360deg
+  );
+  z-index: -1;
+}
+
+/* Gear inner ring */
+.gear::after {
+  content: '';
+  position: absolute;
+  inset: 15%;
+  border-radius: 50%;
+  border: 1px solid rgba(6, 182, 212, 0.4);
+  background: radial-gradient(circle, rgba(6, 182, 212, 0.1) 0%, transparent 70%);
+}
+
+/* Gear 1 - Main gear, clockwise rotation */
+.gear-1 {
+  animation: gear-rotate 8s linear infinite;
+  border: 2px solid rgba(6, 182, 212, 0.5);
+  background: radial-gradient(circle, rgba(2, 6, 23, 0.9) 0%, rgba(6, 182, 212, 0.1) 100%);
+}
+
+/* Gear 2 - Counter-clockwise, faster */
+.gear-2 {
+  animation: gear-rotate-reverse 5s linear infinite;
+  border: 1.5px solid rgba(168, 85, 247, 0.5);
+  background: radial-gradient(circle, rgba(2, 6, 23, 0.9) 0%, rgba(168, 85, 247, 0.1) 100%);
+}
+
+.gear-2::before {
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    rgba(168, 85, 247, 0.6) 20deg,
+    transparent 40deg,
+    transparent 60deg,
+    rgba(6, 182, 212, 0.5) 80deg,
+    transparent 100deg,
+    transparent 120deg,
+    rgba(168, 85, 247, 0.6) 140deg,
+    transparent 160deg,
+    transparent 180deg,
+    rgba(6, 182, 212, 0.5) 200deg,
+    transparent 220deg,
+    transparent 240deg,
+    rgba(168, 85, 247, 0.6) 260deg,
+    transparent 280deg,
+    transparent 300deg,
+    rgba(6, 182, 212, 0.5) 320deg,
+    transparent 340deg,
+    transparent 360deg
+  );
+}
+
+/* Gear 3 - Clockwise, medium speed */
+.gear-3 {
+  animation: gear-rotate 6s linear infinite;
+  border: 1.5px solid rgba(6, 182, 212, 0.4);
+  background: radial-gradient(circle, rgba(2, 6, 23, 0.9) 0%, rgba(6, 182, 212, 0.08) 100%);
+}
+
+/* Spark emitter container */
+.spark-emitter {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+/* Individual spark particles */
+.spark {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  background: radial-gradient(circle, rgba(6, 182, 212, 1) 0%, rgba(168, 85, 247, 0.8) 50%, transparent 100%);
+  border-radius: 50%;
+  animation: spark-travel linear infinite;
+  box-shadow: 0 0 4px rgba(6, 182, 212, 0.8), 0 0 8px rgba(168, 85, 247, 0.5);
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .power-core,
+  .gear,
+  .gear-1,
+  .gear-2,
+  .gear-3,
+  .spark {
+    animation: none !important;
+  }
+  .power-core {
+    box-shadow: 0 0 8px rgba(6, 182, 212, 0.8);
+  }
+}

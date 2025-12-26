@@ -40,6 +40,10 @@ vitest run src/lib/credits.test.ts  # Run single test file
 - `src/components/MeditationEditor/` - Script editing with audio tag insertion
 - `components/SimpleVoiceClone.tsx` - Voice cloning UI
 - `components/AgentChat.tsx` - Conversational AI interface
+- `components/ui/chronos-engine.tsx` - Animated gear engine for agent avatar and loading states
+
+**UI Components (`components/ui/`):**
+- `chronos-engine.tsx` - Animated gear component with variants: `avatar` (32px), `mini` (24px), `loading` (120px). Exports: `ChronosEngine`, `ChronosAvatar`, `ChronosLoader`, `ChronosMiniLoader`
 
 **Data Layer:**
 - `lib/supabase.ts` - Supabase client and all database operations

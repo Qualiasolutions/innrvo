@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { createBrowserRouter, RouterProvider, Outlet, ScrollRestoration } from 'react-router-dom';
+import { ChronosLoader } from '@/components/ui/chronos-engine';
 
 // Lazy load all pages for code splitting
 const HomePage = lazy(() => import('./pages/HomePage'));
@@ -14,10 +15,10 @@ const TermsPage = lazy(() => import('./pages/TermsPage'));
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
 const PricingPage = lazy(() => import('./pages/PricingPage'));
 
-// Loading spinner component
+// Loading spinner component - uses ChronosEngine for visual consistency
 const PageLoader = () => (
-  <div className="fixed inset-0 z-[100] bg-[#0f172a] flex items-center justify-center">
-    <div className="w-8 h-8 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin" />
+  <div className="fixed inset-0 z-[100] bg-[#020617] flex items-center justify-center">
+    <ChronosLoader message="Loading..." />
   </div>
 );
 
