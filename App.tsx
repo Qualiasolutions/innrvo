@@ -1,5 +1,6 @@
 
 import React, { useState, useRef, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { View, VoiceProfile, ScriptTimingMap, CloningStatus, CreditInfo, VoiceMetadata } from './types';
 import { TEMPLATE_CATEGORIES, VOICE_PROFILES, ICONS, BACKGROUND_TRACKS, BackgroundTrack, AUDIO_TAG_CATEGORIES, KEYWORD_TAG_MAP, MUSIC_CATEGORY_CONFIG, TRACKS_BY_CATEGORY, getSuggestedTags } from './constants';
 import { useModals } from './src/contexts/ModalContext';
@@ -60,6 +61,8 @@ const TAGLINES = [
 ];
 
 const App: React.FC = () => {
+  const navigate = useNavigate();
+
   // Use centralized modal context
   const {
     showCloneModal, setShowCloneModal,
@@ -2512,7 +2515,7 @@ const App: React.FC = () => {
           {/* Navigation */}
           <div className="p-4 space-y-1">
             <button
-              onClick={() => { setShowBurgerMenu(false); setShowHowItWorks(true); }}
+              onClick={() => { setShowBurgerMenu(false); navigate('/how-it-works'); }}
               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-white hover:bg-white/10 transition-colors text-sm"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2521,7 +2524,7 @@ const App: React.FC = () => {
               How It Works
             </button>
             <button
-              onClick={() => { setShowBurgerMenu(false); setShowLibrary(true); }}
+              onClick={() => { setShowBurgerMenu(false); navigate('/library'); }}
               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-white hover:bg-white/10 transition-colors text-sm"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2605,11 +2608,11 @@ const App: React.FC = () => {
               </button>
             )}
             <div className="flex items-center justify-center gap-3 text-[10px] text-white/70">
-              <button onClick={() => { setShowBurgerMenu(false); setShowAboutUs(true); }} className="hover:text-white transition-colors">About</button>
+              <button onClick={() => { setShowBurgerMenu(false); navigate('/about'); }} className="hover:text-white transition-colors">About</button>
               <span>·</span>
-              <button onClick={() => { setShowBurgerMenu(false); setShowTerms(true); }} className="hover:text-white transition-colors">Terms</button>
+              <button onClick={() => { setShowBurgerMenu(false); navigate('/terms'); }} className="hover:text-white transition-colors">Terms</button>
               <span>·</span>
-              <button onClick={() => { setShowBurgerMenu(false); setShowPrivacy(true); }} className="hover:text-white transition-colors">Privacy</button>
+              <button onClick={() => { setShowBurgerMenu(false); navigate('/privacy'); }} className="hover:text-white transition-colors">Privacy</button>
             </div>
             <p className="text-[9px] text-white/50 text-center">© {new Date().getFullYear()} INrVO</p>
           </div>
