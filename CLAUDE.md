@@ -57,11 +57,14 @@ All API keys are server-side only. Edge functions in `supabase/functions/`:
 
 | Function | Purpose |
 |----------|---------|
-| `generate-speech` | TTS via Fish Audio (primary) with ElevenLabs legacy support |
-| `gemini-script` | Meditation script generation via Gemini API |
+| `generate-speech` | Unified TTS with provider routing (Fish Audio primary, Chatterbox fallback) |
+| `fish-audio-tts` | Fish Audio TTS with automatic Chatterbox fallback |
 | `fish-audio-clone` | Voice cloning via Fish Audio API |
-| `chatterbox-clone` | Fallback voice cloning via Replicate |
+| `gemini-script` | Meditation script generation via Gemini API |
 | `chatterbox-tts` | Fallback TTS via Replicate |
+| `chatterbox-clone` | Fallback voice cloning via Replicate |
+| `export-user-data` | GDPR-compliant user data export |
+| `health` | Health check endpoint |
 
 **Shared utilities** in `supabase/functions/_shared/`:
 - `compression.ts` - Response compression
@@ -123,11 +126,10 @@ import { supabase } from '@/lib/supabase';
 ## Bundle Optimization
 
 Vite config includes manual chunks for:
-- `react-vendor` - React/ReactDOM (~12KB)
-- `supabase-vendor` - Supabase client (~169KB)
-- `framer-motion-vendor` - Animation library (~116KB)
-- `sentry-vendor` - Error tracking (~11KB)
-- `edgeFunctions` - Voice cloning and Gemini API (~4KB, dynamically loaded)
+- `react-vendor` - React/ReactDOM
+- `supabase-vendor` - Supabase client
+- `framer-motion-vendor` - Animation library (~120KB)
+- `sentry-vendor` - Error tracking
 
 **Code Splitting Strategy:**
 - All page components lazy-loaded via `React.lazy()` in `src/router.tsx`

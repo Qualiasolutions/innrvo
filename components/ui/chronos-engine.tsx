@@ -31,8 +31,9 @@ const generateSparks = (count: number, radius: number) => {
 };
 
 /**
- * ChronosEngine - Animated gear/engine component
- * Used as agent profile avatar and loading indicator
+ * ChronosEngine - Animated clockwork gear component
+ * A procedurally animated clockwork simulation featuring rotating gears
+ * and dynamic spark trails with a glowing mechanical core.
  */
 export const ChronosEngine: React.FC<ChronosEngineProps> = ({
   variant = 'avatar',
@@ -44,60 +45,128 @@ export const ChronosEngine: React.FC<ChronosEngineProps> = ({
   const sizeConfig = useMemo(() => {
     switch (variant) {
       case 'avatar':
-        return { container: size || 32, gear1: 20, gear2: 12, gear3: 14, core: 6 };
+        return {
+          container: size || 32,
+          core: 10,
+          gear1: 28,
+          gear2: 22,
+          gear3: 18,
+          sparkCount: 0,
+          sparkRadius: 0,
+        };
       case 'mini':
-        return { container: size || 24, gear1: 14, gear2: 8, gear3: 10, core: 4 };
+        return {
+          container: size || 24,
+          core: 8,
+          gear1: 20,
+          gear2: 16,
+          gear3: 14,
+          sparkCount: 0,
+          sparkRadius: 0,
+        };
       case 'loading':
       default:
-        return { container: size || 120, gear1: 80, gear2: 50, gear3: 60, core: 20 };
+        return {
+          container: size || 200,
+          core: 40,
+          gear1: 180,
+          gear2: 140,
+          gear3: 100,
+          sparkCount: 15,
+          sparkRadius: 80,
+        };
     }
   }, [variant, size]);
 
-  // Generate sparks only for loading variant
-  const gear1Sparks = useMemo(() =>
-    variant === 'loading' && showSparks ? generateSparks(15, sizeConfig.gear1 / 2) : [],
-    [variant, showSparks, sizeConfig.gear1]
-  );
+  // Scale factor for CSS values (based on loading size being 200px reference)
+  const scale = sizeConfig.container / 200;
 
-  const gear3Sparks = useMemo(() =>
-    variant === 'loading' && showSparks ? generateSparks(10, sizeConfig.gear3 / 2) : [],
-    [variant, showSparks, sizeConfig.gear3]
+  // Generate sparks for loading variant
+  const sparks = useMemo(() =>
+    variant === 'loading' && showSparks
+      ? generateSparks(sizeConfig.sparkCount, sizeConfig.sparkRadius)
+      : [],
+    [variant, showSparks, sizeConfig.sparkCount, sizeConfig.sparkRadius]
   );
-
-  const containerStyle: React.CSSProperties = {
-    width: sizeConfig.container,
-    height: sizeConfig.container,
-  };
 
   return (
     <div
       className={`chronos-engine relative ${className}`}
-      style={containerStyle}
+      style={{
+        width: sizeConfig.container,
+        height: sizeConfig.container,
+      }}
     >
-      {/* Power Core - Central glowing element */}
+      {/* Power Core - Central glowing orb */}
       <div
-        className="power-core absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full z-10"
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full z-10"
         style={{
           width: sizeConfig.core,
           height: sizeConfig.core,
+          background: 'radial-gradient(circle, #fbbf24 0%, #f59e0b 40%, #d97706 70%, transparent 100%)',
+          animation: variant === 'loading' ? 'core-pulse 2s ease-in-out infinite' : 'core-pulse 3s ease-in-out infinite',
+          boxShadow: variant === 'loading'
+            ? '0 0 20px #fbbf24, 0 0 40px #f59e0b, 0 0 60px #d97706'
+            : `0 0 ${6 * scale}px #fbbf24, 0 0 ${12 * scale}px #f59e0b`,
         }}
       />
 
-      {/* Gear 1 - Largest, rotates clockwise */}
+      {/* Gear 1 - Largest, slow rotation */}
       <div
-        className="gear gear-1 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
         style={{
           width: sizeConfig.gear1,
           height: sizeConfig.gear1,
+          border: `${Math.max(2, 4 * scale)}px solid rgba(251, 191, 36, 0.3)`,
+          animation: 'rotate 20s linear infinite',
+          opacity: 0.6,
         }}
       >
+        {/* Gear teeth effect */}
+        <div
+          className="absolute rounded-full"
+          style={{
+            inset: -Math.max(8, 20 * scale),
+            background: `conic-gradient(
+              from 0deg,
+              transparent 0deg, rgba(251, 191, 36, 0.4) 10deg, transparent 20deg,
+              transparent 30deg, rgba(251, 191, 36, 0.4) 40deg, transparent 50deg,
+              transparent 60deg, rgba(251, 191, 36, 0.4) 70deg, transparent 80deg,
+              transparent 90deg, rgba(251, 191, 36, 0.4) 100deg, transparent 110deg,
+              transparent 120deg, rgba(251, 191, 36, 0.4) 130deg, transparent 140deg,
+              transparent 150deg, rgba(251, 191, 36, 0.4) 160deg, transparent 170deg,
+              transparent 180deg, rgba(251, 191, 36, 0.4) 190deg, transparent 200deg,
+              transparent 210deg, rgba(251, 191, 36, 0.4) 220deg, transparent 230deg,
+              transparent 240deg, rgba(251, 191, 36, 0.4) 250deg, transparent 260deg,
+              transparent 270deg, rgba(251, 191, 36, 0.4) 280deg, transparent 290deg,
+              transparent 300deg, rgba(251, 191, 36, 0.4) 310deg, transparent 320deg,
+              transparent 330deg, rgba(251, 191, 36, 0.4) 340deg, transparent 350deg,
+              transparent 360deg
+            )`,
+          }}
+        />
+        {/* Inner ring */}
+        <div
+          className="absolute rounded-full"
+          style={{
+            inset: '20%',
+            border: `${Math.max(1, 2 * scale)}px solid rgba(251, 191, 36, 0.2)`,
+          }}
+        />
+
+        {/* Spark emitter for gear 1 */}
         {variant === 'loading' && showSparks && (
-          <div className="spark-emitter absolute inset-0">
-            {gear1Sparks.map((spark) => (
+          <div className="absolute top-1/2 left-1/2">
+            {sparks.map((spark) => (
               <div
-                key={spark.key}
-                className="spark"
+                key={`g1-${spark.key}`}
+                className="absolute rounded-full"
                 style={{
+                  width: 4,
+                  height: 4,
+                  background: '#fbbf24',
+                  boxShadow: '0 0 6px #fbbf24, 0 0 12px #f59e0b',
+                  animation: 'spark-travel linear infinite',
                   '--spawn-x': spark.spawnX,
                   '--spawn-y': spark.spawnY,
                   '--travel-x': spark.travelX,
@@ -111,87 +180,137 @@ export const ChronosEngine: React.FC<ChronosEngineProps> = ({
         )}
       </div>
 
-      {/* Gear 2 - Medium, rotates counter-clockwise */}
+      {/* Gear 2 - Medium, counter-rotation */}
       <div
-        className="gear gear-2 absolute"
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
         style={{
           width: sizeConfig.gear2,
           height: sizeConfig.gear2,
-          top: '15%',
-          right: '10%',
+          border: `${Math.max(2, 4 * scale)}px solid rgba(245, 158, 11, 0.3)`,
+          animation: 'rotate 15s linear infinite reverse',
+          opacity: 0.5,
         }}
-      />
+      >
+        {/* Gear teeth effect */}
+        <div
+          className="absolute rounded-full"
+          style={{
+            inset: -Math.max(6, 15 * scale),
+            background: `conic-gradient(
+              from 0deg,
+              transparent 0deg, rgba(245, 158, 11, 0.35) 15deg, transparent 30deg,
+              transparent 45deg, rgba(245, 158, 11, 0.35) 60deg, transparent 75deg,
+              transparent 90deg, rgba(245, 158, 11, 0.35) 105deg, transparent 120deg,
+              transparent 135deg, rgba(245, 158, 11, 0.35) 150deg, transparent 165deg,
+              transparent 180deg, rgba(245, 158, 11, 0.35) 195deg, transparent 210deg,
+              transparent 225deg, rgba(245, 158, 11, 0.35) 240deg, transparent 255deg,
+              transparent 270deg, rgba(245, 158, 11, 0.35) 285deg, transparent 300deg,
+              transparent 315deg, rgba(245, 158, 11, 0.35) 330deg, transparent 345deg,
+              transparent 360deg
+            )`,
+          }}
+        />
+        {/* Inner ring */}
+        <div
+          className="absolute rounded-full"
+          style={{
+            inset: '25%',
+            border: `${Math.max(1, 2 * scale)}px solid rgba(245, 158, 11, 0.15)`,
+          }}
+        />
+      </div>
 
-      {/* Gear 3 - Small, rotates clockwise (faster) */}
+      {/* Gear 3 - Small, fast rotation */}
       <div
-        className="gear gear-3 absolute"
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
         style={{
           width: sizeConfig.gear3,
           height: sizeConfig.gear3,
-          bottom: '15%',
-          left: '5%',
+          border: `${Math.max(1, 3 * scale)}px solid rgba(251, 191, 36, 0.35)`,
+          animation: 'rotate 10s linear infinite',
+          opacity: 0.7,
         }}
       >
-        {variant === 'loading' && showSparks && (
-          <div className="spark-emitter absolute inset-0">
-            {gear3Sparks.map((spark) => (
-              <div
-                key={spark.key}
-                className="spark"
-                style={{
-                  '--spawn-x': spark.spawnX,
-                  '--spawn-y': spark.spawnY,
-                  '--travel-x': spark.travelX,
-                  '--travel-y': spark.travelY,
-                  animationDuration: `${spark.duration}s`,
-                  animationDelay: `${spark.delay}s`,
-                } as React.CSSProperties}
-              />
-            ))}
-          </div>
-        )}
+        {/* Gear teeth effect */}
+        <div
+          className="absolute rounded-full"
+          style={{
+            inset: -Math.max(4, 12 * scale),
+            background: `conic-gradient(
+              from 0deg,
+              transparent 0deg, rgba(251, 191, 36, 0.4) 20deg, transparent 40deg,
+              transparent 60deg, rgba(251, 191, 36, 0.4) 80deg, transparent 100deg,
+              transparent 120deg, rgba(251, 191, 36, 0.4) 140deg, transparent 160deg,
+              transparent 180deg, rgba(251, 191, 36, 0.4) 200deg, transparent 220deg,
+              transparent 240deg, rgba(251, 191, 36, 0.4) 260deg, transparent 280deg,
+              transparent 300deg, rgba(251, 191, 36, 0.4) 320deg, transparent 340deg,
+              transparent 360deg
+            )`,
+          }}
+        />
       </div>
     </div>
   );
 };
 
 /**
- * ChronosAvatar - Simplified avatar version with gradient background
- * Drop-in replacement for SparkleIcon in agent profile
+ * ChronosAvatar - Compact avatar version for agent profile
+ * Features the animated clockwork design in a small format
  */
-export const ChronosAvatar: React.FC<{ className?: string }> = ({ className = '' }) => (
-  <div className={`relative overflow-hidden rounded-full bg-gradient-to-br from-cyan-500 to-purple-600
-                   flex items-center justify-center shadow-lg shadow-cyan-500/30 ${className}`}
-       style={{ width: 32, height: 32 }}>
-    <ChronosEngine variant="avatar" showSparks={false} />
+export const ChronosAvatar: React.FC<{ className?: string; size?: number }> = ({
+  className = '',
+  size = 32,
+}) => (
+  <div
+    className={`relative overflow-hidden rounded-full flex items-center justify-center ${className}`}
+    style={{
+      width: size,
+      height: size,
+      background: 'radial-gradient(circle, #1a1a2e 0%, #0f0f1a 100%)',
+    }}
+  >
+    <ChronosEngine variant="avatar" size={size} showSparks={false} />
   </div>
 );
 
 /**
  * ChronosLoader - Full loading state with message
+ * Shows the complete clockwork animation with sparks
  */
 export const ChronosLoader: React.FC<{
   message?: string;
   className?: string;
+  size?: number;
 }> = ({
   message = 'Processing...',
-  className = ''
+  className = '',
+  size = 200,
 }) => (
-  <div className={`flex flex-col items-center gap-4 ${className}`}>
-    <ChronosEngine variant="loading" />
+  <div className={`flex flex-col items-center gap-6 ${className}`}>
+    <div
+      className="relative"
+      style={{
+        background: 'radial-gradient(ellipse at center, #1a1a2e 0%, transparent 70%)',
+        padding: 20,
+        borderRadius: '50%',
+      }}
+    >
+      <ChronosEngine variant="loading" size={size} />
+    </div>
     {message && (
-      <span className="text-white/60 text-sm animate-pulse">{message}</span>
+      <span className="text-amber-400/80 text-sm font-medium animate-pulse">{message}</span>
     )}
   </div>
 );
 
 /**
  * ChronosMiniLoader - Inline loading indicator
+ * Compact version for inline "thinking" states
  */
 export const ChronosMiniLoader: React.FC<{ className?: string }> = ({ className = '' }) => (
   <div className={`flex items-center gap-2 ${className}`}>
-    <ChronosEngine variant="mini" showSparks={false} />
-    <span className="text-white/40 text-sm">Thinking...</span>
+    <ChronosAvatar size={24} />
+    <span className="text-amber-400/60 text-sm">Thinking...</span>
   </div>
 );
 
