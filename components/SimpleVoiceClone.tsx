@@ -69,9 +69,10 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
 
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          sampleRate: 44100,
+          echoCancellation: false,     // Preserve natural voice characteristics
+          noiseSuppression: false,     // Keep voice qualities for better cloning
+          autoGainControl: false,      // Preserve natural volume dynamics
+          sampleRate: 44100,           // High quality sample rate
         }
       });
       streamRef.current = stream;

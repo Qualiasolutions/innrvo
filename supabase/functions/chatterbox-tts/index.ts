@@ -42,10 +42,13 @@ async function runChatterboxTTS(
   log: ReturnType<typeof createLogger>
 ): Promise<string> {
   // Create prediction - Chatterbox uses 'prompt' not 'text'
+  // Default values optimized for calm, natural meditation delivery:
+  // - exaggeration: 0.35 (lower = calmer, less emphatic - default 0.5 is too energetic)
+  // - cfg_weight: 0.5 (balanced pacing for deliberate meditation delivery)
   const input: Record<string, unknown> = {
     prompt: text,
-    exaggeration: options.exaggeration ?? 0.5,
-    cfg_weight: options.cfgWeight ?? 0.5,
+    exaggeration: options.exaggeration ?? 0.35,  // Calm meditation voice
+    cfg_weight: options.cfgWeight ?? 0.5,        // Deliberate pacing
   };
 
   // Add audio prompt if we have a cloned voice reference

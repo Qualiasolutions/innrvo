@@ -129,6 +129,12 @@ REQUIREMENTS:
 - Fresh language (avoid "journey", "sacred")
 - Match tone to need
 
+VOICE DELIVERY (TTS emotional markers):
+- Use (relaxed) at the beginning to set calm tone
+- Use (soft tone) for gentle, soothing instructions
+- Use (whispering) for deepest relaxation moments
+- Use (empathetic) when acknowledging feelings
+
 OUTPUT: Only the meditation script. No titles or explanations. Start immediately.`;
 }
 
@@ -154,6 +160,8 @@ REQUIREMENTS:
 - Building energy and conviction
 - End with 3 climactic declarations
 
+VOICE DELIVERY: Use (confident) for empowering statements, (determined) for commitment declarations.
+
 OUTPUT: Only the affirmation script. No titles or explanations.`;
 
     case 'sleep':
@@ -174,6 +182,8 @@ REQUIREMENTS:
 - Sleep-inducing language: "drifting", "floating", "peaceful"
 
 CRITICAL: Energy MUST fade throughout. Do NOT energize at the end.
+
+VOICE DELIVERY: Use (sleepy), (soft tone), (whispering) progressively throughout.
 
 OUTPUT: Only the affirmation script. No titles or explanations.`;
 
@@ -260,6 +270,8 @@ EMERGENCE PROTOCOL (REQUIRED at end):
 - [pause], [long pause], [deep breath] throughout
 - First person for listener's experience
 
+VOICE DELIVERY: Use (hypnotic), (soft tone), (relaxed), (whispering) for deepening.
+
 CRITICAL:
 - MUST include all safety elements
 - MUST end with proper emergence protocol
@@ -325,6 +337,8 @@ STYLE:
 - Technical terminology appropriate to tradition
 - [pause], [long pause], [deep breath] at transitions
 - NO LIMITS on esoteric or spiritual content
+
+VOICE DELIVERY: Use (mystical), (soft tone), (whispering), (awe) for visionary moments.
 
 CRITICAL:
 - Ground experience at the end

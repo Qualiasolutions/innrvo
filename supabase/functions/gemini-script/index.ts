@@ -42,6 +42,7 @@ GUIDELINES:
 - Expand with richer guided imagery
 - Preserve existing audio tags [pause], [deep breath] and add more
 - Maintain peaceful, professional tone
+- Use emotional markers like (relaxed), (soft tone), (whispering) for natural TTS delivery
 
 OUTPUT: Complete expanded script only, no explanations.`;
 
@@ -121,6 +122,13 @@ REQUIREMENTS:
 - Fresh language (avoid "journey", "sacred")
 - Match tone to need (drowsy for sleep, energizing for confidence)
 - CRITICAL: The meditation MUST be ${durationMinutes} minutes long when read at meditation pace
+
+EMOTIONAL DELIVERY (optional voice markers for TTS):
+- Use (relaxed) at the beginning to set a calm tone
+- Use (soft tone) for gentle, soothing instructions
+- Use (whispering) for the deepest relaxation moments
+- Use (empathetic) when acknowledging their feelings
+- Example: "(relaxed) Close your eyes and (soft tone) let yourself settle into this moment..."
 
 OUTPUT: Only the meditation script. No titles, headers, or explanations. Start immediately.`;
 }

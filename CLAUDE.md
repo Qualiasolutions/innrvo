@@ -103,6 +103,67 @@ Three-tier TTS provider system:
 
 Provider selection happens in `voiceService.detectProvider()` based on voice profile fields.
 
+## Voice Quality Optimization
+
+### Fish Audio Settings (Edge Functions)
+
+Optimized for natural, meditation-style delivery:
+
+| Setting | Value | Purpose |
+|---------|-------|---------|
+| `mp3_bitrate` | 192 | Higher quality audio (vs default 128) |
+| `model` header | `speech-1.6` | Enables paralanguage effects |
+| `normalize` | true | Consistent volume levels |
+| `latency` | `normal` | Best quality (vs `balanced`) |
+| `train_mode` | `fast_high_quality` | Better voice clone fidelity |
+
+### Fish Audio V1.6 Paralanguage Effects
+
+The `voiceService.ts` converts meditation script tags to Fish Audio effects:
+
+| Script Tag | Fish Audio Effect | Result |
+|------------|------------------|--------|
+| `[pause]` | `(break)` | Short pause |
+| `[long pause]` | `(long-break)` | Extended pause |
+| `[deep breath]` | `(breath)` | Breathing sound |
+| `[exhale slowly]` | `(sigh)` | Sighing sound |
+
+Additional meditation pacing is applied automatically:
+- `(long-break)` after sentences
+- `(break)` after commas
+- `(breath)` after "breathe in/inhale"
+- `(sigh)` after "breathe out/exhale"
+
+### Chatterbox Settings
+
+Optimized for calm meditation delivery:
+
+| Setting | Value | Purpose |
+|---------|-------|---------|
+| `exaggeration` | 0.35 | Lower = calmer, less emphatic (default 0.5) |
+| `cfg_weight` | 0.5-0.6 | Deliberate pacing |
+
+### Voice Recording Settings
+
+`SimpleVoiceClone.tsx` captures raw audio for better cloning:
+
+```typescript
+audio: {
+  echoCancellation: false,   // Preserve natural voice
+  noiseSuppression: false,   // Keep voice qualities
+  autoGainControl: false,    // Natural volume dynamics
+  sampleRate: 44100,
+}
+```
+
+### Script Generation Emotional Markers
+
+`gemini-script` and `_shared/contentTemplates.ts` include emotional markers for TTS:
+- `(relaxed)`, `(soft tone)`, `(whispering)`, `(empathetic)` - Meditations
+- `(confident)`, `(determined)` - Power Affirmations
+- `(sleepy)`, `(whispering)` - Sleep Affirmations
+- `(hypnotic)`, `(relaxed)` - Self-Hypnosis
+
 ## Environment Variables
 
 Frontend (`.env.local`):

@@ -67,14 +67,16 @@ async function runFishAudioTTS(
     headers: {
       'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
+      'model': 'speech-1.6',     // V1.6 supports paralanguage effects: (break), (breath), (sigh)
     },
     body: JSON.stringify({
       reference_id: modelId,
       text,
       chunk_length: 200,
       format: options?.format ?? 'mp3',
-      mp3_bitrate: 128,
-      latency: 'normal',
+      mp3_bitrate: 192,          // Higher quality for meditation (vs 128)
+      latency: 'normal',         // Best quality (vs 'balanced')
+      normalize: true,           // Consistent volume
       streaming: false,
     }),
   });

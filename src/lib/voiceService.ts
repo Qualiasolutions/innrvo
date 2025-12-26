@@ -6,30 +6,69 @@ import { webSpeechService, isWebSpeechAvailable } from './webSpeechService';
 // - 'browser': Free Web Speech API (built-in browser TTS)
 
 /**
- * Strip audio tags from text before sending to TTS
- * TTS services speak these literally which causes timing sync issues
+ * Convert audio tags to Fish Audio paralanguage effects
+ * Instead of stripping tags, we convert them to TTS-supported effects
+ *
+ * Fish Audio V1.6 supported effects:
+ * - (break) - Short pause
+ * - (long-break) - Extended pause
+ * - (breath) - Breathing sound
+ * - (sigh) - Sighing sound
  */
-function stripAudioTags(text: string): string {
-  return text.replace(/\[[^\]]+\]/g, '').replace(/\s+/g, ' ').trim();
+function convertAudioTagsToEffects(text: string): string {
+  let processed = text;
+
+  // Convert known audio tags to Fish Audio paralanguage effects
+  processed = processed.replace(/\[pause\]/gi, '(break)');
+  processed = processed.replace(/\[long pause\]/gi, '(long-break)');
+  processed = processed.replace(/\[deep breath\]/gi, '(breath)');
+  processed = processed.replace(/\[exhale slowly\]/gi, '(sigh)');
+  processed = processed.replace(/\[sigh\]/gi, '(sigh)');
+  processed = processed.replace(/\[breath\]/gi, '(breath)');
+
+  // Strip any remaining unknown tags (they would be spoken literally)
+  processed = processed.replace(/\[[^\]]+\]/g, '');
+
+  return processed.replace(/\s+/g, ' ').trim();
 }
 
 /**
  * Pre-process text for meditation-style natural speech
- * Adds subtle pauses at sentence boundaries for a calm but natural delivery
+ * Uses Fish Audio V1.6 paralanguage effects for natural pauses and breathing
+ *
+ * Supported Fish Audio effects:
+ * - (break) - Short pause
+ * - (long-break) - Extended pause
+ * - (breath) - Breathing sound
+ * - (sigh) - Sighing sound
  */
 function prepareMeditationText(text: string): string {
   let processed = text;
 
-  // Add gentle pauses after sentences only (not after every comma)
-  // Single ellipsis for natural breath pauses between sentences
-  processed = processed.replace(/\.(\s+)/g, '. ... $1');
-  processed = processed.replace(/\!(\s+)/g, '! ... $1');
-  processed = processed.replace(/\?(\s+)/g, '? ... $1');
+  // 1. Add pauses after sentences for meditation pacing
+  processed = processed.replace(/\.(\s+)(?=[A-Z])/g, '. (long-break) $1');  // Extended pause between sentences
+  processed = processed.replace(/\!(\s+)(?=[A-Z])/g, '! (break) $1');       // Short pause for exclamations
+  processed = processed.replace(/\?(\s+)(?=[A-Z])/g, '? (break) $1');       // Short pause for questions
 
-  // Preserve existing ellipses as longer pauses
-  processed = processed.replace(/\.\.\.(?!\s*\.)/g, '..... ');
+  // 2. Add subtle pauses after commas for natural phrasing
+  processed = processed.replace(/,(\s+)/g, ', (break) $1');
 
-  // Clean up multiple spaces
+  // 3. Add breath sounds for breathing instructions
+  processed = processed.replace(/\b(breathe in|inhale)\b/gi, '$1 (breath) (long-break) ');
+  processed = processed.replace(/\b(breathe out|exhale)\b/gi, '$1 (sigh) (long-break) ');
+
+  // 4. Add pauses around key meditation words for emphasis
+  processed = processed.replace(
+    /\b(relax|release|let go|soften|peace|calm|stillness)\b/gi,
+    '(break) $1 (break)'
+  );
+
+  // 5. Convert existing ellipses to Fish Audio pauses
+  processed = processed.replace(/\.{3,}/g, '(long-break)');
+
+  // Clean up multiple spaces and redundant consecutive effects
+  processed = processed.replace(/\(break\)\s*\(break\)/g, '(long-break)');
+  processed = processed.replace(/\(long-break\)\s*\(long-break\)/g, '(long-break)');
   processed = processed.replace(/\s+/g, ' ').trim();
 
   return processed;
@@ -54,10 +93,10 @@ export const voiceService = {
     voice: VoiceProfile,
     audioContext?: AudioContext
   ): Promise<{ audioBuffer: AudioBuffer | null; base64: string; usedWebSpeech?: boolean }> {
-    // Strip audio tags before sending to TTS - they would be spoken literally
-    const cleanText = stripAudioTags(text);
+    // Convert audio tags to Fish Audio paralanguage effects (e.g., [pause] -> (break))
+    const cleanText = convertAudioTagsToEffects(text);
 
-    // Prepare text for slower, meditation-style delivery
+    // Prepare text for slower, meditation-style delivery with additional effects
     const meditationText = prepareMeditationText(cleanText);
 
     const provider = voice.provider || this.detectProvider(voice);

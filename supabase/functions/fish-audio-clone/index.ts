@@ -29,6 +29,7 @@ interface FishAudioCloneRequest {
   audioBase64: string;
   voiceName: string;
   description?: string;
+  highQuality?: boolean;  // Use high-quality training (slower but better)
   metadata?: {
     language?: string;
     accent?: string;
@@ -70,15 +71,21 @@ async function createFishAudioModel(
   title: string,
   description: string,
   apiKey: string,
+  highQuality: boolean,
   log: ReturnType<typeof createLogger>
 ): Promise<string> {
-  log.info('Creating Fish Audio voice model', { title, audioSize: audioBlob.size });
+  const trainMode = highQuality ? 'fast_high_quality' : 'fast';
+  log.info('Creating Fish Audio voice model', {
+    title,
+    audioSize: audioBlob.size,
+    trainMode
+  });
 
   // Create form data for multipart upload
   const formData = new FormData();
   formData.append('type', 'tts');
   formData.append('title', title);
-  formData.append('train_mode', 'fast');  // Immediate availability
+  formData.append('train_mode', trainMode);  // fast_high_quality for better results
   formData.append('visibility', 'private');  // User's private voice
   formData.append('description', description);
   formData.append('voices', audioBlob, 'voice_sample.wav');
@@ -166,7 +173,7 @@ serve(async (req) => {
       return createRateLimitResponse(rateLimitResult, allHeaders);
     }
 
-    const { audioBase64, voiceName, description, metadata }: FishAudioCloneRequest = await req.json();
+    const { audioBase64, voiceName, description, metadata, highQuality }: FishAudioCloneRequest = await req.json();
 
     if (!audioBase64 || !voiceName) {
       return new Response(
@@ -214,6 +221,7 @@ serve(async (req) => {
           voiceName,
           description || 'Voice clone created with INrVO',
           FISH_AUDIO_API_KEY,
+          highQuality ?? true,  // Default to high quality for better naturalness
           log
         ).catch((error) => {
           log.warn('Fish Audio model creation failed, using Chatterbox only', { error: error.message });

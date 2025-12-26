@@ -289,13 +289,13 @@ export async function generateSpeech(
     cfgWeight?: number;     // 0-1, quality weight
   }
 ): Promise<string> {
-  // Settings optimized for natural, high-quality voice cloning
+  // Settings optimized for calm, natural meditation delivery
   const response = await callEdgeFunction<{ success: boolean; audioBase64: string }>('generate-speech', {
     voiceId,
     text,
     voiceSettings: voiceSettings || {
-      exaggeration: 0.5,  // Neutral for natural voice (0.3 was too flat)
-      cfgWeight: 0.7,     // Higher for better quality (0.5 was lower quality)
+      exaggeration: 0.35,  // Lower for calmer delivery (meditation-optimized)
+      cfgWeight: 0.6,      // Balanced for deliberate pacing
     },
   });
 
@@ -411,8 +411,8 @@ export async function chatterboxTTS(
   const response = await callEdgeFunction<{ success: boolean; audioBase64: string; format: string }>('chatterbox-tts', {
     voiceId,
     text,
-    exaggeration: options?.exaggeration ?? 0.5,
-    cfgWeight: options?.cfgWeight ?? 0.5,
+    exaggeration: options?.exaggeration ?? 0.35,  // Lower for calm meditation
+    cfgWeight: options?.cfgWeight ?? 0.6,         // Balanced for deliberate pacing
   });
 
   return response.audioBase64;
@@ -513,12 +513,15 @@ export async function fishAudioTTS(
 /**
  * Clone a voice using Fish Audio (with Chatterbox storage for fallback)
  * Creates both a Fish Audio model and stores sample for Chatterbox backup
+ *
+ * @param highQuality - Use high-quality training mode (slower but better results). Default: true
  */
 export async function fishAudioCloneVoice(
   audioBlob: Blob,
   name: string,
   description?: string,
-  metadata?: VoiceMetadata
+  metadata?: VoiceMetadata,
+  highQuality: boolean = true  // Default to high quality for natural voice
 ): Promise<FishAudioCloneResponse> {
   const token = await getAuthToken();
   const base64Audio = await blobToBase64(audioBlob);
@@ -536,6 +539,7 @@ export async function fishAudioCloneVoice(
       voiceName: name,
       description: description || 'Voice clone created with INrVO',
       metadata: metadata || undefined,
+      highQuality,  // Use high-quality training for better voice naturalness
     }),
   });
 
