@@ -112,10 +112,11 @@ function calculateBackoffDelay(
 /**
  * Get the current session token for authenticated requests
  * Uses cached token to avoid database round-trip on every API call
+ * Returns null for anonymous users (edge functions can handle anonymous requests)
  */
-async function getAuthToken(): Promise<string> {
+async function getAuthToken(): Promise<string | null> {
   if (!supabase) {
-    throw new Error('Supabase not configured');
+    return null; // Allow anonymous access
   }
 
   // Use cached token if valid and not expired
@@ -123,22 +124,22 @@ async function getAuthToken(): Promise<string> {
     return cachedAuthToken;
   }
 
-  // Fallback to fetching session (also refreshes cache)
-  const { data: { session }, error } = await supabase.auth.getSession();
+  // Try to get session (returns null if not authenticated)
+  const { data: { session } } = await supabase.auth.getSession();
 
-  if (error || !session?.access_token) {
-    throw new Error('Not authenticated. Please sign in.');
+  if (session?.access_token) {
+    // Update cache
+    cachedAuthToken = session.access_token;
+    tokenExpiresAt = Date.now() + (55 * 60 * 1000);
+    return session.access_token;
   }
 
-  // Update cache
-  cachedAuthToken = session.access_token;
-  tokenExpiresAt = Date.now() + (55 * 60 * 1000);
-
-  return session.access_token;
+  return null; // Anonymous user
 }
 
 /**
- * Call an Edge Function with authentication, request tracing, and retry logic
+ * Call an Edge Function with optional authentication, request tracing, and retry logic
+ * Supports both authenticated and anonymous requests
  */
 async function callEdgeFunction<T>(
   functionName: string,
@@ -152,9 +153,13 @@ async function callEdgeFunction<T>(
   const url = `${SUPABASE_URL}/functions/v1/${functionName}`;
 
   const headers: Record<string, string> = {
-    'Authorization': `Bearer ${token}`,
     'X-Request-ID': requestId,
   };
+
+  // Add authorization header only if user is authenticated
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
 
   let requestBody: BodyInit;
 
@@ -576,15 +581,11 @@ export async function generateSpeechWithFallback(
 // ============================================================================
 
 /**
- * Check if Edge Functions are available and user is authenticated
- * Used to gracefully fall back to direct API calls if needed
+ * Check if Edge Functions are available
+ * Edge Functions now support both authenticated and anonymous users
  */
 export async function isEdgeFunctionAvailable(): Promise<boolean> {
-  try {
-    if (!supabase) return false;
-    const { data: { session } } = await supabase.auth.getSession();
-    return !!session?.access_token;
-  } catch {
-    return false;
-  }
+  // Edge functions are available if Supabase is configured
+  // They now support anonymous access with IP-based rate limiting
+  return !!supabase && !!SUPABASE_URL;
 }

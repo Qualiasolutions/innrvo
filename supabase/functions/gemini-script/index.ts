@@ -153,34 +153,43 @@ serve(async (req) => {
   const log = createLogger({ requestId, operation: 'gemini-script' });
 
   try {
-    // Validate user from JWT token
+    // Try to validate user from JWT token (optional - allows anonymous access)
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      log.warn('Missing authorization header');
-      return new Response(
-        JSON.stringify({ error: 'Missing authorization header', requestId }),
-        { status: 401, headers: { ...allHeaders, 'Content-Type': 'application/json' } }
-      );
+    let userId: string | null = null;
+    let isAnonymous = true;
+
+    if (authHeader) {
+      const supabase = getSupabaseClient();
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      if (!authError && user) {
+        userId = user.id;
+        isAnonymous = false;
+        log.info('Request authenticated', { userId: user.id });
+      }
     }
 
-    const supabase = getSupabaseClient();
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) {
-      log.warn('Invalid or expired token', { authError: authError?.message });
-      return new Response(
-        JSON.stringify({ error: 'Invalid or expired token', requestId }),
-        { status: 401, headers: { ...allHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    // For anonymous users, use IP address for rate limiting (with lower limits)
+    const clientIP = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+                     req.headers.get('x-real-ip') ||
+                     'unknown';
 
-    log.info('Request authenticated', { userId: user.id });
+    // Rate limit key: use userId if authenticated, otherwise IP address
+    const rateLimitKey = userId || `anon:${clientIP}`;
 
-    // Check rate limit
-    const rateLimitResult = checkRateLimit(user.id, RATE_LIMITS.script);
+    // Apply stricter rate limits for anonymous users
+    const rateLimit = isAnonymous
+      ? { maxRequests: 5, windowMs: 60000 }  // 5 requests per minute for anonymous
+      : RATE_LIMITS.script;
+
+    const rateLimitResult = checkRateLimit(rateLimitKey, rateLimit);
     if (!rateLimitResult.allowed) {
-      log.warn('Rate limit exceeded', { userId: user.id, remaining: rateLimitResult.remaining });
+      log.warn('Rate limit exceeded', { rateLimitKey, remaining: rateLimitResult.remaining, isAnonymous });
       return createRateLimitResponse(rateLimitResult, allHeaders);
+    }
+
+    if (isAnonymous) {
+      log.info('Anonymous request', { clientIP, rateLimitKey });
     }
 
     // Parse request body

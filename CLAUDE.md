@@ -18,22 +18,22 @@ npm run preview          # Preview production build
 npm test                 # Run tests in watch mode
 npm run test:run         # Run tests once
 npm run test:coverage    # Run with coverage report
+npm run test:ui          # Run tests with Vitest UI
+vitest run src/lib/credits.test.ts  # Run single test file
 ```
 
 ## Architecture
 
 ### Frontend (React 19 + Vite)
 
-**Entry Points:**
-- `index.tsx` - App initialization with Sentry
-- `App.tsx` - Main component (~2000 lines, manages all app state)
+**Routing:** Uses React Router v7 with lazy-loaded pages (`src/router.tsx`). All pages are code-split via `React.lazy()`.
 
 **State Management:**
 - React Context for cross-cutting concerns:
   - `src/contexts/VoiceContext.tsx` - Voice selection state
-  - `src/contexts/ModalContext.tsx` - Modal visibility coordination
+  - `src/contexts/ModalContext.tsx` - Modal visibility coordination (with sub-contexts in `src/contexts/modals/`)
   - `src/contexts/AudioContext.tsx` - Audio playback state
-- Local state in App.tsx for meditation flow
+  - `src/contexts/AppContext.tsx` - App-wide state
 
 **Key Components:**
 - `components/V0MeditationPlayer/` - Main player with audio visualization
@@ -45,6 +45,7 @@ npm run test:coverage    # Run with coverage report
 - `lib/supabase.ts` - Supabase client and all database operations
 - `src/lib/edgeFunctions.ts` - Edge function wrappers with retry logic
 - `src/lib/voiceService.ts` - TTS provider routing (Fish Audio primary, Chatterbox fallback, Web Speech API free tier)
+- `src/lib/credits.ts` - Credit system (currently disabled, returns unlimited credits)
 
 ### Backend (Supabase Edge Functions)
 
@@ -70,6 +71,9 @@ All API keys are server-side only. Edge functions in `supabase/functions/`:
 - `MeditationAgent.ts` - Conversational AI that understands emotional states and generates meditation prompts
 - `knowledgeBase.ts` - Wisdom traditions, meditation types, emotional state detection
 - `conversationStore.ts` - Conversation persistence
+- `contentTypes.ts` - 5 content categories: Meditations, Affirmations, Self-Hypnosis, Guided Journeys, Children's Stories
+- `contentDetection.ts` - Intelligent content type detection from user input
+- `promptTemplates.ts` - Category-specific prompt generation
 
 The agent is designed to **converse first, generate later** - it only creates meditation scripts when explicitly requested.
 
@@ -121,3 +125,9 @@ Vite config includes manual chunks for:
 - `sentry-vendor` - Error tracking
 
 Lazy-loaded components via `React.lazy()` save ~400KB on initial load.
+
+## Testing
+
+- Test environment: happy-dom (configured in `vitest.config.ts`)
+- Test setup: `tests/setup.ts` includes mocks for AudioContext, MediaRecorder, and fetch
+- Coverage thresholds: `src/lib/credits.ts` has strict 90% coverage requirement
