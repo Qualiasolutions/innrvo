@@ -465,6 +465,11 @@ export interface ContentDetectionResult {
     subType: string;
     confidence: number;
   }>;
+  /**
+   * True when input is general conversation (greetings, small talk)
+   * that should flow to LLM without content detection intervention
+   */
+  isConversational?: boolean;
 }
 
 // ============================================================================

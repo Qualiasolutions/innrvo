@@ -470,9 +470,46 @@ export class ContentDetector {
   }
 
   /**
+   * Check if the input is a general conversation (greetings, small talk)
+   * These should NOT trigger content detection or disambiguation
+   */
+  private isGeneralConversation(input: string): boolean {
+    const conversationalPatterns = [
+      // Greetings
+      /^(?:hi|hello|hey|greetings|good\s+(?:morning|afternoon|evening)|howdy|hiya|yo|sup)[\s!.,?]*$/i,
+      // How are you variations
+      /^(?:how\s+are\s+you|how\s+r\s+u|how's\s+it\s+going|what's\s+up|whats\s+up|how\s+do\s+you\s+do)[\s!.,?]*$/i,
+      // Simple emotional statements (should trigger conversation, not content generation)
+      /^(?:i'?m\s+(?:feeling\s+)?(?:good|fine|ok|okay|great|tired|bored|happy|sad))[\s!.,?]*$/i,
+      // Basic questions about Claude
+      /^(?:who\s+are\s+you|what\s+are\s+you|what\s+can\s+you\s+do|tell\s+me\s+about\s+yourself)[\s!.,?]*$/i,
+      // Thank you / pleasantries
+      /^(?:thanks?(?:\s+you)?|thank\s+you(?:\s+so\s+much)?|thx|ty|you're\s+welcome|np|no\s+problem)[\s!.,?]*$/i,
+      // Goodbye
+      /^(?:bye|goodbye|see\s+you|later|cya|talk\s+(?:to\s+you\s+)?later|gtg|gotta\s+go)[\s!.,?]*$/i,
+      // Very short inputs (likely conversational)
+      /^.{1,10}$/,
+    ];
+
+    return conversationalPatterns.some(pattern => pattern.test(input.trim()));
+  }
+
+  /**
    * Semantic detection using keyword cluster scoring
    */
   private semanticDetection(input: string): ContentDetectionResult {
+    // FIRST: Check if this is general conversation - don't try to detect content
+    if (this.isGeneralConversation(input)) {
+      return {
+        category: 'meditation',
+        subType: 'guided_visualization',
+        confidence: 0, // Zero confidence = not a content request
+        audience: 'adult',
+        needsDisambiguation: false, // Let normal conversation flow through
+        isConversational: true, // Flag for the agent to know this is just chat
+      };
+    }
+
     const scores: Map<string, { score: number; category: ContentCategory; subType: string }> = new Map();
 
     // Score each keyword cluster
@@ -531,15 +568,15 @@ export class ContentDetector {
       }
     }
 
-    // Default to meditation if nothing matched
+    // If no keywords matched, this is likely conversation - let it flow through
     if (!bestMatch) {
       return {
         category: 'meditation',
         subType: 'guided_visualization',
-        confidence: 30, // Low confidence - will trigger disambiguation
+        confidence: 0, // Zero confidence = not a content request
         audience: 'adult',
-        needsDisambiguation: true,
-        disambiguationQuestion: 'I\'d love to help you. What kind of experience are you looking for? A meditation, affirmations, self-hypnosis, a guided journey, or perhaps a children\'s bedtime story?',
+        needsDisambiguation: false, // DON'T block with disambiguation
+        isConversational: true, // Flag this as conversational
       };
     }
 

@@ -347,10 +347,17 @@ export class MeditationAgent {
       subType: detection.subType,
       confidence: detection.confidence,
       needsDisambiguation: detection.needsDisambiguation,
+      isConversational: detection.isConversational,
     });
 
-    // Handle disambiguation if needed
-    if (detection.needsDisambiguation && detection.confidence < 70) {
+    // CRITICAL: If this is conversational input (greetings, small talk), skip all detection
+    // and let it flow naturally to the LLM
+    if (detection.isConversational || detection.confidence === 0) {
+      // Continue to normal conversational flow below (build prompt, generate, etc.)
+      console.log('[MeditationAgent] Conversational input detected, flowing to LLM');
+    }
+    // Handle disambiguation ONLY for actual content requests with low confidence
+    else if (detection.needsDisambiguation && detection.confidence < 70 && detection.confidence > 0) {
       this.context.sessionState.awaitingDisambiguation = true;
       this.context.sessionState.lastDetectionResult = detection;
 
@@ -361,9 +368,8 @@ export class MeditationAgent {
         emotionalState: emotionalState?.id,
       };
     }
-
     // High confidence detection - route to content generation if explicit request
-    if (detection.confidence >= 70 && this.isExplicitGenerationRequest(userMessage)) {
+    else if (detection.confidence >= 70 && this.isExplicitGenerationRequest(userMessage)) {
       return this.routeToContentGeneration(detection, emotionalState?.id);
     }
 
