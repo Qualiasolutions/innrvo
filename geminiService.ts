@@ -84,7 +84,12 @@ function validateHarmonizedOutput(script: string): string {
     return '';
   });
 
-  return sanitized.replace(/\s{2,}/g, ' ').trim();
+  // Clean up extra spaces while preserving all line breaks
+  return sanitized
+    .replace(/\r\n/g, '\n')           // Normalize line endings
+    .replace(/[ \t]{2,}/g, ' ')       // Clean up multiple spaces/tabs (preserve newlines)
+    .replace(/\n{3,}/g, '\n\n')       // Collapse 3+ newlines to 2
+    .trim();
 }
 
 export const geminiService = {

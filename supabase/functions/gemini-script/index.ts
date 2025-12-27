@@ -83,14 +83,12 @@ function validateHarmonizedOutput(script: string): string {
     return '';
   });
 
-  // Clean up extra spaces while preserving paragraph breaks (double newlines)
-  // First normalize line endings, then preserve paragraph breaks, clean spaces, restore paragraphs
+  // Clean up extra spaces while preserving all line breaks
+  // Normalize line endings and clean up horizontal spacing only
   return sanitized
     .replace(/\r\n/g, '\n')           // Normalize line endings
-    .replace(/\n\n+/g, '{{PARA}}')    // Temporarily preserve paragraph breaks
-    .replace(/\n/g, ' ')              // Convert single newlines to spaces
-    .replace(/\s{2,}/g, ' ')          // Clean up multiple spaces
-    .replace(/{{PARA}}/g, '\n\n')     // Restore paragraph breaks
+    .replace(/[ \t]{2,}/g, ' ')       // Clean up multiple spaces/tabs (preserve newlines)
+    .replace(/\n{3,}/g, '\n\n')       // Collapse 3+ newlines to 2
     .trim();
 }
 

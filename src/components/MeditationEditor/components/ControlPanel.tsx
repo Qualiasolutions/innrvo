@@ -99,25 +99,13 @@ const QUICK_TAGS = [
 // COMPONENT
 // ============================================================================
 
-// Harmonize icon - magic wand with stars
+// Harmonize icon - magic wand image
 const HarmonizeIcon = ({ className = 'w-4 h-4' }: { className?: string }) => (
-  <svg
+  <img
+    src="/magic-wand-tool.png"
+    alt="Harmonize"
     className={className}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    {/* Magic wand */}
-    <path d="M15 4l-9 9 3 3 9-9z" />
-    <path d="M6 13l3 3" />
-    {/* Stars around wand tip */}
-    <path d="M19 3l.5 1.5L21 5l-1.5.5L19 7l-.5-1.5L17 5l1.5-.5z" fill="currentColor" stroke="none" />
-    <path d="M12 2l.35 1.05L13.4 3.4l-1.05.35L12 4.8l-.35-1.05L10.6 3.4l1.05-.35z" fill="currentColor" stroke="none" />
-    <path d="M21 10l.35 1.05 1.05.35-1.05.35L21 12.8l-.35-1.05-1.05-.35 1.05-.35z" fill="currentColor" stroke="none" />
-  </svg>
+  />
 );
 
 export const ControlPanel = memo<ControlPanelProps>(
