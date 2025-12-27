@@ -1,10 +1,264 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ChevronDown, ChevronUp, Star, Trash2, RotateCcw } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { useModals } from '../contexts/ModalContext';
 import AppLayout from '../layouts/AppLayout';
 import GlassCard from '../../components/GlassCard';
+import AudioPreview from '../../components/ui/AudioPreview';
 import { getMeditationAudioSignedUrl, toggleMeditationFavorite, deleteMeditationHistory, MeditationHistory } from '../../lib/supabase';
+
+/**
+ * MeditationAudioCard - Individual meditation card with audio preview
+ * Responsive design: compact on mobile, expanded on desktop
+ */
+interface MeditationAudioCardProps {
+  meditation: MeditationHistory;
+  isActive: boolean;
+  isExpanded: boolean;
+  signedUrl?: string;
+  onGetSignedUrl: () => Promise<string | null>;
+  onPlay: () => void;
+  onEnded: () => void;
+  onToggleFavorite: () => void;
+  onDelete: () => void;
+  onToggleExpand: () => void;
+  stopOthers: boolean;
+}
+
+const MeditationAudioCard: React.FC<MeditationAudioCardProps> = memo(({
+  meditation,
+  isActive,
+  isExpanded,
+  signedUrl,
+  onGetSignedUrl,
+  onPlay,
+  onEnded,
+  onToggleFavorite,
+  onDelete,
+  onToggleExpand,
+  stopOthers,
+}) => {
+  const [localSignedUrl, setLocalSignedUrl] = useState<string | null>(signedUrl || null);
+  const [isLoadingUrl, setIsLoadingUrl] = useState(false);
+
+  // Fetch signed URL when card becomes active or on first interaction
+  const ensureSignedUrl = useCallback(async () => {
+    if (localSignedUrl) return localSignedUrl;
+    if (isLoadingUrl) return null;
+
+    setIsLoadingUrl(true);
+    const url = await onGetSignedUrl();
+    setLocalSignedUrl(url);
+    setIsLoadingUrl(false);
+    return url;
+  }, [localSignedUrl, isLoadingUrl, onGetSignedUrl]);
+
+  // Update local URL when prop changes
+  useEffect(() => {
+    if (signedUrl) setLocalSignedUrl(signedUrl);
+  }, [signedUrl]);
+
+  const scriptPreview = meditation.enhanced_script || meditation.prompt;
+  const formattedDate = new Date(meditation.created_at).toLocaleDateString();
+  const durationDisplay = meditation.duration_seconds
+    ? `${Math.floor(meditation.duration_seconds / 60)}:${String(meditation.duration_seconds % 60).padStart(2, '0')}`
+    : null;
+
+  return (
+    <GlassCard
+      className={`!p-0 !rounded-xl overflow-hidden transition-all duration-300 ${
+        isActive ? 'ring-1 ring-emerald-500/30' : ''
+      }`}
+      hover={false}
+    >
+      {/* Main content row */}
+      <div className="p-4">
+        {/* Desktop layout: horizontal */}
+        <div className="hidden sm:flex items-start gap-4">
+          {/* Audio Preview (full width progress bar) */}
+          <div className="flex-1 min-w-0">
+            {/* Script preview */}
+            <p className="text-white text-sm whitespace-pre-wrap mb-3 line-clamp-2">
+              {scriptPreview}
+            </p>
+
+            {/* Audio player */}
+            {localSignedUrl ? (
+              <AudioPreview
+                audioUrl={localSignedUrl}
+                knownDuration={meditation.duration_seconds}
+                onPlay={onPlay}
+                onEnded={onEnded}
+                compact
+                accentColor={meditation.is_favorite ? 'amber' : 'emerald'}
+                stopPlayback={stopOthers}
+              />
+            ) : (
+              <button
+                onClick={ensureSignedUrl}
+                disabled={isLoadingUrl}
+                className="w-full py-2 px-4 rounded-lg bg-emerald-500/10 text-emerald-400 text-sm hover:bg-emerald-500/20 transition-colors flex items-center justify-center gap-2"
+              >
+                {isLoadingUrl ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-emerald-400/30 border-t-emerald-400 rounded-full animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M8 5v14l11-7z" />
+                    </svg>
+                    Load Preview
+                  </>
+                )}
+              </button>
+            )}
+
+            {/* Metadata row */}
+            <div className="flex items-center gap-3 text-xs text-slate-500 mt-2">
+              <span>{formattedDate}</span>
+              {durationDisplay && <span>{durationDisplay}</span>}
+              {meditation.voice_name && (
+                <span className="text-cyan-400">{meditation.voice_name}</span>
+              )}
+            </div>
+          </div>
+
+          {/* Action buttons (desktop) */}
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <button
+              onClick={onToggleFavorite}
+              className={`p-2 rounded-lg transition-colors ${
+                meditation.is_favorite
+                  ? 'text-amber-400 bg-amber-500/20'
+                  : 'text-slate-500 hover:text-amber-400 hover:bg-white/5'
+              }`}
+              title={meditation.is_favorite ? 'Remove from favorites' : 'Add to favorites'}
+            >
+              <Star className="w-4 h-4" fill={meditation.is_favorite ? 'currentColor' : 'none'} />
+            </button>
+            <button
+              onClick={onDelete}
+              className="p-2 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-white/5 transition-colors"
+              title="Delete meditation"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile layout: vertical with expand/collapse */}
+        <div className="sm:hidden">
+          {/* Header row with expand toggle */}
+          <button
+            onClick={onToggleExpand}
+            className="w-full flex items-start justify-between gap-3 text-left"
+          >
+            <div className="flex-1 min-w-0">
+              <p className={`text-white text-sm whitespace-pre-wrap ${isExpanded ? '' : 'line-clamp-2'}`}>
+                {scriptPreview}
+              </p>
+              <div className="flex items-center gap-2 text-xs text-slate-500 mt-1">
+                <span>{formattedDate}</span>
+                {durationDisplay && <span>• {durationDisplay}</span>}
+              </div>
+            </div>
+            <div className="text-slate-400 flex-shrink-0 mt-1">
+              {isExpanded ? (
+                <ChevronUp className="w-5 h-5" />
+              ) : (
+                <ChevronDown className="w-5 h-5" />
+              )}
+            </div>
+          </button>
+
+          {/* Expanded content */}
+          <AnimatePresence>
+            {isExpanded && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden"
+              >
+                <div className="pt-4 space-y-3">
+                  {/* Voice name badge */}
+                  {meditation.voice_name && (
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-cyan-500/10 text-cyan-400 text-xs">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                      </svg>
+                      {meditation.voice_name}
+                    </div>
+                  )}
+
+                  {/* Audio player (full size on mobile) */}
+                  {localSignedUrl ? (
+                    <AudioPreview
+                      audioUrl={localSignedUrl}
+                      knownDuration={meditation.duration_seconds}
+                      onPlay={onPlay}
+                      onEnded={onEnded}
+                      accentColor={meditation.is_favorite ? 'amber' : 'emerald'}
+                      stopPlayback={stopOthers}
+                    />
+                  ) : (
+                    <button
+                      onClick={ensureSignedUrl}
+                      disabled={isLoadingUrl}
+                      className="w-full py-3 px-4 rounded-xl bg-emerald-500/10 text-emerald-400 text-sm hover:bg-emerald-500/20 transition-colors flex items-center justify-center gap-2"
+                    >
+                      {isLoadingUrl ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-emerald-400/30 border-t-emerald-400 rounded-full animate-spin" />
+                          Loading audio...
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M8 5v14l11-7z" />
+                          </svg>
+                          Load Audio Preview
+                        </>
+                      )}
+                    </button>
+                  )}
+
+                  {/* Action buttons (mobile - full width) */}
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={onToggleFavorite}
+                      className={`flex-1 py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-colors ${
+                        meditation.is_favorite
+                          ? 'bg-amber-500/20 text-amber-400'
+                          : 'bg-white/5 text-slate-400 hover:bg-white/10'
+                      }`}
+                    >
+                      <Star className="w-4 h-4" fill={meditation.is_favorite ? 'currentColor' : 'none'} />
+                      {meditation.is_favorite ? 'Favorited' : 'Favorite'}
+                    </button>
+                    <button
+                      onClick={onDelete}
+                      className="py-2.5 px-4 rounded-xl bg-white/5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+    </GlassCard>
+  );
+});
+
+MeditationAudioCard.displayName = 'MeditationAudioCard';
 
 const LibraryPage: React.FC = () => {
   const navigate = useNavigate();
@@ -26,9 +280,10 @@ const LibraryPage: React.FC = () => {
   const { setShowAuthModal } = useModals();
 
   const [libraryTab, setLibraryTab] = useState<'all' | 'favorites'>('all');
-  const [libraryPlayingId, setLibraryPlayingId] = useState<string | null>(null);
-  const [libraryAudioRef, setLibraryAudioRef] = useState<HTMLAudioElement | null>(null);
+  const [activePreviewId, setActivePreviewId] = useState<string | null>(null);
+  const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
 
   // Load history on mount
   useEffect(() => {
@@ -37,50 +292,43 @@ const LibraryPage: React.FC = () => {
     }
   }, [user, meditationHistory.length, refreshHistory]);
 
-  // Play meditation
-  const playLibraryMeditation = async (meditation: MeditationHistory) => {
-    if (!meditation.audio_url) return;
+  // Get signed URL for audio preview
+  const getSignedUrl = useCallback(async (meditation: MeditationHistory): Promise<string | null> => {
+    if (!meditation.audio_url) return null;
 
-    if (libraryAudioRef) {
-      libraryAudioRef.pause();
-      libraryAudioRef.currentTime = 0;
+    // Return cached URL if available
+    if (signedUrls[meditation.id]) {
+      return signedUrls[meditation.id];
     }
 
     try {
       const signedUrl = await getMeditationAudioSignedUrl(meditation.audio_url);
-      if (!signedUrl) {
-        console.error('Failed to get signed URL');
-        return;
+      if (signedUrl) {
+        setSignedUrls(prev => ({ ...prev, [meditation.id]: signedUrl }));
+        return signedUrl;
       }
-
-      const audio = new Audio(signedUrl);
-      audio.onended = () => {
-        setLibraryPlayingId(null);
-        setLibraryAudioRef(null);
-      };
-      audio.onerror = () => {
-        setLibraryPlayingId(null);
-        setLibraryAudioRef(null);
-      };
-
-      setLibraryAudioRef(audio);
-      setLibraryPlayingId(meditation.id);
-      await audio.play();
     } catch (error) {
-      console.error('Error playing meditation:', error);
-      setLibraryPlayingId(null);
-      setLibraryAudioRef(null);
+      console.error('Error getting signed URL:', error);
     }
-  };
+    return null;
+  }, [signedUrls]);
 
-  const stopLibraryPlayback = () => {
-    if (libraryAudioRef) {
-      libraryAudioRef.pause();
-      libraryAudioRef.currentTime = 0;
+  // Handle preview play - stops other previews
+  const handlePreviewPlay = useCallback((meditationId: string) => {
+    setActivePreviewId(meditationId);
+  }, []);
+
+  // Handle preview end
+  const handlePreviewEnded = useCallback((meditationId: string) => {
+    if (activePreviewId === meditationId) {
+      setActivePreviewId(null);
     }
-    setLibraryPlayingId(null);
-    setLibraryAudioRef(null);
-  };
+  }, [activePreviewId]);
+
+  // Toggle expanded card (for mobile view)
+  const toggleExpandedCard = useCallback((meditationId: string) => {
+    setExpandedCardId(prev => prev === meditationId ? null : meditationId);
+  }, []);
 
   const handleToggleFavorite = async (id: string) => {
     const success = await toggleMeditationFavorite(id);
@@ -92,9 +340,15 @@ const LibraryPage: React.FC = () => {
   };
 
   const handleDeleteMeditation = async (id: string) => {
-    if (libraryPlayingId === id) {
-      stopLibraryPlayback();
+    // Stop preview if playing
+    if (activePreviewId === id) {
+      setActivePreviewId(null);
     }
+    // Remove signed URL cache
+    setSignedUrls(prev => {
+      const { [id]: _, ...rest } = prev;
+      return rest;
+    });
     const success = await deleteMeditationHistory(id);
     if (success) {
       setMeditationHistory(meditationHistory.filter(m => m.id !== id));
@@ -131,14 +385,12 @@ const LibraryPage: React.FC = () => {
     setIsLoadingMore(false);
   };
 
-  // Cleanup on unmount
+  // Cleanup on unmount - reset active preview
   useEffect(() => {
     return () => {
-      if (libraryAudioRef) {
-        libraryAudioRef.pause();
-      }
+      setActivePreviewId(null);
     };
-  }, [libraryAudioRef]);
+  }, []);
 
   const filteredMeditations = libraryTab === 'favorites'
     ? meditationHistory.filter(m => m.is_favorite)
@@ -215,71 +467,20 @@ const LibraryPage: React.FC = () => {
                     </h3>
                     <div className="grid gap-4">
                       {meditationsWithAudio.map((meditation) => (
-                        <GlassCard key={meditation.id} className="!p-4 !rounded-xl">
-                          <div className="flex items-start gap-4">
-                            <button
-                              onClick={() => {
-                                if (libraryPlayingId === meditation.id) {
-                                  stopLibraryPlayback();
-                                } else {
-                                  playLibraryMeditation(meditation);
-                                }
-                              }}
-                              className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
-                                libraryPlayingId === meditation.id
-                                  ? 'bg-emerald-500 text-white animate-pulse'
-                                  : 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30'
-                              }`}
-                            >
-                              {libraryPlayingId === meditation.id ? (
-                                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                                  <rect x="6" y="4" width="4" height="16" rx="1" />
-                                  <rect x="14" y="4" width="4" height="16" rx="1" />
-                                </svg>
-                              ) : (
-                                <svg className="w-5 h-5 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
-                                  <path d="M8 5v14l11-7z" />
-                                </svg>
-                              )}
-                            </button>
-
-                            <div className="flex-1 min-w-0">
-                              <p className="text-white text-sm whitespace-pre-wrap mb-2 line-clamp-3">{meditation.enhanced_script || meditation.prompt}</p>
-                              <div className="flex items-center gap-3 text-xs text-slate-500">
-                                <span>{new Date(meditation.created_at).toLocaleDateString()}</span>
-                                {meditation.duration_seconds && (
-                                  <span>{Math.floor(meditation.duration_seconds / 60)}:{String(meditation.duration_seconds % 60).padStart(2, '0')}</span>
-                                )}
-                                {meditation.voice_name && (
-                                  <span className="text-cyan-400">{meditation.voice_name}</span>
-                                )}
-                              </div>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={() => handleToggleFavorite(meditation.id)}
-                                className={`p-2 rounded-lg transition-colors ${
-                                  meditation.is_favorite
-                                    ? 'text-amber-400 bg-amber-500/20'
-                                    : 'text-slate-500 hover:text-amber-400 hover:bg-white/5'
-                                }`}
-                              >
-                                <svg className="w-4 h-4" fill={meditation.is_favorite ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                                </svg>
-                              </button>
-                              <button
-                                onClick={() => handleDeleteMeditation(meditation.id)}
-                                className="p-2 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-white/5 transition-colors"
-                              >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                              </button>
-                            </div>
-                          </div>
-                        </GlassCard>
+                        <MeditationAudioCard
+                          key={meditation.id}
+                          meditation={meditation}
+                          isActive={activePreviewId === meditation.id}
+                          isExpanded={expandedCardId === meditation.id}
+                          signedUrl={signedUrls[meditation.id]}
+                          onGetSignedUrl={() => getSignedUrl(meditation)}
+                          onPlay={() => handlePreviewPlay(meditation.id)}
+                          onEnded={() => handlePreviewEnded(meditation.id)}
+                          onToggleFavorite={() => handleToggleFavorite(meditation.id)}
+                          onDelete={() => handleDeleteMeditation(meditation.id)}
+                          onToggleExpand={() => toggleExpandedCard(meditation.id)}
+                          stopOthers={activePreviewId !== null && activePreviewId !== meditation.id}
+                        />
                       ))}
                     </div>
                   </div>
