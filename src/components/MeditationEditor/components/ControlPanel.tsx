@@ -99,13 +99,25 @@ const QUICK_TAGS = [
 // COMPONENT
 // ============================================================================
 
-// Harmonize icon - magic wand image
+// Harmonize icon - magic wand with sparkles
 const HarmonizeIcon = ({ className = 'w-4 h-4' }: { className?: string }) => (
-  <img
-    src="/magic-wand-tool.png"
-    alt="Harmonize"
+  <svg
     className={className}
-  />
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    {/* Magic wand */}
+    <path d="M3 21L15 9" />
+    <rect x="13.5" y="5.5" width="2" height="8" rx="1" transform="rotate(45 14.5 9.5)" />
+    {/* Sparkles */}
+    <path d="M10 4c0 .5-.2 1-.5 1.3-.3.3-.8.5-1.3.5.5 0 1 .2 1.3.5.3.3.5.8.5 1.3 0-.5.2-1 .5-1.3.3-.3.8-.5 1.3-.5-.5 0-1-.2-1.3-.5-.3-.3-.5-.8-.5-1.3z" fill="currentColor" />
+    <path d="M17 2c0 .4-.15.75-.4 1-.25.25-.6.4-1 .4.4 0 .75.15 1 .4.25.25.4.6.4 1 0-.4.15-.75.4-1 .25-.25.6-.4 1-.4-.4 0-.75-.15-1-.4-.25-.25-.4-.6-.4-1z" fill="currentColor" />
+    <path d="M20 8c0 .4-.15.75-.4 1-.25.25-.6.4-1 .4.4 0 .75.15 1 .4.25.25.4.6.4 1 0-.4.15-.75.4-1 .25-.25.6-.4 1-.4-.4 0-.75-.15-1-.4-.25-.25-.4-.6-.4-1z" fill="currentColor" />
+  </svg>
 );
 
 export const ControlPanel = memo<ControlPanelProps>(
