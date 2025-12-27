@@ -549,39 +549,39 @@ export interface NatureSound {
 
 export const NATURE_SOUNDS: NatureSound[] = [
   // No Sound Option
-  { id: 'none', name: 'No Sound', description: 'Nature sounds disabled', icon: '🔇', category: 'noise', audioUrl: '' },
+  { id: 'none', name: 'No Sound', description: 'Nature sounds disabled', icon: 'VolumeOff', category: 'noise', audioUrl: '' },
 
   // Rain
-  { id: 'gentle-rain', name: 'Gentle Rain', description: 'Light, soothing rainfall', icon: '🌧️', category: 'rain', audioUrl: 'https://archive.org/download/rain_sounds_20250627/gentle-rain-loop.mp3' },
-  { id: 'heavy-rain', name: 'Heavy Rain', description: 'Immersive heavy rainfall', icon: '🌧️', category: 'rain', audioUrl: 'https://archive.org/download/rain_sounds_20250627/heavy-rain-loop.mp3' },
+  { id: 'gentle-rain', name: 'Gentle Rain', description: 'Light, soothing rainfall', icon: 'CloudRain', category: 'rain', audioUrl: 'https://archive.org/download/rain_sounds_20250627/gentle-rain-loop.mp3' },
+  { id: 'heavy-rain', name: 'Heavy Rain', description: 'Immersive heavy rainfall', icon: 'CloudRain', category: 'rain', audioUrl: 'https://archive.org/download/rain_sounds_20250627/heavy-rain-loop.mp3' },
 
   // Fire
-  { id: 'crackling-fire', name: 'Crackling Fire', description: 'Campfire with crackling', icon: '🔥', category: 'fire', audioUrl: 'https://archive.org/download/fireplace_sounds/crackling-fire-loop.mp3' },
-  { id: 'fireplace', name: 'Cozy Fireplace', description: 'Indoor fireplace warmth', icon: '🔥', category: 'fire', audioUrl: 'https://archive.org/download/fireplace_sounds/cozy-fireplace-loop.mp3' },
+  { id: 'crackling-fire', name: 'Crackling Fire', description: 'Campfire with crackling', icon: 'Flame', category: 'fire', audioUrl: 'https://archive.org/download/fireplace_sounds/crackling-fire-loop.mp3' },
+  { id: 'fireplace', name: 'Cozy Fireplace', description: 'Indoor fireplace warmth', icon: 'Flame', category: 'fire', audioUrl: 'https://archive.org/download/fireplace_sounds/cozy-fireplace-loop.mp3' },
 
   // Wind
-  { id: 'gentle-wind', name: 'Gentle Breeze', description: 'Soft wind through trees', icon: '💨', category: 'wind', audioUrl: 'https://archive.org/download/wind_sounds_ambient/gentle-wind-loop.mp3' },
-  { id: 'howling-wind', name: 'Howling Wind', description: 'Strong winter wind', icon: '🌬️', category: 'wind', audioUrl: 'https://archive.org/download/wind_sounds_ambient/howling-wind-loop.mp3' },
+  { id: 'gentle-wind', name: 'Gentle Breeze', description: 'Soft wind through trees', icon: 'Wind', category: 'wind', audioUrl: 'https://archive.org/download/wind_sounds_ambient/gentle-wind-loop.mp3' },
+  { id: 'howling-wind', name: 'Howling Wind', description: 'Strong winter wind', icon: 'Wind', category: 'wind', audioUrl: 'https://archive.org/download/wind_sounds_ambient/howling-wind-loop.mp3' },
 
   // White Noise
-  { id: 'white-noise', name: 'White Noise', description: 'Pure white noise static', icon: '📻', category: 'noise', audioUrl: 'https://archive.org/download/white_noise_sounds/white-noise-loop.mp3' },
-  { id: 'fan-noise', name: 'Fan Noise', description: 'Oscillating fan sound', icon: '🌀', category: 'noise', audioUrl: 'https://archive.org/download/white_noise_sounds/fan-noise-loop.mp3' },
+  { id: 'white-noise', name: 'White Noise', description: 'Pure white noise static', icon: 'Radio', category: 'noise', audioUrl: 'https://archive.org/download/white_noise_sounds/white-noise-loop.mp3' },
+  { id: 'fan-noise', name: 'Fan Noise', description: 'Oscillating fan sound', icon: 'Radio', category: 'noise', audioUrl: 'https://archive.org/download/white_noise_sounds/fan-noise-loop.mp3' },
 
   // Ocean
-  { id: 'ocean-waves', name: 'Ocean Waves', description: 'Tropical beach waves', icon: '🌊', category: 'ocean', audioUrl: 'https://archive.org/download/ocean_wave_sounds/ocean-waves-loop.mp3' },
-  { id: 'gentle-ocean', name: 'Gentle Surf', description: 'Calm sea waves', icon: '🌊', category: 'ocean', audioUrl: 'https://archive.org/download/ocean_wave_sounds/gentle-surf-loop.mp3' },
+  { id: 'ocean-waves', name: 'Ocean Waves', description: 'Tropical beach waves', icon: 'Waves', category: 'ocean', audioUrl: 'https://archive.org/download/ocean_wave_sounds/ocean-waves-loop.mp3' },
+  { id: 'gentle-ocean', name: 'Gentle Surf', description: 'Calm sea waves', icon: 'Waves', category: 'ocean', audioUrl: 'https://archive.org/download/ocean_wave_sounds/gentle-surf-loop.mp3' },
 
   // Forest
-  { id: 'forest-birds', name: 'Forest Birds', description: 'Birdsong in the forest', icon: '🌲', category: 'forest', audioUrl: 'https://archive.org/download/forest_nature_sounds/forest-birds-loop.mp3' },
-  { id: 'morning-forest', name: 'Morning Forest', description: 'Dawn chorus in nature', icon: '🌳', category: 'forest', audioUrl: 'https://archive.org/download/forest_nature_sounds/morning-forest-loop.mp3' },
+  { id: 'forest-birds', name: 'Forest Birds', description: 'Birdsong in the forest', icon: 'Trees', category: 'forest', audioUrl: 'https://archive.org/download/forest_nature_sounds/forest-birds-loop.mp3' },
+  { id: 'morning-forest', name: 'Morning Forest', description: 'Dawn chorus in nature', icon: 'Trees', category: 'forest', audioUrl: 'https://archive.org/download/forest_nature_sounds/morning-forest-loop.mp3' },
 
   // Storm
-  { id: 'thunderstorm', name: 'Thunderstorm', description: 'Rain with thunder', icon: '⛈️', category: 'storm', audioUrl: 'https://archive.org/download/thunderstorm_sounds/thunderstorm-loop.mp3' },
-  { id: 'distant-thunder', name: 'Distant Thunder', description: 'Rolling thunder', icon: '🌩️', category: 'storm', audioUrl: 'https://archive.org/download/thunderstorm_sounds/distant-thunder-loop.mp3' },
+  { id: 'thunderstorm', name: 'Thunderstorm', description: 'Rain with thunder', icon: 'CloudLightning', category: 'storm', audioUrl: 'https://archive.org/download/thunderstorm_sounds/thunderstorm-loop.mp3' },
+  { id: 'distant-thunder', name: 'Distant Thunder', description: 'Rolling thunder', icon: 'CloudLightning', category: 'storm', audioUrl: 'https://archive.org/download/thunderstorm_sounds/distant-thunder-loop.mp3' },
 
   // Stream/Water
-  { id: 'mountain-stream', name: 'Mountain Stream', description: 'Flowing water', icon: '🏞️', category: 'water', audioUrl: 'https://archive.org/download/water_stream_sounds/mountain-stream-loop.mp3' },
-  { id: 'river-rapids', name: 'River Rapids', description: 'Fast-flowing river', icon: '💧', category: 'water', audioUrl: 'https://archive.org/download/water_stream_sounds/river-rapids-loop.mp3' },
+  { id: 'mountain-stream', name: 'Mountain Stream', description: 'Flowing water', icon: 'Droplets', category: 'water', audioUrl: 'https://archive.org/download/water_stream_sounds/mountain-stream-loop.mp3' },
+  { id: 'river-rapids', name: 'River Rapids', description: 'Fast-flowing river', icon: 'Droplets', category: 'water', audioUrl: 'https://archive.org/download/water_stream_sounds/river-rapids-loop.mp3' },
 ];
 
 // Nature sound category styling
@@ -976,6 +976,118 @@ export const ICONS = {
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
       <path d="M12 19V5" />
       <path d="M5 12l7-7 7 7" />
+    </svg>
+  ),
+
+  // Nature Sound Icons
+  VolumeOff: ({ className = "w-6 h-6" }: { className?: string }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <path d="M13.5 4.06c0-1.336-1.616-2.005-2.56-1.06l-4.5 4.5H4.508c-1.141 0-2.318.664-2.66 1.905A9.76 9.76 0 001.5 12c0 .898.121 1.768.35 2.595.341 1.24 1.518 1.905 2.659 1.905h1.93l4.5 4.5c.945.945 2.561.276 2.561-1.06V4.06zM17.78 9.22a.75.75 0 10-1.06 1.06L18.44 12l-1.72 1.72a.75.75 0 101.06 1.06l1.72-1.72 1.72 1.72a.75.75 0 101.06-1.06L20.56 12l1.72-1.72a.75.75 0 00-1.06-1.06l-1.72 1.72-1.72-1.72z" />
+    </svg>
+  ),
+
+  CloudRain: ({ className = "w-6 h-6" }: { className?: string }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className={className}>
+      <defs>
+        <linearGradient id="rainGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#60a5fa" />
+          <stop offset="100%" stopColor="#3b82f6" />
+        </linearGradient>
+      </defs>
+      <path fill="url(#rainGrad)" d="M4.5 13.5a6.5 6.5 0 1112.58-3.32A4.5 4.5 0 1118.5 18H5a3.5 3.5 0 01-.5-6.97z" opacity="0.8"/>
+      <path stroke="url(#rainGrad)" strokeWidth="2" strokeLinecap="round" d="M8 19v2M12 19v2M16 19v2" />
+    </svg>
+  ),
+
+  Flame: ({ className = "w-6 h-6" }: { className?: string }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className={className}>
+      <defs>
+        <linearGradient id="fireGrad" x1="0%" y1="100%" x2="0%" y2="0%">
+          <stop offset="0%" stopColor="#f97316" />
+          <stop offset="50%" stopColor="#fb923c" />
+          <stop offset="100%" stopColor="#fbbf24" />
+        </linearGradient>
+      </defs>
+      <path fill="url(#fireGrad)" d="M12.356 2.065c.203-.208.557-.02.497.264-.432 2.024.08 4.194 1.549 5.738 1.503 1.578 2.146 3.788 1.61 5.868-.114.446.24.887.676.78a.797.797 0 00.572-.63c.168-.962.066-1.957-.287-2.876-.126-.328.188-.68.502-.501.994.567 1.785 1.434 2.263 2.468 1.127 2.444.576 5.414-1.554 7.332-2.357 2.124-5.98 2.376-8.622.6-2.415-1.623-3.476-4.72-2.533-7.39.298-.844.758-1.612 1.353-2.266.217-.238.598-.084.603.245.027 1.832.982 3.469 2.497 4.284.273.147.597-.082.579-.392-.18-3.048.855-6.02 2.961-8.265a14.1 14.1 0 011.334-1.259z" />
+    </svg>
+  ),
+
+  Wind: ({ className = "w-6 h-6" }: { className?: string }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M17.7 7.7a2.5 2.5 0 111.8 4.3H2" opacity="0.6"/>
+      <path d="M9.6 4.6A2 2 0 1111 8H2" />
+      <path d="M12.6 19.4A2 2 0 1014 16H2" opacity="0.8"/>
+    </svg>
+  ),
+
+  Radio: ({ className = "w-6 h-6" }: { className?: string }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <path fillRule="evenodd" d="M20.432 4.103a.75.75 0 00-.942-.479L6.75 7.636V6.75a.75.75 0 00-.75-.75H4.5a.75.75 0 00-.75.75v.878l-.962.29A2.25 2.25 0 001.5 9.973v8.777a2.25 2.25 0 002.25 2.25h16.5a2.25 2.25 0 002.25-2.25V9.75a2.25 2.25 0 00-1.589-2.146l-.479-.144V4.103zM6 11.25a.75.75 0 01.75-.75h1.5a.75.75 0 01.75.75v6a.75.75 0 01-.75.75h-1.5a.75.75 0 01-.75-.75v-6zm4.5 0a.75.75 0 01.75-.75h1.5a.75.75 0 01.75.75v6a.75.75 0 01-.75.75h-1.5a.75.75 0 01-.75-.75v-6zm4.5 0a.75.75 0 01.75-.75h1.5a.75.75 0 01.75.75v6a.75.75 0 01-.75.75h-1.5a.75.75 0 01-.75-.75v-6z" clipRule="evenodd" opacity="0.8"/>
+    </svg>
+  ),
+
+  Waves: ({ className = "w-6 h-6" }: { className?: string }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className={className}>
+      <defs>
+        <linearGradient id="wavesGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#22d3ee" />
+          <stop offset="100%" stopColor="#06b6d4" />
+        </linearGradient>
+      </defs>
+      <path fill="none" stroke="url(#wavesGrad)" strokeWidth="2" strokeLinecap="round" d="M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1" />
+      <path fill="none" stroke="url(#wavesGrad)" strokeWidth="2" strokeLinecap="round" d="M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1" opacity="0.8"/>
+      <path fill="none" stroke="url(#wavesGrad)" strokeWidth="2" strokeLinecap="round" d="M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1" opacity="0.6"/>
+    </svg>
+  ),
+
+  Trees: ({ className = "w-6 h-6" }: { className?: string }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className={className}>
+      <defs>
+        <linearGradient id="treesGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#34d399" />
+          <stop offset="100%" stopColor="#059669" />
+        </linearGradient>
+      </defs>
+      <path fill="url(#treesGrad)" d="M8.5 3l-5 8h3l-3 5h4v5h2v-5h4l-3-5h3l-5-8z" />
+      <path fill="url(#treesGrad)" opacity="0.6" d="M17 8l-3.5 5.5h2l-2 3.5h3v4h1.5v-4h3l-2-3.5h2L17 8z" />
+    </svg>
+  ),
+
+  CloudLightning: ({ className = "w-6 h-6" }: { className?: string }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className={className}>
+      <defs>
+        <linearGradient id="stormGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#a78bfa" />
+          <stop offset="100%" stopColor="#7c3aed" />
+        </linearGradient>
+      </defs>
+      <path fill="url(#stormGrad)" opacity="0.7" d="M4.5 12.5a6.5 6.5 0 1112.58-3.32A4.5 4.5 0 1118.5 17H5a3.5 3.5 0 01-.5-4.5z" />
+      <path fill="#fbbf24" d="M13 11l-2 4h3l-2 5 5-6h-3l2-5-3 2z" />
+    </svg>
+  ),
+
+  Droplets: ({ className = "w-6 h-6" }: { className?: string }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className={className}>
+      <defs>
+        <linearGradient id="dropletsGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#5eead4" />
+          <stop offset="100%" stopColor="#14b8a6" />
+        </linearGradient>
+      </defs>
+      <path fill="url(#dropletsGrad)" d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z" />
+      <path fill="url(#dropletsGrad)" opacity="0.5" d="M18 14l2.83 2.83a4 4 0 11-5.66 0z" />
+    </svg>
+  ),
+
+  Leaf: ({ className = "w-6 h-6" }: { className?: string }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className={className}>
+      <defs>
+        <linearGradient id="leafGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#34d399" />
+          <stop offset="100%" stopColor="#10b981" />
+        </linearGradient>
+      </defs>
+      <path fill="url(#leafGrad)" d="M21 3v2c0 9.627-5.373 14-12 14H7.098c.212-3.012 1.15-4.835 3.598-7.001 1.204-1.065 1.102-1.68.509-1.327-4.084 2.43-6.112 5.714-6.202 10.958L5 22h2c6.284 0 11.372-3.832 12.69-9.889l.228-.981C20.89 7.17 21 4.373 21 3z"/>
     </svg>
   )
 };

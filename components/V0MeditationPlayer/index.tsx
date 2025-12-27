@@ -1,6 +1,7 @@
 import React, { useCallback, memo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Play, Pause, RotateCcw, RotateCw, Volume2, Gauge } from 'lucide-react';
+import { ICONS } from '../../constants';
 
 /**
  * V0 Meditation Player - Clean, focused playback experience
@@ -8,6 +9,18 @@ import { X, Play, Pause, RotateCcw, RotateCw, Volume2, Gauge } from 'lucide-reac
  * No script text display - pure playback controls and visualization
  * Integrated with Supabase for meditation history
  */
+
+// Helper to render icon from icon name
+const renderNatureIcon = (iconName: string | undefined, className: string = "w-4 h-4") => {
+  if (!iconName) {
+    return <ICONS.Leaf className={className} />;
+  }
+  const IconComponent = ICONS[iconName as keyof typeof ICONS];
+  if (IconComponent) {
+    return <IconComponent className={className} />;
+  }
+  return <ICONS.Leaf className={className} />; // Fallback
+};
 
 // Module-level constants to avoid recreating on each render
 const PLAYBACK_RATE_PRESETS = [0.7, 0.8, 0.9, 1.0, 1.2] as const;
@@ -255,7 +268,7 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
                     : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white/80'
                 }`}
               >
-                <span className="text-base">{natureSoundIcon || '🌿'}</span>
+                <span className="text-emerald-400">{renderNatureIcon(natureSoundIcon, "w-4 h-4")}</span>
                 <span className="max-w-[80px] truncate">
                   {natureSoundEnabled ? natureSoundName : 'Nature'}
                 </span>
@@ -355,7 +368,7 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
                     <div className="space-y-2">
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-white/50 flex items-center gap-2">
-                          <span>{natureSoundIcon || '🌿'}</span>
+                          <span className="text-emerald-400">{renderNatureIcon(natureSoundIcon, "w-4 h-4")}</span>
                           {natureSoundName || 'Nature Sound'}
                         </span>
                         <span className="text-white/80 font-mono">{Math.round(natureSoundVolume * 100)}%</span>

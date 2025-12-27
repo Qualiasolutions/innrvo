@@ -2,6 +2,15 @@ import React from 'react';
 import { ICONS, NATURE_SOUND_CATEGORIES, NATURE_SOUNDS_BY_CATEGORY, NATURE_SOUNDS, NatureSound } from '../../constants';
 import Starfield from '../../components/Starfield';
 
+// Helper to render icon from icon name
+const renderIcon = (iconName: string, className: string = "w-5 h-5") => {
+  const IconComponent = ICONS[iconName as keyof typeof ICONS];
+  if (IconComponent) {
+    return <IconComponent className={className} />;
+  }
+  return <ICONS.Leaf className={className} />; // Fallback
+};
+
 interface NatureSoundSelectorModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -70,7 +79,7 @@ export const NatureSoundSelectorModal: React.FC<NatureSoundSelectorModalProps> =
                 }`}
               >
                 <div className="flex items-center gap-3 mb-2">
-                  <span className="text-2xl">{noneOption.icon}</span>
+                  <span className="text-slate-400">{renderIcon(noneOption.icon, "w-6 h-6")}</span>
                   <div className="flex-1">
                     <span className={`font-medium ${selectedSound.id === 'none' ? 'text-white' : 'text-slate-300'}`}>
                       {noneOption.name}
@@ -113,7 +122,7 @@ export const NatureSoundSelectorModal: React.FC<NatureSoundSelectorModalProps> =
                     >
                       <div className="flex items-center justify-between gap-2 mb-1">
                         <div className="flex items-center gap-2 min-w-0 flex-1">
-                          <span className="text-lg flex-shrink-0">{sound.icon}</span>
+                          <span className={`flex-shrink-0 ${selectedSound.id === sound.id ? config.color : 'text-slate-400'}`}>{renderIcon(sound.icon, "w-5 h-5")}</span>
                           <span className={`font-medium text-sm truncate ${selectedSound.id === sound.id ? 'text-white' : 'text-slate-300'}`}>
                             {sound.name}
                           </span>
