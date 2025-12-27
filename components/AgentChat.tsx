@@ -421,13 +421,18 @@ export const AgentChat: React.FC<AgentChatProps> = ({
           : ''}`}>
         <div className="max-w-3xl mx-auto w-full">
           <form onSubmit={handleSubmit}>
-            <div className={`relative flex items-center bg-white/[0.06] border
+            <div
+              className={`relative flex items-center bg-white/[0.06] border
                           rounded-full px-4 md:px-6 py-2.5
-                          transition-all duration-200 shadow-lg shadow-black/10
+                          transition-all duration-300
                           ${isRecording
-                            ? 'border-cyan-500/50 bg-cyan-500/10'
-                            : 'border-white/10 focus-within:border-cyan-500/40 focus-within:bg-white/[0.08]'
-                          }`}>
+                            ? 'border-cyan-400/60 bg-cyan-500/5'
+                            : 'border-white/10 focus-within:border-cyan-500/40 focus-within:bg-white/[0.08] shadow-lg shadow-black/10'
+                          }`}
+              style={isRecording ? {
+                boxShadow: '0 0 20px rgba(34, 211, 238, 0.15), 0 0 40px rgba(139, 92, 246, 0.1), inset 0 0 20px rgba(34, 211, 238, 0.05)'
+              } : undefined}
+            >
               <textarea
                 ref={inputRef}
                 value={isRecording ? transcribedText : inputValue}
@@ -453,7 +458,7 @@ export const AgentChat: React.FC<AgentChatProps> = ({
                   ${isProcessing && !isRecording
                     ? 'h-10 w-10 rounded-full bg-cyan-500/50 cursor-not-allowed'
                     : isRecording
-                      ? 'h-10 w-10 rounded-full bg-gradient-to-br from-cyan-500 to-teal-500 hover:from-cyan-400 hover:to-teal-400 active:scale-95 text-white animate-pulse shadow-lg shadow-cyan-500/30'
+                      ? 'h-10 w-10 rounded-full bg-cyan-500/90 hover:bg-cyan-400 active:scale-95 text-white'
                       : inputValue.trim()
                         ? 'h-10 w-10 rounded-full bg-cyan-500 hover:bg-cyan-400 active:scale-95 text-white'
                         : 'p-2 hover:opacity-80 active:scale-95'
