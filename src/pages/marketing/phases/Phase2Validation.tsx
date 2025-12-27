@@ -211,10 +211,10 @@ export function Phase2Validation({ data, onUpdate }: Phase2ValidationProps) {
       >
         {/* Summary Stats */}
         <div className="grid grid-cols-4 gap-4 mb-6">
-          <div className="bg-slate-800/50 rounded-lg p-4">
-            <div className="text-sm text-slate-400">Total Budget</div>
+          <div className="bg-slate-50 rounded-lg p-4">
+            <div className="text-sm text-slate-500">Total Budget</div>
             <div className="flex items-center gap-2 mt-1">
-              <span className="text-xl font-bold text-white">${paidAcquisition.totalBudget}</span>
+              <span className="text-xl font-bold text-slate-900">${paidAcquisition.totalBudget}</span>
               <EditableNumber
                 value={paidAcquisition.totalBudget}
                 onChange={(v) => onUpdate({ paidAcquisition: { ...paidAcquisition, totalBudget: v } })}
@@ -223,16 +223,16 @@ export function Phase2Validation({ data, onUpdate }: Phase2ValidationProps) {
               />
             </div>
           </div>
-          <div className="bg-slate-800/50 rounded-lg p-4">
-            <div className="text-sm text-slate-400">Total Spend</div>
-            <div className="text-xl font-bold text-white">${totalSpend}</div>
+          <div className="bg-slate-50 rounded-lg p-4">
+            <div className="text-sm text-slate-500">Total Spend</div>
+            <div className="text-xl font-bold text-slate-900">${totalSpend}</div>
           </div>
-          <div className="bg-slate-800/50 rounded-lg p-4">
-            <div className="text-sm text-slate-400">Conversions</div>
-            <div className="text-xl font-bold text-teal-400">{totalConversions}</div>
+          <div className="bg-slate-50 rounded-lg p-4">
+            <div className="text-sm text-slate-500">Conversions</div>
+            <div className="text-xl font-bold text-teal-600">{totalConversions}</div>
           </div>
-          <div className="bg-slate-800/50 rounded-lg p-4">
-            <div className="text-sm text-slate-400">Avg ROAS</div>
+          <div className="bg-slate-50 rounded-lg p-4">
+            <div className="text-sm text-slate-500">Avg ROAS</div>
             <div className="text-xl font-bold text-amber-400">{avgROAS.toFixed(2)}x</div>
           </div>
         </div>
@@ -250,7 +250,7 @@ export function Phase2Validation({ data, onUpdate }: Phase2ValidationProps) {
 
           <button
             onClick={addCampaign}
-            className="w-full flex items-center justify-center gap-2 p-4 border-2 border-dashed border-slate-700 rounded-lg text-slate-400 hover:text-white hover:border-slate-500 transition-colors"
+            className="w-full flex items-center justify-center gap-2 p-4 border-2 border-dashed border-slate-200 rounded-lg text-slate-500 hover:text-slate-900 hover:border-slate-500 transition-colors"
           >
             <Plus size={20} />
             Add Campaign Test
@@ -269,10 +269,10 @@ export function Phase2Validation({ data, onUpdate }: Phase2ValidationProps) {
           {/* Content Calendar */}
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h4 className="font-medium text-white">Scheduled Content</h4>
+              <h4 className="font-medium text-slate-900">Scheduled Content</h4>
               <button
                 onClick={addCalendarItem}
-                className="flex items-center gap-1 text-sm text-teal-400 hover:text-teal-300"
+                className="flex items-center gap-1 text-sm text-teal-600 hover:text-teal-500"
               >
                 <Plus size={16} />
                 Add
@@ -296,10 +296,10 @@ export function Phase2Validation({ data, onUpdate }: Phase2ValidationProps) {
           {/* Content Backlog */}
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h4 className="font-medium text-white">Content Backlog</h4>
+              <h4 className="font-medium text-slate-900">Content Backlog</h4>
               <button
                 onClick={addBacklogItem}
-                className="flex items-center gap-1 text-sm text-teal-400 hover:text-teal-300"
+                className="flex items-center gap-1 text-sm text-teal-600 hover:text-teal-500"
               >
                 <Plus size={16} />
                 Add
@@ -332,15 +332,15 @@ export function Phase2Validation({ data, onUpdate }: Phase2ValidationProps) {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-700">
-                <th className="text-left py-3 px-2 text-slate-400 font-medium">Name</th>
-                <th className="text-left py-3 px-2 text-slate-400 font-medium">Platform</th>
-                <th className="text-left py-3 px-2 text-slate-400 font-medium">Followers</th>
-                <th className="text-left py-3 px-2 text-slate-400 font-medium">Niche</th>
-                <th className="text-left py-3 px-2 text-slate-400 font-medium">Status</th>
-                <th className="text-left py-3 px-2 text-slate-400 font-medium">Cost</th>
-                <th className="text-left py-3 px-2 text-slate-400 font-medium">Performance</th>
-                <th className="text-right py-3 px-2 text-slate-400 font-medium"></th>
+              <tr className="border-b border-slate-200">
+                <th className="text-left py-3 px-2 text-slate-500 font-medium">Name</th>
+                <th className="text-left py-3 px-2 text-slate-500 font-medium">Platform</th>
+                <th className="text-left py-3 px-2 text-slate-500 font-medium">Followers</th>
+                <th className="text-left py-3 px-2 text-slate-500 font-medium">Niche</th>
+                <th className="text-left py-3 px-2 text-slate-500 font-medium">Status</th>
+                <th className="text-left py-3 px-2 text-slate-500 font-medium">Cost</th>
+                <th className="text-left py-3 px-2 text-slate-500 font-medium">Performance</th>
+                <th className="text-right py-3 px-2 text-slate-500 font-medium"></th>
               </tr>
             </thead>
             <tbody>
@@ -358,7 +358,7 @@ export function Phase2Validation({ data, onUpdate }: Phase2ValidationProps) {
 
         <button
           onClick={addInfluencer}
-          className="w-full flex items-center justify-center gap-2 p-4 border-2 border-dashed border-slate-700 rounded-lg text-slate-400 hover:text-white hover:border-slate-500 transition-colors mt-4"
+          className="w-full flex items-center justify-center gap-2 p-4 border-2 border-dashed border-slate-200 rounded-lg text-slate-500 hover:text-slate-900 hover:border-slate-500 transition-colors mt-4"
         >
           <Plus size={20} />
           Add Influencer
@@ -390,10 +390,10 @@ function CampaignCard({ campaign, onUpdate, onDelete }: CampaignCardProps) {
   const convRate = campaign.clicks > 0 ? ((campaign.conversions / campaign.clicks) * 100).toFixed(2) : '0.00';
 
   return (
-    <div className={`border-l-4 ${statusColors[campaign.status]} bg-slate-800/30 rounded-lg overflow-hidden`}>
+    <div className={`border-l-4 ${statusColors[campaign.status]} bg-white rounded-lg overflow-hidden`}>
       {/* Header */}
       <div
-        className="flex items-center gap-4 p-4 cursor-pointer hover:bg-slate-800/50"
+        className="flex items-center gap-4 p-4 cursor-pointer hover:bg-slate-50"
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex-1 min-w-0">
@@ -401,7 +401,7 @@ function CampaignCard({ campaign, onUpdate, onDelete }: CampaignCardProps) {
             <EditableField
               value={campaign.name}
               onChange={(name) => onUpdate({ name })}
-              className="font-medium text-white"
+              className="font-medium text-slate-900"
               onClick={(e) => e.stopPropagation()}
             />
             {campaign.isWinner && (
@@ -412,22 +412,22 @@ function CampaignCard({ campaign, onUpdate, onDelete }: CampaignCardProps) {
             <span className={`px-2 py-0.5 rounded text-xs ${platformColors[campaign.platform]}`}>
               {campaign.platform}
             </span>
-            <span className="text-slate-400 text-sm">${campaign.budget}</span>
+            <span className="text-slate-500 text-sm">${campaign.budget}</span>
           </div>
         </div>
 
         <div className="flex items-center gap-4 text-sm">
           <div className="text-center">
-            <div className="text-slate-400">CTR</div>
-            <div className="text-white font-medium">{ctr}%</div>
+            <div className="text-slate-500">CTR</div>
+            <div className="text-slate-900 font-medium">{ctr}%</div>
           </div>
           <div className="text-center">
-            <div className="text-slate-400">Conv</div>
-            <div className="text-white font-medium">{convRate}%</div>
+            <div className="text-slate-500">Conv</div>
+            <div className="text-slate-900 font-medium">{convRate}%</div>
           </div>
           <div className="text-center">
-            <div className="text-slate-400">ROAS</div>
-            <div className={`font-medium ${campaign.roas >= 2 ? 'text-teal-400' : campaign.roas >= 1 ? 'text-amber-400' : 'text-red-400'}`}>
+            <div className="text-slate-500">ROAS</div>
+            <div className={`font-medium ${campaign.roas >= 2 ? 'text-teal-600' : campaign.roas >= 1 ? 'text-amber-400' : 'text-red-400'}`}>
               {campaign.roas.toFixed(2)}x
             </div>
           </div>
@@ -463,15 +463,15 @@ function CampaignCard({ campaign, onUpdate, onDelete }: CampaignCardProps) {
 
       {/* Expanded Content */}
       {isExpanded && (
-        <div className="p-4 pt-0 border-t border-slate-700/50">
+        <div className="p-4 pt-0 border-t border-slate-200">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4">
             {/* Platform */}
             <div>
-              <label className="block text-sm text-slate-400 mb-1">Platform</label>
+              <label className="block text-sm text-slate-500 mb-1">Platform</label>
               <select
                 value={campaign.platform}
                 onChange={(e) => onUpdate({ platform: e.target.value as Platform })}
-                className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-1.5 text-white text-sm"
+                className="w-full bg-white border border-slate-200 rounded px-3 py-1.5 text-slate-900 text-sm"
               >
                 <option value="meta">Meta</option>
                 <option value="google">Google</option>
@@ -482,7 +482,7 @@ function CampaignCard({ campaign, onUpdate, onDelete }: CampaignCardProps) {
 
             {/* Budget */}
             <div>
-              <label className="block text-sm text-slate-400 mb-1">Budget</label>
+              <label className="block text-sm text-slate-500 mb-1">Budget</label>
               <EditableNumber
                 value={campaign.budget}
                 onChange={(budget) => onUpdate({ budget })}
@@ -492,29 +492,29 @@ function CampaignCard({ campaign, onUpdate, onDelete }: CampaignCardProps) {
 
             {/* Start Date */}
             <div>
-              <label className="block text-sm text-slate-400 mb-1">Start Date</label>
+              <label className="block text-sm text-slate-500 mb-1">Start Date</label>
               <input
                 type="date"
                 value={campaign.startDate}
                 onChange={(e) => onUpdate({ startDate: e.target.value })}
-                className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-1.5 text-white text-sm"
+                className="w-full bg-white border border-slate-200 rounded px-3 py-1.5 text-slate-900 text-sm"
               />
             </div>
 
             {/* End Date */}
             <div>
-              <label className="block text-sm text-slate-400 mb-1">End Date</label>
+              <label className="block text-sm text-slate-500 mb-1">End Date</label>
               <input
                 type="date"
                 value={campaign.endDate}
                 onChange={(e) => onUpdate({ endDate: e.target.value })}
-                className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-1.5 text-white text-sm"
+                className="w-full bg-white border border-slate-200 rounded px-3 py-1.5 text-slate-900 text-sm"
               />
             </div>
 
             {/* Audience */}
             <div className="col-span-2">
-              <label className="block text-sm text-slate-400 mb-1">Target Audience</label>
+              <label className="block text-sm text-slate-500 mb-1">Target Audience</label>
               <EditableField
                 value={campaign.audience}
                 onChange={(audience) => onUpdate({ audience })}
@@ -524,11 +524,11 @@ function CampaignCard({ campaign, onUpdate, onDelete }: CampaignCardProps) {
 
             {/* Creative Angle */}
             <div className="col-span-2">
-              <label className="block text-sm text-slate-400 mb-1">Creative Angle</label>
+              <label className="block text-sm text-slate-500 mb-1">Creative Angle</label>
               <select
                 value={campaign.creativeAngle}
                 onChange={(e) => onUpdate({ creativeAngle: e.target.value })}
-                className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-1.5 text-white text-sm"
+                className="w-full bg-white border border-slate-200 rounded px-3 py-1.5 text-slate-900 text-sm"
               >
                 {creativeAngles.map((angle) => (
                   <option key={angle} value={angle}>
@@ -548,30 +548,30 @@ function CampaignCard({ campaign, onUpdate, onDelete }: CampaignCardProps) {
           </div>
 
           {/* Performance Metrics */}
-          <div className="grid grid-cols-4 gap-4 mt-4 pt-4 border-t border-slate-700/50">
+          <div className="grid grid-cols-4 gap-4 mt-4 pt-4 border-t border-slate-200">
             <div>
-              <label className="block text-sm text-slate-400 mb-1">Impressions</label>
+              <label className="block text-sm text-slate-500 mb-1">Impressions</label>
               <EditableNumber
                 value={campaign.impressions}
                 onChange={(impressions) => onUpdate({ impressions })}
               />
             </div>
             <div>
-              <label className="block text-sm text-slate-400 mb-1">Clicks</label>
+              <label className="block text-sm text-slate-500 mb-1">Clicks</label>
               <EditableNumber
                 value={campaign.clicks}
                 onChange={(clicks) => onUpdate({ clicks })}
               />
             </div>
             <div>
-              <label className="block text-sm text-slate-400 mb-1">Conversions</label>
+              <label className="block text-sm text-slate-500 mb-1">Conversions</label>
               <EditableNumber
                 value={campaign.conversions}
                 onChange={(conversions) => onUpdate({ conversions })}
               />
             </div>
             <div>
-              <label className="block text-sm text-slate-400 mb-1">ROAS</label>
+              <label className="block text-sm text-slate-500 mb-1">ROAS</label>
               <EditableNumber
                 value={campaign.roas}
                 onChange={(roas) => onUpdate({ roas })}
@@ -582,7 +582,7 @@ function CampaignCard({ campaign, onUpdate, onDelete }: CampaignCardProps) {
 
           {/* Notes */}
           <div className="mt-4">
-            <label className="block text-sm text-slate-400 mb-1">Notes & Learnings</label>
+            <label className="block text-sm text-slate-500 mb-1">Notes & Learnings</label>
             <EditableField
               value={campaign.notes}
               onChange={(notes) => onUpdate({ notes })}
@@ -606,13 +606,13 @@ interface ContentCalendarCardProps {
 
 function ContentCalendarCard({ item, onUpdate, onDelete }: ContentCalendarCardProps) {
   return (
-    <div className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-3">
+    <div className="bg-white border border-slate-200 rounded-lg p-3">
       <div className="flex items-start gap-3">
         <input
           type="date"
           value={item.date}
           onChange={(e) => onUpdate({ date: e.target.value })}
-          className="bg-slate-800 border border-slate-600 rounded px-2 py-1 text-sm text-white"
+          className="bg-white border border-slate-200 rounded px-2 py-1 text-sm text-slate-900"
         />
         <div className="flex-1 min-w-0">
           <EditableField
@@ -635,7 +635,7 @@ function ContentCalendarCard({ item, onUpdate, onDelete }: ContentCalendarCardPr
             <select
               value={item.contentType}
               onChange={(e) => onUpdate({ contentType: e.target.value as ContentType })}
-              className="text-xs bg-slate-700 text-slate-300 rounded px-2 py-1"
+              className="text-xs bg-slate-100 text-slate-600 rounded px-2 py-1"
             >
               <option value="reel">Reel</option>
               <option value="tiktok">TikTok</option>
@@ -656,22 +656,22 @@ function ContentCalendarCard({ item, onUpdate, onDelete }: ContentCalendarCardPr
         </button>
       </div>
       {item.status === 'posted' && (
-        <div className="flex items-center gap-4 mt-3 pt-3 border-t border-slate-700/50 text-sm">
+        <div className="flex items-center gap-4 mt-3 pt-3 border-t border-slate-200 text-sm">
           <div>
-            <span className="text-slate-400">Views: </span>
+            <span className="text-slate-500">Views: </span>
             <EditableNumber
               value={item.performance.views}
               onChange={(views) => onUpdate({ performance: { ...item.performance, views } })}
-              className="text-white"
+              className="text-slate-900"
             />
           </div>
           <div>
-            <span className="text-slate-400">Engagement: </span>
+            <span className="text-slate-500">Engagement: </span>
             <EditableNumber
               value={item.performance.engagement}
               onChange={(engagement) => onUpdate({ performance: { ...item.performance, engagement } })}
               suffix="%"
-              className="text-white"
+              className="text-slate-900"
             />
           </div>
         </div>
@@ -690,9 +690,9 @@ interface BacklogCardProps {
 
 function BacklogCard({ item, onUpdate, onDelete }: BacklogCardProps) {
   return (
-    <div className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-3">
+    <div className="bg-white border border-slate-200 rounded-lg p-3">
       <div className="flex items-start gap-3">
-        <div className="w-6 h-6 rounded bg-slate-700 flex items-center justify-center text-xs text-slate-400">
+        <div className="w-6 h-6 rounded bg-slate-100 flex items-center justify-center text-xs text-slate-500">
           {item.priority}
         </div>
         <div className="flex-1 min-w-0">
@@ -705,7 +705,7 @@ function BacklogCard({ item, onUpdate, onDelete }: BacklogCardProps) {
             value={item.concept}
             onChange={(concept) => onUpdate({ concept })}
             placeholder="Brief concept description..."
-            className="text-sm text-slate-400 mt-1"
+            className="text-sm text-slate-500 mt-1"
           />
           <div className="flex items-center gap-2 mt-2">
             <select
@@ -744,7 +744,7 @@ interface InfluencerRowProps {
 
 function InfluencerRow({ influencer, onUpdate, onDelete }: InfluencerRowProps) {
   return (
-    <tr className="border-b border-slate-700/50 hover:bg-slate-800/30">
+    <tr className="border-b border-slate-200 hover:bg-white">
       <td className="py-3 px-2">
         <EditableField
           value={influencer.name}

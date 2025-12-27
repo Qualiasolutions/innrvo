@@ -20,7 +20,7 @@ const channelColors: Record<keyof ChannelAllocation, { bg: string; text: string 
   google: { bg: 'bg-red-500', text: 'text-red-400' },
   tiktok: { bg: 'bg-pink-500', text: 'text-pink-400' },
   influencer: { bg: 'bg-purple-500', text: 'text-purple-400' },
-  content: { bg: 'bg-teal-500', text: 'text-teal-400' },
+  content: { bg: 'bg-teal-500', text: 'text-teal-600' },
 };
 
 export function Phase3Scale({ data, onUpdate }: Phase3ScaleProps) {
@@ -102,13 +102,13 @@ export function Phase3Scale({ data, onUpdate }: Phase3ScaleProps) {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* What's Working */}
           <div className="space-y-4">
-            <h4 className="font-medium text-white flex items-center gap-2">
+            <h4 className="font-medium text-slate-900 flex items-center gap-2">
               <Trophy size={16} className="text-amber-400" />
               What's Working
             </h4>
 
             <div>
-              <label className="block text-sm text-slate-400 mb-1">Best Performing Message</label>
+              <label className="block text-sm text-slate-500 mb-1">Best Performing Message</label>
               <EditableField
                 value={winningPlaybook.bestMessage}
                 onChange={(bestMessage) => onUpdate({ winningPlaybook: { ...winningPlaybook, bestMessage } })}
@@ -118,7 +118,7 @@ export function Phase3Scale({ data, onUpdate }: Phase3ScaleProps) {
             </div>
 
             <div>
-              <label className="block text-sm text-slate-400 mb-1">Best Target Audience</label>
+              <label className="block text-sm text-slate-500 mb-1">Best Target Audience</label>
               <EditableField
                 value={winningPlaybook.bestAudience}
                 onChange={(bestAudience) => onUpdate({ winningPlaybook: { ...winningPlaybook, bestAudience } })}
@@ -128,7 +128,7 @@ export function Phase3Scale({ data, onUpdate }: Phase3ScaleProps) {
             </div>
 
             <div>
-              <label className="block text-sm text-slate-400 mb-1">Best Performing Channel</label>
+              <label className="block text-sm text-slate-500 mb-1">Best Performing Channel</label>
               <EditableField
                 value={winningPlaybook.bestChannel}
                 onChange={(bestChannel) => onUpdate({ winningPlaybook: { ...winningPlaybook, bestChannel } })}
@@ -139,50 +139,50 @@ export function Phase3Scale({ data, onUpdate }: Phase3ScaleProps) {
 
           {/* Unit Economics */}
           <div className="space-y-4">
-            <h4 className="font-medium text-white flex items-center gap-2">
-              <TrendingUp size={16} className="text-teal-400" />
+            <h4 className="font-medium text-slate-900 flex items-center gap-2">
+              <TrendingUp size={16} className="text-teal-600" />
               Unit Economics
             </h4>
 
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-slate-800/50 rounded-lg p-4">
-                <label className="block text-sm text-slate-400 mb-1">Current CAC</label>
+              <div className="bg-slate-50 rounded-lg p-4">
+                <label className="block text-sm text-slate-500 mb-1">Current CAC</label>
                 <EditableNumber
                   value={winningPlaybook.currentCAC}
                   onChange={(currentCAC) => onUpdate({ winningPlaybook: { ...winningPlaybook, currentCAC } })}
                   prefix="$"
-                  className="text-2xl font-bold text-white"
+                  className="text-2xl font-bold text-slate-900"
                 />
               </div>
 
-              <div className="bg-slate-800/50 rounded-lg p-4">
-                <label className="block text-sm text-slate-400 mb-1">Target CAC</label>
+              <div className="bg-slate-50 rounded-lg p-4">
+                <label className="block text-sm text-slate-500 mb-1">Target CAC</label>
                 <EditableNumber
                   value={winningPlaybook.targetCAC}
                   onChange={(targetCAC) => onUpdate({ winningPlaybook: { ...winningPlaybook, targetCAC } })}
                   prefix="$"
-                  className="text-2xl font-bold text-teal-400"
+                  className="text-2xl font-bold text-teal-600"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-slate-800/50 rounded-lg p-4">
-                <label className="block text-sm text-slate-400 mb-1">Customer LTV</label>
+              <div className="bg-slate-50 rounded-lg p-4">
+                <label className="block text-sm text-slate-500 mb-1">Customer LTV</label>
                 <EditableNumber
                   value={winningPlaybook.ltv}
                   onChange={(ltv) => onUpdate({ winningPlaybook: { ...winningPlaybook, ltv } })}
                   prefix="$"
-                  className="text-2xl font-bold text-white"
+                  className="text-2xl font-bold text-slate-900"
                 />
               </div>
 
-              <div className="bg-slate-800/50 rounded-lg p-4">
-                <label className="block text-sm text-slate-400 mb-1">LTV:CAC Ratio</label>
+              <div className="bg-slate-50 rounded-lg p-4">
+                <label className="block text-sm text-slate-500 mb-1">LTV:CAC Ratio</label>
                 <div className={`text-2xl font-bold ${
                   typeof ltvCacRatio === 'string' && ltvCacRatio !== 'N/A'
-                    ? parseFloat(ltvCacRatio) >= 3 ? 'text-teal-400' : parseFloat(ltvCacRatio) >= 2 ? 'text-amber-400' : 'text-red-400'
-                    : 'text-slate-400'
+                    ? parseFloat(ltvCacRatio) >= 3 ? 'text-teal-600' : parseFloat(ltvCacRatio) >= 2 ? 'text-amber-400' : 'text-red-400'
+                    : 'text-slate-500'
                 }`}>
                   {ltvCacRatio}x
                 </div>
@@ -196,14 +196,14 @@ export function Phase3Scale({ data, onUpdate }: Phase3ScaleProps) {
 
             {/* CAC Progress */}
             {winningPlaybook.currentCAC > 0 && winningPlaybook.targetCAC > 0 && (
-              <div className="bg-slate-800/50 rounded-lg p-4">
+              <div className="bg-slate-50 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-slate-400">CAC Reduction Progress</span>
-                  <span className="text-sm text-white">
+                  <span className="text-sm text-slate-500">CAC Reduction Progress</span>
+                  <span className="text-sm text-slate-900">
                     ${winningPlaybook.currentCAC} → ${winningPlaybook.targetCAC}
                   </span>
                 </div>
-                <div className="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
+                <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-gradient-to-r from-teal-500 to-cyan-500 transition-all duration-300"
                     style={{
@@ -227,13 +227,13 @@ export function Phase3Scale({ data, onUpdate }: Phase3ScaleProps) {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Monthly Budget */}
           <div>
-            <div className="bg-slate-800/50 rounded-lg p-6">
-              <label className="block text-sm text-slate-400 mb-2">Monthly Marketing Budget</label>
+            <div className="bg-slate-50 rounded-lg p-6">
+              <label className="block text-sm text-slate-500 mb-2">Monthly Marketing Budget</label>
               <EditableNumber
                 value={scalePlan.monthlyBudget}
                 onChange={(monthlyBudget) => onUpdate({ scalePlan: { ...scalePlan, monthlyBudget } })}
                 prefix="$"
-                className="text-4xl font-bold text-white"
+                className="text-4xl font-bold text-slate-900"
               />
               <p className="text-sm text-slate-500 mt-2">
                 Total allocation: {totalAllocation}%{' '}
@@ -246,7 +246,7 @@ export function Phase3Scale({ data, onUpdate }: Phase3ScaleProps) {
 
           {/* Channel Allocation */}
           <div className="space-y-4">
-            <h4 className="font-medium text-white">Channel Allocation</h4>
+            <h4 className="font-medium text-slate-900">Channel Allocation</h4>
             {(Object.keys(scalePlan.channelAllocation) as (keyof ChannelAllocation)[]).map((channel) => {
               const value = scalePlan.channelAllocation[channel];
               const dollarAmount = Math.round((value / 100) * scalePlan.monthlyBudget);
@@ -257,7 +257,7 @@ export function Phase3Scale({ data, onUpdate }: Phase3ScaleProps) {
                   <div className="flex items-center justify-between">
                     <span className={`capitalize ${colors.text}`}>{channel}</span>
                     <div className="flex items-center gap-2">
-                      <span className="text-slate-400 text-sm">${dollarAmount}</span>
+                      <span className="text-slate-500 text-sm">${dollarAmount}</span>
                       <EditableNumber
                         value={value}
                         onChange={(v) => updateChannelAllocation(channel, v)}
@@ -266,7 +266,7 @@ export function Phase3Scale({ data, onUpdate }: Phase3ScaleProps) {
                       />
                     </div>
                   </div>
-                  <div className="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
+                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
                     <div
                       className={`h-full ${colors.bg} transition-all duration-300`}
                       style={{ width: `${value}%` }}
@@ -279,8 +279,8 @@ export function Phase3Scale({ data, onUpdate }: Phase3ScaleProps) {
         </div>
 
         {/* Budget Breakdown Visual */}
-        <div className="mt-6 pt-6 border-t border-slate-700/50">
-          <h4 className="font-medium text-white mb-4">Budget Breakdown</h4>
+        <div className="mt-6 pt-6 border-t border-slate-200">
+          <h4 className="font-medium text-slate-900 mb-4">Budget Breakdown</h4>
           <div className="flex h-8 rounded-lg overflow-hidden">
             {(Object.keys(scalePlan.channelAllocation) as (keyof ChannelAllocation)[]).map((channel) => {
               const value = scalePlan.channelAllocation[channel];
@@ -289,7 +289,7 @@ export function Phase3Scale({ data, onUpdate }: Phase3ScaleProps) {
               return (
                 <div
                   key={channel}
-                  className={`${colors.bg} flex items-center justify-center text-xs font-medium text-white transition-all duration-300`}
+                  className={`${colors.bg} flex items-center justify-center text-xs font-medium text-slate-900 transition-all duration-300`}
                   style={{ width: `${value}%` }}
                   title={`${channel}: ${value}%`}
                 >
@@ -304,7 +304,7 @@ export function Phase3Scale({ data, onUpdate }: Phase3ScaleProps) {
               return (
                 <div key={channel} className="flex items-center gap-2">
                   <div className={`w-3 h-3 rounded ${colors.bg}`} />
-                  <span className="text-sm text-slate-400 capitalize">{channel}</span>
+                  <span className="text-sm text-slate-500 capitalize">{channel}</span>
                 </div>
               );
             })}
@@ -324,20 +324,20 @@ export function Phase3Scale({ data, onUpdate }: Phase3ScaleProps) {
           <div>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                <h4 className="font-medium text-white">Weekly Tasks</h4>
+                <h4 className="font-medium text-slate-900">Weekly Tasks</h4>
                 <ProgressIndicator value={weeklyProgress} size="sm" showLabel />
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => resetAllTasks('weekly')}
-                  className="text-xs text-slate-400 hover:text-white flex items-center gap-1"
+                  className="text-xs text-slate-500 hover:text-slate-900 flex items-center gap-1"
                 >
                   <RotateCcw size={12} />
                   Reset All
                 </button>
                 <button
                   onClick={() => addRecurringTask('weekly')}
-                  className="text-sm text-teal-400 hover:text-teal-300 flex items-center gap-1"
+                  className="text-sm text-teal-600 hover:text-teal-500 flex items-center gap-1"
                 >
                   <Plus size={14} />
                   Add
@@ -364,20 +364,20 @@ export function Phase3Scale({ data, onUpdate }: Phase3ScaleProps) {
           <div>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                <h4 className="font-medium text-white">Monthly Tasks</h4>
+                <h4 className="font-medium text-slate-900">Monthly Tasks</h4>
                 <ProgressIndicator value={monthlyProgress} size="sm" showLabel />
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => resetAllTasks('monthly')}
-                  className="text-xs text-slate-400 hover:text-white flex items-center gap-1"
+                  className="text-xs text-slate-500 hover:text-slate-900 flex items-center gap-1"
                 >
                   <RotateCcw size={12} />
                   Reset All
                 </button>
                 <button
                   onClick={() => addRecurringTask('monthly')}
-                  className="text-sm text-teal-400 hover:text-teal-300 flex items-center gap-1"
+                  className="text-sm text-teal-600 hover:text-teal-500 flex items-center gap-1"
                 >
                   <Plus size={14} />
                   Add
@@ -417,14 +417,14 @@ interface RecurringTaskItemProps {
 function RecurringTaskItem({ task, onUpdate, onReset, onDelete }: RecurringTaskItemProps) {
   return (
     <div className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
-      task.completed ? 'bg-teal-500/10' : 'bg-slate-800/30'
+      task.completed ? 'bg-teal-500/10' : 'bg-white'
     }`}>
       <button
         onClick={() => onUpdate({ completed: !task.completed })}
         className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${
           task.completed
-            ? 'bg-teal-500 border-teal-500 text-white'
-            : 'border-slate-600 hover:border-teal-500'
+            ? 'bg-teal-500 border-teal-500 text-slate-900'
+            : 'border-slate-200 hover:border-teal-500'
         }`}
       >
         {task.completed && <Check size={12} />}
@@ -438,7 +438,7 @@ function RecurringTaskItem({ task, onUpdate, onReset, onDelete }: RecurringTaskI
         {task.completed && (
           <button
             onClick={onReset}
-            className="p-1 text-slate-500 hover:text-white"
+            className="p-1 text-slate-500 hover:text-slate-900"
             title="Reset task"
           >
             <RotateCcw size={14} />

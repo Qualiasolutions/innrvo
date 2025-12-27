@@ -15,24 +15,24 @@ export function PersonaCard({ persona, onUpdate }: PersonaCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const statusColors: Record<PersonaStatus, string> = {
-    draft: 'border-slate-500',
-    in_review: 'border-amber-500',
+    draft: 'border-slate-300',
+    in_review: 'border-amber-400',
     approved: 'border-teal-500',
   };
 
   return (
-    <div className={`border ${statusColors[persona.status]} rounded-lg overflow-hidden bg-slate-800/30 transition-colors`}>
+    <div className={`border-2 ${statusColors[persona.status]} rounded-lg overflow-hidden bg-white transition-colors shadow-sm`}>
       {/* Header */}
       <div
-        className="flex items-center gap-3 p-4 cursor-pointer hover:bg-slate-800/50 transition-colors"
+        className="flex items-center gap-3 p-4 cursor-pointer hover:bg-slate-50 transition-colors"
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center">
           <User size={20} className="text-white" />
         </div>
         <div className="flex-1 min-w-0">
-          <h4 className="font-medium text-white truncate">{persona.name}</h4>
-          <p className="text-sm text-slate-400">Age {persona.ageRange}</p>
+          <h4 className="font-medium text-slate-900 truncate">{persona.name}</h4>
+          <p className="text-sm text-slate-500">Age {persona.ageRange}</p>
         </div>
         <StatusSelect
           value={persona.status}
@@ -55,12 +55,12 @@ export function PersonaCard({ persona, onUpdate }: PersonaCardProps) {
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="border-t border-slate-700/50"
+            className="border-t border-slate-100"
           >
-            <div className="p-4 space-y-4">
+            <div className="p-4 space-y-4 bg-slate-50">
               {/* Age Range */}
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Age Range</label>
+                <label className="block text-sm text-slate-500 mb-1">Age Range</label>
                 <EditableField
                   value={persona.ageRange}
                   onChange={(ageRange) => onUpdate({ ageRange })}
@@ -70,7 +70,7 @@ export function PersonaCard({ persona, onUpdate }: PersonaCardProps) {
 
               {/* Primary Pain */}
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Primary Pain Point</label>
+                <label className="block text-sm text-slate-500 mb-1">Primary Pain Point</label>
                 <EditableField
                   value={persona.primaryPain}
                   onChange={(primaryPain) => onUpdate({ primaryPain })}
@@ -81,7 +81,7 @@ export function PersonaCard({ persona, onUpdate }: PersonaCardProps) {
 
               {/* Key Message */}
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Key Message</label>
+                <label className="block text-sm text-slate-500 mb-1">Key Message</label>
                 <EditableField
                   value={persona.keyMessage}
                   onChange={(keyMessage) => onUpdate({ keyMessage })}
@@ -92,7 +92,7 @@ export function PersonaCard({ persona, onUpdate }: PersonaCardProps) {
 
               {/* Hook Examples */}
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Hook Examples</label>
+                <label className="block text-sm text-slate-500 mb-1">Hook Examples</label>
                 <EditableField
                   value={persona.hookExamples}
                   onChange={(hookExamples) => onUpdate({ hookExamples })}

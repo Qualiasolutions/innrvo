@@ -34,7 +34,7 @@ const assetTypeIcons: Record<Asset['type'], React.ElementType> = {
 };
 
 const credentialStatusColors: Record<Credential['status'], string> = {
-  active: 'bg-teal-500/20 text-teal-400',
+  active: 'bg-teal-500/20 text-teal-600',
   pending: 'bg-amber-500/20 text-amber-400',
   expired: 'bg-red-500/20 text-red-400',
 };
@@ -44,7 +44,7 @@ const templateTypeColors: Record<Template['type'], string> = {
   email: 'bg-purple-500/20 text-purple-400',
   ad: 'bg-amber-500/20 text-amber-400',
   report: 'bg-blue-500/20 text-blue-400',
-  other: 'bg-slate-500/20 text-slate-400',
+  other: 'bg-slate-500/20 text-slate-500',
 };
 
 export function Resources({ data, onUpdate }: ResourcesProps) {
@@ -139,10 +139,10 @@ export function Resources({ data, onUpdate }: ResourcesProps) {
         {/* Colors */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-3">
-            <h4 className="font-medium text-white">Colors</h4>
+            <h4 className="font-medium text-slate-900">Colors</h4>
             <button
               onClick={() => addAsset('color')}
-              className="text-sm text-teal-400 hover:text-teal-300 flex items-center gap-1"
+              className="text-sm text-teal-600 hover:text-teal-500 flex items-center gap-1"
             >
               <Plus size={14} />
               Add Color
@@ -150,10 +150,10 @@ export function Resources({ data, onUpdate }: ResourcesProps) {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {(assetsByType.color || []).map((asset) => (
-              <div key={asset.id} className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-3">
+              <div key={asset.id} className="bg-white border border-slate-200 rounded-lg p-3">
                 <div className="flex items-center gap-3 mb-2">
                   <div
-                    className="w-10 h-10 rounded-lg border border-slate-600"
+                    className="w-10 h-10 rounded-lg border border-slate-200"
                     style={{ backgroundColor: asset.value || '#000' }}
                   />
                   <div className="flex-1 min-w-0">
@@ -171,10 +171,10 @@ export function Resources({ data, onUpdate }: ResourcesProps) {
                     onChange={(e) => updateAsset(asset.id, { value: e.target.value })}
                     className="w-8 h-8 rounded cursor-pointer"
                   />
-                  <code className="text-xs text-slate-400 flex-1">{asset.value}</code>
+                  <code className="text-xs text-slate-500 flex-1">{asset.value}</code>
                   <button
                     onClick={() => copyToClipboard(asset.value || '', asset.id)}
-                    className="p-1 text-slate-500 hover:text-white"
+                    className="p-1 text-slate-500 hover:text-slate-900"
                   >
                     {copiedId === asset.id ? <Check size={14} /> : <Copy size={14} />}
                   </button>
@@ -193,10 +193,10 @@ export function Resources({ data, onUpdate }: ResourcesProps) {
         {/* Logos & Images */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-3">
-            <h4 className="font-medium text-white">Logos & Images</h4>
+            <h4 className="font-medium text-slate-900">Logos & Images</h4>
             <button
               onClick={() => addAsset('logo')}
-              className="text-sm text-teal-400 hover:text-teal-300 flex items-center gap-1"
+              className="text-sm text-teal-600 hover:text-teal-500 flex items-center gap-1"
             >
               <Plus size={14} />
               Add Logo
@@ -217,10 +217,10 @@ export function Resources({ data, onUpdate }: ResourcesProps) {
         {/* Fonts */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-3">
-            <h4 className="font-medium text-white">Fonts</h4>
+            <h4 className="font-medium text-slate-900">Fonts</h4>
             <button
               onClick={() => addAsset('font')}
-              className="text-sm text-teal-400 hover:text-teal-300 flex items-center gap-1"
+              className="text-sm text-teal-600 hover:text-teal-500 flex items-center gap-1"
             >
               <Plus size={14} />
               Add Font
@@ -241,10 +241,10 @@ export function Resources({ data, onUpdate }: ResourcesProps) {
         {/* Guidelines */}
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h4 className="font-medium text-white">Brand Guidelines</h4>
+            <h4 className="font-medium text-slate-900">Brand Guidelines</h4>
             <button
               onClick={() => addAsset('guideline')}
-              className="text-sm text-teal-400 hover:text-teal-300 flex items-center gap-1"
+              className="text-sm text-teal-600 hover:text-teal-500 flex items-center gap-1"
             >
               <Plus size={14} />
               Add Guideline
@@ -273,17 +273,17 @@ export function Resources({ data, onUpdate }: ResourcesProps) {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-700">
-                <th className="text-left py-3 px-2 text-slate-400 font-medium">Platform</th>
-                <th className="text-left py-3 px-2 text-slate-400 font-medium">Account Name</th>
-                <th className="text-left py-3 px-2 text-slate-400 font-medium">Status</th>
-                <th className="text-left py-3 px-2 text-slate-400 font-medium">Link</th>
+              <tr className="border-b border-slate-200">
+                <th className="text-left py-3 px-2 text-slate-500 font-medium">Platform</th>
+                <th className="text-left py-3 px-2 text-slate-500 font-medium">Account Name</th>
+                <th className="text-left py-3 px-2 text-slate-500 font-medium">Status</th>
+                <th className="text-left py-3 px-2 text-slate-500 font-medium">Link</th>
                 <th className="text-right py-3 px-2"></th>
               </tr>
             </thead>
             <tbody>
               {credentials.map((cred) => (
-                <tr key={cred.id} className="border-b border-slate-700/50 hover:bg-slate-800/30">
+                <tr key={cred.id} className="border-b border-slate-200 hover:bg-white">
                   <td className="py-3 px-2">
                     <EditableField
                       value={cred.platform}
@@ -325,7 +325,7 @@ export function Resources({ data, onUpdate }: ResourcesProps) {
                           href={cred.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="p-1 text-slate-500 hover:text-teal-400"
+                          className="p-1 text-slate-500 hover:text-teal-600"
                         >
                           <ExternalLink size={14} />
                         </a>
@@ -348,7 +348,7 @@ export function Resources({ data, onUpdate }: ResourcesProps) {
 
         <button
           onClick={addCredential}
-          className="w-full flex items-center justify-center gap-2 p-4 border-2 border-dashed border-slate-700 rounded-lg text-slate-400 hover:text-white hover:border-slate-500 transition-colors mt-4"
+          className="w-full flex items-center justify-center gap-2 p-4 border-2 border-dashed border-slate-200 rounded-lg text-slate-500 hover:text-slate-900 hover:border-slate-500 transition-colors mt-4"
         >
           <Plus size={20} />
           Add Platform
@@ -381,7 +381,7 @@ export function Resources({ data, onUpdate }: ResourcesProps) {
           {templates.map((template) => (
             <div
               key={template.id}
-              className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-4"
+              className="bg-white border border-slate-200 rounded-lg p-4"
             >
               <div className="flex items-start justify-between mb-3">
                 <span className={`text-xs px-2 py-1 rounded capitalize ${templateTypeColors[template.type]}`}>
@@ -406,14 +406,14 @@ export function Resources({ data, onUpdate }: ResourcesProps) {
                   value={template.url}
                   onChange={(url) => updateTemplate(template.id, { url })}
                   placeholder="Link to template..."
-                  className="text-xs text-slate-400 flex-1"
+                  className="text-xs text-slate-500 flex-1"
                 />
                 {template.url && (
                   <a
                     href={template.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="p-1 text-slate-500 hover:text-teal-400"
+                    className="p-1 text-slate-500 hover:text-teal-600"
                   >
                     <ExternalLink size={14} />
                   </a>
@@ -439,10 +439,10 @@ function AssetCard({ asset, onUpdate, onDelete }: AssetCardProps) {
   const Icon = assetTypeIcons[asset.type];
 
   return (
-    <div className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-4">
+    <div className="bg-white border border-slate-200 rounded-lg p-4">
       <div className="flex items-start gap-3">
-        <div className="w-10 h-10 rounded-lg bg-slate-700 flex items-center justify-center">
-          <Icon size={20} className="text-slate-400" />
+        <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center">
+          <Icon size={20} className="text-slate-500" />
         </div>
         <div className="flex-1 min-w-0">
           <EditableField
@@ -455,14 +455,14 @@ function AssetCard({ asset, onUpdate, onDelete }: AssetCardProps) {
               value={asset.url}
               onChange={(url) => onUpdate({ url })}
               placeholder="Link to asset..."
-              className="text-xs text-slate-400 flex-1"
+              className="text-xs text-slate-500 flex-1"
             />
             {asset.url && (
               <a
                 href={asset.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-1 text-slate-500 hover:text-teal-400"
+                className="p-1 text-slate-500 hover:text-teal-600"
               >
                 <ExternalLink size={14} />
               </a>

@@ -57,7 +57,7 @@ export function EditableField({
     const InputComponent = multiline ? 'textarea' : 'input';
     return (
       <div className="flex items-start gap-2">
-        {label && <span className="text-sm text-slate-400 min-w-[80px]">{label}</span>}
+        {label && <span className="text-sm text-slate-500 min-w-[80px]">{label}</span>}
         <div className="flex-1 flex items-start gap-2">
           <InputComponent
             ref={inputRef as any}
@@ -65,18 +65,18 @@ export function EditableField({
             onChange={(e) => setTempValue(e.target.value)}
             onKeyDown={handleKeyDown}
             onBlur={handleSave}
-            className={`flex-1 bg-slate-800 border border-cyan-500/50 rounded px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 ${multiline ? 'min-h-[100px] resize-y' : ''} ${className}`}
+            className={`flex-1 bg-white border border-teal-500/50 rounded px-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/50 ${multiline ? 'min-h-[100px] resize-y' : ''} ${className}`}
             placeholder={placeholder}
           />
           <button
             onClick={handleSave}
-            className="p-2 text-green-400 hover:bg-green-400/10 rounded transition-colors"
+            className="p-2 text-green-500 hover:bg-green-500/10 rounded transition-colors"
           >
             <Check size={16} />
           </button>
           <button
             onClick={handleCancel}
-            className="p-2 text-red-400 hover:bg-red-400/10 rounded transition-colors"
+            className="p-2 text-red-500 hover:bg-red-500/10 rounded transition-colors"
           >
             <X size={16} />
           </button>
@@ -93,13 +93,13 @@ export function EditableField({
   return (
     <div
       onClick={handleClick}
-      className={`group flex items-start gap-2 cursor-pointer hover:bg-slate-800/50 rounded px-3 py-2 transition-colors ${className}`}
+      className={`group flex items-start gap-2 cursor-pointer hover:bg-slate-100 rounded px-3 py-2 transition-colors ${className}`}
     >
-      {label && <span className="text-sm text-slate-400 min-w-[80px]">{label}</span>}
-      <span className={`flex-1 ${value ? 'text-white' : 'text-slate-500 italic'}`}>
+      {label && <span className="text-sm text-slate-500 min-w-[80px]">{label}</span>}
+      <span className={`flex-1 ${value ? 'text-slate-900' : 'text-slate-400 italic'}`}>
         {value || placeholder}
       </span>
-      <Pencil size={14} className="text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+      <Pencil size={14} className="text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
     </div>
   );
 }
@@ -154,9 +154,9 @@ export function EditableNumber({
   if (isEditing) {
     return (
       <div className="flex items-center gap-2">
-        {label && <span className="text-sm text-slate-400">{label}</span>}
+        {label && <span className="text-sm text-slate-500">{label}</span>}
         <div className="flex items-center gap-1">
-          {prefix && <span className="text-slate-400">{prefix}</span>}
+          {prefix && <span className="text-slate-500">{prefix}</span>}
           <input
             ref={inputRef}
             type="number"
@@ -164,9 +164,9 @@ export function EditableNumber({
             onChange={(e) => setTempValue(e.target.value)}
             onKeyDown={handleKeyDown}
             onBlur={handleSave}
-            className={`w-24 bg-slate-800 border border-cyan-500/50 rounded px-2 py-1 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 ${className}`}
+            className={`w-24 bg-white border border-teal-500/50 rounded px-2 py-1 text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-500/50 ${className}`}
           />
-          {suffix && <span className="text-slate-400">{suffix}</span>}
+          {suffix && <span className="text-slate-500">{suffix}</span>}
         </div>
       </div>
     );
@@ -175,13 +175,13 @@ export function EditableNumber({
   return (
     <div
       onClick={() => setIsEditing(true)}
-      className={`group flex items-center gap-2 cursor-pointer hover:bg-slate-800/50 rounded px-2 py-1 transition-colors ${className}`}
+      className={`group flex items-center gap-2 cursor-pointer hover:bg-slate-100 rounded px-2 py-1 transition-colors ${className}`}
     >
-      {label && <span className="text-sm text-slate-400">{label}</span>}
-      <span className="text-white font-medium">
+      {label && <span className="text-sm text-slate-500">{label}</span>}
+      <span className="text-slate-900 font-medium">
         {prefix}{value.toLocaleString()}{suffix}
       </span>
-      <Pencil size={12} className="text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+      <Pencil size={12} className="text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
     </div>
   );
 }

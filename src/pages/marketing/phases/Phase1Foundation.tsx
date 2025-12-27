@@ -47,7 +47,7 @@ export function Phase1Foundation({ data, onUpdate }: Phase1FoundationProps) {
           >
             <div className="space-y-4">
               <div>
-                <label className="block text-sm text-slate-400 mb-2">Primary Value Proposition</label>
+                <label className="block text-sm text-slate-500 mb-2">Primary Value Proposition</label>
                 <EditableField
                   value={data.positioning.primaryValueProp}
                   onChange={(primaryValueProp) => updatePositioning({ primaryValueProp })}
@@ -58,7 +58,7 @@ export function Phase1Foundation({ data, onUpdate }: Phase1FoundationProps) {
 
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="text-sm text-slate-400">Alternative Value Props to Test</label>
+                  <label className="text-sm text-slate-500">Alternative Value Props to Test</label>
                   <button
                     onClick={() => {
                       const newProp: ValueProp = { id: generateId(), text: '', isWinner: false };
@@ -66,7 +66,7 @@ export function Phase1Foundation({ data, onUpdate }: Phase1FoundationProps) {
                         alternativeValueProps: [...data.positioning.alternativeValueProps, newProp],
                       });
                     }}
-                    className="flex items-center gap-1 text-sm text-teal-400 hover:text-teal-300"
+                    className="flex items-center gap-1 text-sm text-teal-600 hover:text-teal-500"
                   >
                     <Plus size={14} /> Add
                   </button>
@@ -83,8 +83,8 @@ export function Phase1Foundation({ data, onUpdate }: Phase1FoundationProps) {
                         }}
                         className={`px-2 py-1 text-xs rounded ${
                           prop.isWinner
-                            ? 'bg-teal-500/20 text-teal-400'
-                            : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+                            ? 'bg-teal-500/20 text-teal-600'
+                            : 'bg-slate-100 text-slate-500 hover:bg-slate-600'
                         }`}
                       >
                         {prop.isWinner ? '★ Winner' : 'Mark Winner'}
@@ -126,18 +126,18 @@ export function Phase1Foundation({ data, onUpdate }: Phase1FoundationProps) {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-slate-700">
-                    <th className="text-left py-2 px-3 text-slate-400 font-medium">Feature</th>
-                    <th className="text-left py-2 px-3 text-teal-400 font-medium">INrVO</th>
-                    <th className="text-left py-2 px-3 text-slate-400 font-medium">Calm</th>
-                    <th className="text-left py-2 px-3 text-slate-400 font-medium">Headspace</th>
-                    <th className="text-left py-2 px-3 text-slate-400 font-medium">Insight Timer</th>
+                  <tr className="border-b border-slate-200">
+                    <th className="text-left py-2 px-3 text-slate-500 font-medium">Feature</th>
+                    <th className="text-left py-2 px-3 text-teal-600 font-medium">INrVO</th>
+                    <th className="text-left py-2 px-3 text-slate-500 font-medium">Calm</th>
+                    <th className="text-left py-2 px-3 text-slate-500 font-medium">Headspace</th>
+                    <th className="text-left py-2 px-3 text-slate-500 font-medium">Insight Timer</th>
                     <th className="w-10"></th>
                   </tr>
                 </thead>
                 <tbody>
                   {data.positioning.competitorComparison.map((row) => (
-                    <tr key={row.id} className="border-b border-slate-700/50 hover:bg-slate-800/30">
+                    <tr key={row.id} className="border-b border-slate-200 hover:bg-white">
                       <td className="py-2 px-3">
                         <EditableField
                           value={row.feature}
@@ -223,7 +223,7 @@ export function Phase1Foundation({ data, onUpdate }: Phase1FoundationProps) {
                     competitorComparison: [...data.positioning.competitorComparison, newRow],
                   });
                 }}
-                className="mt-3 flex items-center gap-1 text-sm text-teal-400 hover:text-teal-300"
+                className="mt-3 flex items-center gap-1 text-sm text-teal-600 hover:text-teal-500"
               >
                 <Plus size={14} /> Add Row
               </button>
@@ -272,7 +272,7 @@ export function Phase1Foundation({ data, onUpdate }: Phase1FoundationProps) {
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Status</label>
+                <label className="block text-sm text-slate-500 mb-1">Status</label>
                 <StatusSelect
                   value={data.conversion.landingPage.status}
                   onChange={(status) =>
@@ -284,7 +284,7 @@ export function Phase1Foundation({ data, onUpdate }: Phase1FoundationProps) {
                 />
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">URL</label>
+                <label className="block text-sm text-slate-500 mb-1">URL</label>
                 <EditableField
                   value={data.conversion.landingPage.url}
                   onChange={(url) =>
@@ -296,7 +296,7 @@ export function Phase1Foundation({ data, onUpdate }: Phase1FoundationProps) {
                 />
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Conversion Rate</label>
+                <label className="block text-sm text-slate-500 mb-1">Conversion Rate</label>
                 <EditableNumber
                   value={data.conversion.landingPage.conversionRate}
                   onChange={(conversionRate) =>
@@ -308,7 +308,7 @@ export function Phase1Foundation({ data, onUpdate }: Phase1FoundationProps) {
                 />
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Notes</label>
+                <label className="block text-sm text-slate-500 mb-1">Notes</label>
                 <EditableField
                   value={data.conversion.landingPage.notes}
                   onChange={(notes) =>
@@ -332,7 +332,7 @@ export function Phase1Foundation({ data, onUpdate }: Phase1FoundationProps) {
           >
             <div className="space-y-4">
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Lead Magnet</label>
+                <label className="block text-sm text-slate-500 mb-1">Lead Magnet</label>
                 <EditableField
                   value={data.conversion.emailCapture.leadMagnet}
                   onChange={(leadMagnet) =>
@@ -344,15 +344,15 @@ export function Phase1Foundation({ data, onUpdate }: Phase1FoundationProps) {
                 />
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-2">Form Locations</label>
+                <label className="block text-sm text-slate-500 mb-2">Form Locations</label>
                 <div className="flex flex-wrap gap-2">
                   {['Homepage', 'Landing Page', 'Blog', 'Exit Intent'].map((location) => (
                     <label
                       key={location}
                       className={`px-3 py-1.5 rounded-lg text-sm cursor-pointer transition-colors ${
                         data.conversion.emailCapture.locations.includes(location)
-                          ? 'bg-teal-500/20 text-teal-400 border border-teal-500/50'
-                          : 'bg-slate-700 text-slate-400 border border-slate-600 hover:border-slate-500'
+                          ? 'bg-teal-500/20 text-teal-600 border border-teal-500/50'
+                          : 'bg-slate-100 text-slate-500 border border-slate-200 hover:border-slate-500'
                       }`}
                     >
                       <input
@@ -398,7 +398,7 @@ export function Phase1Foundation({ data, onUpdate }: Phase1FoundationProps) {
               {data.conversion.emailSequence.map((email) => (
                 <div
                   key={email.id}
-                  className="p-4 bg-slate-800/50 rounded-lg border border-slate-700/50"
+                  className="p-4 bg-slate-50 rounded-lg border border-slate-200"
                 >
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-3">
@@ -406,8 +406,8 @@ export function Phase1Foundation({ data, onUpdate }: Phase1FoundationProps) {
                         {email.day}
                       </span>
                       <div>
-                        <h5 className="font-medium text-white">{email.title}</h5>
-                        <p className="text-xs text-slate-400">Day {email.day}</p>
+                        <h5 className="font-medium text-slate-900">{email.title}</h5>
+                        <p className="text-xs text-slate-500">Day {email.day}</p>
                       </div>
                     </div>
                     <StatusSelect
@@ -536,19 +536,19 @@ export function Phase1Foundation({ data, onUpdate }: Phase1FoundationProps) {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-slate-700">
-                    <th className="text-left py-2 px-3 text-slate-400 font-medium">#</th>
-                    <th className="text-left py-2 px-3 text-slate-400 font-medium">Target Keyword</th>
-                    <th className="text-left py-2 px-3 text-slate-400 font-medium">Volume</th>
-                    <th className="text-left py-2 px-3 text-slate-400 font-medium">Difficulty</th>
-                    <th className="text-left py-2 px-3 text-slate-400 font-medium">Status</th>
-                    <th className="text-left py-2 px-3 text-slate-400 font-medium">URL</th>
+                  <tr className="border-b border-slate-200">
+                    <th className="text-left py-2 px-3 text-slate-500 font-medium">#</th>
+                    <th className="text-left py-2 px-3 text-slate-500 font-medium">Target Keyword</th>
+                    <th className="text-left py-2 px-3 text-slate-500 font-medium">Volume</th>
+                    <th className="text-left py-2 px-3 text-slate-500 font-medium">Difficulty</th>
+                    <th className="text-left py-2 px-3 text-slate-500 font-medium">Status</th>
+                    <th className="text-left py-2 px-3 text-slate-500 font-medium">URL</th>
                     <th className="w-10"></th>
                   </tr>
                 </thead>
                 <tbody>
                   {data.content.seoArticles.map((article, index) => (
-                    <tr key={article.id} className="border-b border-slate-700/50 hover:bg-slate-800/30">
+                    <tr key={article.id} className="border-b border-slate-200 hover:bg-white">
                       <td className="py-2 px-3 text-slate-500">{index + 1}</td>
                       <td className="py-2 px-3">
                         <EditableField
@@ -637,7 +637,7 @@ export function Phase1Foundation({ data, onUpdate }: Phase1FoundationProps) {
                   };
                   updateContent({ seoArticles: [...data.content.seoArticles, newArticle] });
                 }}
-                className="mt-3 flex items-center gap-1 text-sm text-teal-400 hover:text-teal-300"
+                className="mt-3 flex items-center gap-1 text-sm text-teal-600 hover:text-teal-500"
               >
                 <Plus size={14} /> Add Article
               </button>
@@ -655,7 +655,7 @@ export function Phase1Foundation({ data, onUpdate }: Phase1FoundationProps) {
               {data.content.heroContent.map((content) => (
                 <div
                   key={content.id}
-                  className="p-4 bg-slate-800/50 rounded-lg border border-slate-700/50"
+                  className="p-4 bg-slate-50 rounded-lg border border-slate-200"
                 >
                   <div className="flex items-center justify-between mb-3">
                     <span className="px-2 py-1 bg-purple-500/20 text-purple-400 rounded text-xs uppercase">
@@ -696,22 +696,22 @@ export function Phase1Foundation({ data, onUpdate }: Phase1FoundationProps) {
                     className="text-sm"
                   />
                   {content.status === 'posted' && (
-                    <div className="mt-3 pt-3 border-t border-slate-700/50 grid grid-cols-4 gap-2 text-center">
+                    <div className="mt-3 pt-3 border-t border-slate-200 grid grid-cols-4 gap-2 text-center">
                       <div>
-                        <div className="text-lg font-bold text-white">{content.views.toLocaleString()}</div>
-                        <div className="text-xs text-slate-400">Views</div>
+                        <div className="text-lg font-bold text-slate-900">{content.views.toLocaleString()}</div>
+                        <div className="text-xs text-slate-500">Views</div>
                       </div>
                       <div>
-                        <div className="text-lg font-bold text-white">{content.likes.toLocaleString()}</div>
-                        <div className="text-xs text-slate-400">Likes</div>
+                        <div className="text-lg font-bold text-slate-900">{content.likes.toLocaleString()}</div>
+                        <div className="text-xs text-slate-500">Likes</div>
                       </div>
                       <div>
-                        <div className="text-lg font-bold text-white">{content.saves.toLocaleString()}</div>
-                        <div className="text-xs text-slate-400">Saves</div>
+                        <div className="text-lg font-bold text-slate-900">{content.saves.toLocaleString()}</div>
+                        <div className="text-xs text-slate-500">Saves</div>
                       </div>
                       <div>
-                        <div className="text-lg font-bold text-white">{content.shares.toLocaleString()}</div>
-                        <div className="text-xs text-slate-400">Shares</div>
+                        <div className="text-lg font-bold text-slate-900">{content.shares.toLocaleString()}</div>
+                        <div className="text-xs text-slate-500">Shares</div>
                       </div>
                     </div>
                   )}
@@ -743,7 +743,7 @@ export function Phase1Foundation({ data, onUpdate }: Phase1FoundationProps) {
                   };
                   updateContent({ heroContent: [...data.content.heroContent, newContent] });
                 }}
-                className="p-4 border-2 border-dashed border-slate-700 rounded-lg flex items-center justify-center gap-2 text-slate-400 hover:text-teal-400 hover:border-teal-500/50 transition-colors"
+                className="p-4 border-2 border-dashed border-slate-200 rounded-lg flex items-center justify-center gap-2 text-slate-500 hover:text-teal-600 hover:border-teal-500/50 transition-colors"
               >
                 <Plus size={20} />
                 Add Content

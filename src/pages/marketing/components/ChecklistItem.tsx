@@ -24,7 +24,7 @@ export function ChecklistItem({
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
   return (
-    <div className="border border-slate-700/50 rounded-lg overflow-hidden bg-slate-800/30 hover:bg-slate-800/50 transition-colors">
+    <div className="border border-slate-200 rounded-lg overflow-hidden bg-white hover:bg-slate-50 transition-colors">
       <div className="flex items-start p-4 gap-3">
         {/* Checkbox */}
         <button
@@ -32,7 +32,7 @@ export function ChecklistItem({
           className={`flex-shrink-0 w-6 h-6 rounded border-2 flex items-center justify-center transition-all ${
             checked
               ? 'bg-teal-500 border-teal-500'
-              : 'border-slate-500 hover:border-teal-400'
+              : 'border-slate-300 hover:border-teal-400'
           }`}
         >
           {checked && <Check size={14} className="text-white" />}
@@ -41,17 +41,17 @@ export function ChecklistItem({
         {/* Content */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <h4 className={`font-medium ${checked ? 'text-slate-400 line-through' : 'text-white'}`}>
+            <h4 className={`font-medium ${checked ? 'text-slate-400 line-through' : 'text-slate-900'}`}>
               {title}
             </h4>
             {checked && (
-              <span className="text-xs bg-teal-500/20 text-teal-400 px-2 py-0.5 rounded-full">
+              <span className="text-xs bg-teal-500/10 text-teal-600 px-2 py-0.5 rounded-full">
                 Complete
               </span>
             )}
           </div>
           {description && (
-            <p className="text-sm text-slate-400 mt-1">{description}</p>
+            <p className="text-sm text-slate-500 mt-1">{description}</p>
           )}
         </div>
 
@@ -59,7 +59,7 @@ export function ChecklistItem({
         {expandable && children && (
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="flex-shrink-0 p-1 text-slate-400 hover:text-white hover:bg-slate-700 rounded transition-colors"
+            className="flex-shrink-0 p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded transition-colors"
           >
             {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
           </button>
@@ -74,9 +74,9 @@ export function ChecklistItem({
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="border-t border-slate-700/50"
+            className="border-t border-slate-100"
           >
-            <div className="p-4 bg-slate-900/30">
+            <div className="p-4 bg-slate-50">
               {children}
             </div>
           </motion.div>
@@ -85,7 +85,7 @@ export function ChecklistItem({
 
       {/* Non-expandable children */}
       {!expandable && children && (
-        <div className="border-t border-slate-700/50 p-4 bg-slate-900/30">
+        <div className="border-t border-slate-100 p-4 bg-slate-50">
           {children}
         </div>
       )}
@@ -108,12 +108,12 @@ export function SimpleCheckbox({ checked, onCheckedChange, label, className = ''
         className={`flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
           checked
             ? 'bg-teal-500 border-teal-500'
-            : 'border-slate-500 group-hover:border-teal-400'
+            : 'border-slate-300 group-hover:border-teal-400'
         }`}
       >
         {checked && <Check size={12} className="text-white" />}
       </button>
-      <span className={`text-sm ${checked ? 'text-slate-400 line-through' : 'text-slate-200'}`}>
+      <span className={`text-sm ${checked ? 'text-slate-400 line-through' : 'text-slate-700'}`}>
         {label}
       </span>
     </label>

@@ -113,7 +113,7 @@ export function Notes({ data, onUpdate }: NotesProps) {
       >
         <button
           onClick={addMeetingNote}
-          className="w-full flex items-center justify-center gap-2 p-4 border-2 border-dashed border-slate-700 rounded-lg text-slate-400 hover:text-white hover:border-slate-500 transition-colors mb-4"
+          className="w-full flex items-center justify-center gap-2 p-4 border-2 border-dashed border-slate-200 rounded-lg text-slate-500 hover:text-slate-900 hover:border-slate-500 transition-colors mb-4"
         >
           <Plus size={20} />
           Add Meeting Note
@@ -157,7 +157,7 @@ export function Notes({ data, onUpdate }: NotesProps) {
 
         <button
           onClick={addIdea}
-          className="w-full flex items-center justify-center gap-2 p-4 border-2 border-dashed border-slate-700 rounded-lg text-slate-400 hover:text-white hover:border-slate-500 transition-colors mt-4"
+          className="w-full flex items-center justify-center gap-2 p-4 border-2 border-dashed border-slate-200 rounded-lg text-slate-500 hover:text-slate-900 hover:border-slate-500 transition-colors mt-4"
         >
           <Plus size={20} />
           Add Idea
@@ -184,7 +184,7 @@ export function Notes({ data, onUpdate }: NotesProps) {
 
         <button
           onClick={addQuestion}
-          className="w-full flex items-center justify-center gap-2 p-4 border-2 border-dashed border-slate-700 rounded-lg text-slate-400 hover:text-white hover:border-slate-500 transition-colors mt-4"
+          className="w-full flex items-center justify-center gap-2 p-4 border-2 border-dashed border-slate-200 rounded-lg text-slate-500 hover:text-slate-900 hover:border-slate-500 transition-colors mt-4"
         >
           <Plus size={20} />
           Add Question
@@ -218,25 +218,25 @@ function MeetingNoteCard({ note, onUpdate, onDelete }: MeetingNoteCardProps) {
   };
 
   return (
-    <div className="bg-slate-800/30 border border-slate-700/50 rounded-lg overflow-hidden">
+    <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
       {/* Header */}
       <div
-        className="flex items-center gap-3 p-4 cursor-pointer hover:bg-slate-800/50"
+        className="flex items-center gap-3 p-4 cursor-pointer hover:bg-slate-50"
         onClick={() => setIsExpanded(!isExpanded)}
       >
-        <Calendar size={16} className="text-slate-400" />
+        <Calendar size={16} className="text-slate-500" />
         <input
           type="date"
           value={note.date}
           onChange={(e) => onUpdate({ date: e.target.value })}
           onClick={(e) => e.stopPropagation()}
-          className="bg-transparent text-white text-sm"
+          className="bg-transparent text-slate-900 text-sm"
         />
         <div className="flex-1 flex flex-wrap gap-1">
           {note.tags.map((tag) => (
             <span
               key={tag}
-              className="px-2 py-0.5 bg-teal-500/20 text-teal-400 rounded text-xs"
+              className="px-2 py-0.5 bg-teal-500/20 text-teal-600 rounded text-xs"
             >
               {tag}
             </span>
@@ -261,30 +261,30 @@ function MeetingNoteCard({ note, onUpdate, onDelete }: MeetingNoteCardProps) {
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="border-t border-slate-700/50"
+            className="border-t border-slate-200"
           >
             <div className="p-4 space-y-4">
               <textarea
                 value={note.content}
                 onChange={(e) => onUpdate({ content: e.target.value })}
                 placeholder="Meeting notes, action items, decisions..."
-                className="w-full bg-slate-800/50 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm min-h-[150px] resize-y"
+                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-900 text-sm min-h-[150px] resize-y"
               />
 
               {/* Tags */}
               <div className="flex items-center gap-2">
-                <Tag size={14} className="text-slate-400" />
+                <Tag size={14} className="text-slate-500" />
                 <input
                   type="text"
                   value={newTag}
                   onChange={(e) => setNewTag(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && addTag()}
                   placeholder="Add tag..."
-                  className="bg-slate-800/50 border border-slate-600 rounded px-2 py-1 text-sm text-white flex-1"
+                  className="bg-slate-50 border border-slate-200 rounded px-2 py-1 text-sm text-slate-900 flex-1"
                 />
                 <button
                   onClick={addTag}
-                  className="px-2 py-1 bg-teal-500/20 text-teal-400 rounded text-sm hover:bg-teal-500/30"
+                  className="px-2 py-1 bg-teal-500/20 text-teal-600 rounded text-sm hover:bg-teal-500/30"
                 >
                   Add
                 </button>
@@ -295,7 +295,7 @@ function MeetingNoteCard({ note, onUpdate, onDelete }: MeetingNoteCardProps) {
                   {note.tags.map((tag) => (
                     <span
                       key={tag}
-                      className="flex items-center gap-1 px-2 py-1 bg-slate-700 text-slate-300 rounded text-xs group"
+                      className="flex items-center gap-1 px-2 py-1 bg-slate-100 text-slate-600 rounded text-xs group"
                     >
                       {tag}
                       <button
@@ -327,19 +327,19 @@ interface IdeaCardProps {
 
 function IdeaCard({ idea, onUpdate, onVote, onDelete }: IdeaCardProps) {
   return (
-    <div className={`bg-slate-800/30 border rounded-lg p-4 transition-colors ${
-      idea.movedTo ? 'border-teal-500/30 bg-teal-500/5' : 'border-slate-700/50'
+    <div className={`bg-white border rounded-lg p-4 transition-colors ${
+      idea.movedTo ? 'border-teal-500/30 bg-teal-500/5' : 'border-slate-200'
     }`}>
       <div className="flex items-start gap-3">
         {/* Voting */}
         <div className="flex flex-col items-center gap-1">
           <button
             onClick={() => onVote(1)}
-            className="p-1 text-slate-500 hover:text-teal-400"
+            className="p-1 text-slate-500 hover:text-teal-600"
           >
             <ChevronUp size={16} />
           </button>
-          <span className={`text-sm font-medium ${idea.votes > 0 ? 'text-teal-400' : 'text-slate-500'}`}>
+          <span className={`text-sm font-medium ${idea.votes > 0 ? 'text-teal-600' : 'text-slate-500'}`}>
             {idea.votes}
           </span>
           <button
@@ -360,7 +360,7 @@ function IdeaCard({ idea, onUpdate, onVote, onDelete }: IdeaCardProps) {
           />
 
           {idea.movedTo && (
-            <div className="flex items-center gap-1 mt-2 text-xs text-teal-400">
+            <div className="flex items-center gap-1 mt-2 text-xs text-teal-600">
               <ArrowRight size={12} />
               <span>Moved to: {idea.movedTo}</span>
             </div>
@@ -379,7 +379,7 @@ function IdeaCard({ idea, onUpdate, onVote, onDelete }: IdeaCardProps) {
                     onUpdate({ movedTo: e.target.value });
                   }
                 }}
-                className="text-xs bg-slate-700 text-slate-300 rounded px-2 py-1"
+                className="text-xs bg-slate-100 text-slate-600 rounded px-2 py-1"
               >
                 <option value="">Move to...</option>
                 <option value="Phase 1 - Content">Phase 1 - Content</option>
@@ -416,11 +416,11 @@ function QuestionCard({ question, onUpdate, onDelete }: QuestionCardProps) {
     <div className={`border rounded-lg overflow-hidden transition-colors ${
       question.resolved
         ? 'border-teal-500/30 bg-teal-500/5'
-        : 'border-slate-700/50 bg-slate-800/30'
+        : 'border-slate-200 bg-white'
     }`}>
       {/* Header */}
       <div
-        className="flex items-center gap-3 p-4 cursor-pointer hover:bg-slate-800/50"
+        className="flex items-center gap-3 p-4 cursor-pointer hover:bg-slate-50"
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <button
@@ -430,8 +430,8 @@ function QuestionCard({ question, onUpdate, onDelete }: QuestionCardProps) {
           }}
           className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${
             question.resolved
-              ? 'bg-teal-500 border-teal-500 text-white'
-              : 'border-slate-600 hover:border-teal-500'
+              ? 'bg-teal-500 border-teal-500 text-slate-900'
+              : 'border-slate-200 hover:border-teal-500'
           }`}
         >
           {question.resolved && <Check size={12} />}
@@ -470,15 +470,15 @@ function QuestionCard({ question, onUpdate, onDelete }: QuestionCardProps) {
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="border-t border-slate-700/50"
+            className="border-t border-slate-200"
           >
             <div className="p-4">
-              <label className="block text-sm text-slate-400 mb-2">Answer</label>
+              <label className="block text-sm text-slate-500 mb-2">Answer</label>
               <textarea
                 value={question.answer}
                 onChange={(e) => onUpdate({ answer: e.target.value })}
                 placeholder="Add the answer here..."
-                className="w-full bg-slate-800/50 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm min-h-[100px] resize-y"
+                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-900 text-sm min-h-[100px] resize-y"
               />
             </div>
           </motion.div>

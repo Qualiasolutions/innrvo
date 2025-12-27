@@ -43,9 +43,9 @@ export function ProgressIndicator({
     <div className="w-full">
       {(label || displayPercentage) && (
         <div className="flex justify-between items-center mb-1.5">
-          {label && <span className="text-sm text-slate-400">{label}</span>}
+          {label && <span className="text-sm text-slate-500">{label}</span>}
           {displayPercentage && (
-            <span className="text-sm font-medium text-white">{value}%</span>
+            <span className="text-sm font-medium text-slate-700">{value}%</span>
           )}
         </div>
       )}
@@ -96,7 +96,7 @@ export function CircularProgress({
           fill="none"
           stroke="currentColor"
           strokeWidth={strokeWidth}
-          className="text-slate-700"
+          className="text-slate-200"
         />
         {/* Progress circle */}
         <motion.circle
@@ -113,7 +113,7 @@ export function CircularProgress({
           className={colors[color]}
         />
       </svg>
-      <span className="absolute text-sm font-bold text-white">{value}%</span>
+      <span className="absolute text-sm font-bold text-slate-700">{value}%</span>
     </div>
   );
 }

@@ -24,20 +24,20 @@ export function Section({
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
   return (
-    <div className={`bg-slate-800/30 border border-slate-700/50 rounded-xl overflow-hidden ${className}`}>
+    <div className={`bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm ${className}`}>
       {/* Header */}
       <div
-        className={`flex items-center gap-3 p-4 ${collapsible ? 'cursor-pointer hover:bg-slate-800/50' : ''} transition-colors`}
+        className={`flex items-center gap-3 p-4 ${collapsible ? 'cursor-pointer hover:bg-slate-50' : ''} transition-colors`}
         onClick={collapsible ? () => setIsExpanded(!isExpanded) : undefined}
       >
         {icon && (
-          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-teal-500/20 to-cyan-500/20 flex items-center justify-center text-teal-400">
+          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-teal-500/10 to-cyan-500/10 flex items-center justify-center text-teal-600">
             {icon}
           </div>
         )}
         <div className="flex-1">
-          <h3 className="font-semibold text-white">{title}</h3>
-          {description && <p className="text-sm text-slate-400 mt-0.5">{description}</p>}
+          <h3 className="font-semibold text-slate-900">{title}</h3>
+          {description && <p className="text-sm text-slate-500 mt-0.5">{description}</p>}
         </div>
         {collapsible && (
           <button className="p-1 text-slate-400">
@@ -56,14 +56,14 @@ export function Section({
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.2 }}
             >
-              <div className="p-4 pt-0 border-t border-slate-700/50 mt-0">
+              <div className="p-4 pt-0 border-t border-slate-100 mt-0">
                 <div className="pt-4">{children}</div>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
       ) : (
-        <div className="p-4 pt-0 border-t border-slate-700/50">
+        <div className="p-4 pt-0 border-t border-slate-100">
           <div className="pt-4">{children}</div>
         </div>
       )}
