@@ -60,14 +60,14 @@ export const NatureSoundSelectorModal: React.FC<NatureSoundSelectorModalProps> =
         <span className="hidden md:inline text-[11px] font-bold uppercase tracking-[0.3em]">Back</span>
       </button>
 
-      <div className="flex-1 flex flex-col items-center pt-16 md:pt-12 relative z-10 max-w-5xl mx-auto w-full">
+      <div className="flex-1 flex flex-col items-center pt-16 md:pt-12 relative z-10 max-w-7xl mx-auto w-full">
         <div className="inline-block px-4 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-bold uppercase tracking-[0.4em] mb-4 md:mb-6">Ambient</div>
         <h2 className="text-2xl md:text-4xl font-extralight text-center mb-2 tracking-tight">
           <span className="bg-gradient-to-r from-emerald-300 via-teal-200 to-cyan-300 bg-clip-text text-transparent">Nature Sounds</span>
         </h2>
         <p className="text-slate-500 text-center mb-6 md:mb-8 text-sm">Add ambient sounds to your meditation</p>
 
-        <div className="w-full space-y-6">
+        <div className="w-full space-y-4 xl:space-y-3">
           {/* No Sound Option */}
           {noneOption && (
             <div className="mb-4">
@@ -110,7 +110,7 @@ export const NatureSoundSelectorModal: React.FC<NatureSoundSelectorModalProps> =
                 <h3 className={`text-sm font-bold uppercase tracking-wider mb-3 ${config.color}`}>
                   {config.label}
                 </h3>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-8 gap-2 md:gap-3">
                   {sounds.map((sound) => (
                     <div
                       key={sound.id}

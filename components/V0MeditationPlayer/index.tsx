@@ -131,7 +131,7 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
       <FloatingParticles />
 
       {/* Content */}
-      <div className="relative z-10 flex min-h-[100dvh] flex-col items-center justify-between px-4 sm:px-6 pb-8 sm:pb-10 md:pb-12 pt-16 sm:pt-14 safe-top safe-bottom">
+      <div className="relative z-10 flex min-h-[100dvh] flex-col items-center justify-between px-4 sm:px-6 pb-12 sm:pb-16 md:pb-20 pt-16 sm:pt-14 safe-top safe-bottom">
         {/* Header with close button */}
         <div className="w-full max-w-lg mt-2">
           <motion.button
@@ -173,7 +173,7 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="w-full max-w-lg space-y-5 sm:space-y-6"
+          className="w-full max-w-lg space-y-5 sm:space-y-6 mb-4 sm:mb-6 md:mb-8"
         >
           {/* Progress bar */}
           <div className="relative px-1">

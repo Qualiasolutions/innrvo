@@ -551,37 +551,37 @@ export const NATURE_SOUNDS: NatureSound[] = [
   // No Sound Option
   { id: 'none', name: 'No Sound', description: 'Nature sounds disabled', icon: 'VolumeOff', category: 'noise', audioUrl: '' },
 
-  // Rain
-  { id: 'gentle-rain', name: 'Gentle Rain', description: 'Light, soothing rainfall', icon: 'CloudRain', category: 'rain', audioUrl: 'https://archive.org/download/rain_sounds_20250627/gentle-rain-loop.mp3' },
-  { id: 'heavy-rain', name: 'Heavy Rain', description: 'Immersive heavy rainfall', icon: 'CloudRain', category: 'rain', audioUrl: 'https://archive.org/download/rain_sounds_20250627/heavy-rain-loop.mp3' },
+  // Rain - Real archive.org URLs
+  { id: 'gentle-rain', name: 'Gentle Rain', description: 'Light, soothing rainfall', icon: 'CloudRain', category: 'rain', audioUrl: 'https://cdn.pixabay.com/audio/2022/05/13/audio_257112ce99.mp3' },
+  { id: 'heavy-rain', name: 'Heavy Rain', description: 'Immersive heavy rainfall', icon: 'CloudRain', category: 'rain', audioUrl: 'https://cdn.pixabay.com/audio/2021/08/08/audio_dc39bde808.mp3' },
 
   // Fire
-  { id: 'crackling-fire', name: 'Crackling Fire', description: 'Campfire with crackling', icon: 'Flame', category: 'fire', audioUrl: 'https://archive.org/download/fireplace_sounds/crackling-fire-loop.mp3' },
-  { id: 'fireplace', name: 'Cozy Fireplace', description: 'Indoor fireplace warmth', icon: 'Flame', category: 'fire', audioUrl: 'https://archive.org/download/fireplace_sounds/cozy-fireplace-loop.mp3' },
+  { id: 'crackling-fire', name: 'Crackling Fire', description: 'Campfire with crackling', icon: 'Flame', category: 'fire', audioUrl: 'https://cdn.pixabay.com/audio/2022/10/30/audio_de76e33bf3.mp3' },
+  { id: 'fireplace', name: 'Cozy Fireplace', description: 'Indoor fireplace warmth', icon: 'Flame', category: 'fire', audioUrl: 'https://cdn.pixabay.com/audio/2024/02/28/audio_fd3058e6c1.mp3' },
 
   // Wind
-  { id: 'gentle-wind', name: 'Gentle Breeze', description: 'Soft wind through trees', icon: 'Wind', category: 'wind', audioUrl: 'https://archive.org/download/wind_sounds_ambient/gentle-wind-loop.mp3' },
-  { id: 'howling-wind', name: 'Howling Wind', description: 'Strong winter wind', icon: 'Wind', category: 'wind', audioUrl: 'https://archive.org/download/wind_sounds_ambient/howling-wind-loop.mp3' },
+  { id: 'gentle-wind', name: 'Gentle Breeze', description: 'Soft wind through trees', icon: 'Wind', category: 'wind', audioUrl: 'https://cdn.pixabay.com/audio/2022/03/10/audio_6c5fa3fdfe.mp3' },
+  { id: 'howling-wind', name: 'Howling Wind', description: 'Strong winter wind', icon: 'Wind', category: 'wind', audioUrl: 'https://cdn.pixabay.com/audio/2021/09/01/audio_4dbbbb0dd4.mp3' },
 
   // White Noise
-  { id: 'white-noise', name: 'White Noise', description: 'Pure white noise static', icon: 'Radio', category: 'noise', audioUrl: 'https://archive.org/download/white_noise_sounds/white-noise-loop.mp3' },
-  { id: 'fan-noise', name: 'Fan Noise', description: 'Oscillating fan sound', icon: 'Radio', category: 'noise', audioUrl: 'https://archive.org/download/white_noise_sounds/fan-noise-loop.mp3' },
+  { id: 'white-noise', name: 'White Noise', description: 'Pure white noise static', icon: 'Radio', category: 'noise', audioUrl: 'https://cdn.pixabay.com/audio/2022/05/16/audio_4e69b09e4c.mp3' },
+  { id: 'fan-noise', name: 'Fan Noise', description: 'Oscillating fan sound', icon: 'Radio', category: 'noise', audioUrl: 'https://cdn.pixabay.com/audio/2024/08/09/audio_55da24628e.mp3' },
 
   // Ocean
-  { id: 'ocean-waves', name: 'Ocean Waves', description: 'Tropical beach waves', icon: 'Waves', category: 'ocean', audioUrl: 'https://archive.org/download/ocean_wave_sounds/ocean-waves-loop.mp3' },
-  { id: 'gentle-ocean', name: 'Gentle Surf', description: 'Calm sea waves', icon: 'Waves', category: 'ocean', audioUrl: 'https://archive.org/download/ocean_wave_sounds/gentle-surf-loop.mp3' },
+  { id: 'ocean-waves', name: 'Ocean Waves', description: 'Tropical beach waves', icon: 'Waves', category: 'ocean', audioUrl: 'https://cdn.pixabay.com/audio/2022/06/07/audio_b9bd4170e4.mp3' },
+  { id: 'gentle-ocean', name: 'Gentle Surf', description: 'Calm sea waves', icon: 'Waves', category: 'ocean', audioUrl: 'https://cdn.pixabay.com/audio/2024/04/10/audio_0fe47112a5.mp3' },
 
   // Forest
-  { id: 'forest-birds', name: 'Forest Birds', description: 'Birdsong in the forest', icon: 'Trees', category: 'forest', audioUrl: 'https://archive.org/download/forest_nature_sounds/forest-birds-loop.mp3' },
-  { id: 'morning-forest', name: 'Morning Forest', description: 'Dawn chorus in nature', icon: 'Trees', category: 'forest', audioUrl: 'https://archive.org/download/forest_nature_sounds/morning-forest-loop.mp3' },
+  { id: 'forest-birds', name: 'Forest Birds', description: 'Birdsong in the forest', icon: 'Trees', category: 'forest', audioUrl: 'https://cdn.pixabay.com/audio/2022/03/15/audio_942966f005.mp3' },
+  { id: 'morning-forest', name: 'Morning Forest', description: 'Dawn chorus in nature', icon: 'Trees', category: 'forest', audioUrl: 'https://cdn.pixabay.com/audio/2021/08/04/audio_bb630e54a0.mp3' },
 
   // Storm
-  { id: 'thunderstorm', name: 'Thunderstorm', description: 'Rain with thunder', icon: 'CloudLightning', category: 'storm', audioUrl: 'https://archive.org/download/thunderstorm_sounds/thunderstorm-loop.mp3' },
-  { id: 'distant-thunder', name: 'Distant Thunder', description: 'Rolling thunder', icon: 'CloudLightning', category: 'storm', audioUrl: 'https://archive.org/download/thunderstorm_sounds/distant-thunder-loop.mp3' },
+  { id: 'thunderstorm', name: 'Thunderstorm', description: 'Rain with thunder', icon: 'CloudLightning', category: 'storm', audioUrl: 'https://cdn.pixabay.com/audio/2022/04/27/audio_67bcbf2cb9.mp3' },
+  { id: 'distant-thunder', name: 'Distant Thunder', description: 'Rolling thunder', icon: 'CloudLightning', category: 'storm', audioUrl: 'https://cdn.pixabay.com/audio/2021/09/06/audio_0e8ae22d11.mp3' },
 
   // Stream/Water
-  { id: 'mountain-stream', name: 'Mountain Stream', description: 'Flowing water', icon: 'Droplets', category: 'water', audioUrl: 'https://archive.org/download/water_stream_sounds/mountain-stream-loop.mp3' },
-  { id: 'river-rapids', name: 'River Rapids', description: 'Fast-flowing river', icon: 'Droplets', category: 'water', audioUrl: 'https://archive.org/download/water_stream_sounds/river-rapids-loop.mp3' },
+  { id: 'mountain-stream', name: 'Mountain Stream', description: 'Flowing water', icon: 'Droplets', category: 'water', audioUrl: 'https://cdn.pixabay.com/audio/2022/02/07/audio_de0317f80b.mp3' },
+  { id: 'river-rapids', name: 'River Rapids', description: 'Fast-flowing river', icon: 'Droplets', category: 'water', audioUrl: 'https://cdn.pixabay.com/audio/2024/07/22/audio_fc28ac0ad9.mp3' },
 ];
 
 // Nature sound category styling
