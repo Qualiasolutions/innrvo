@@ -201,16 +201,22 @@ export const MeditationEditor = memo<MeditationEditorProps>(
         const { voiceService } = await import('../../lib/voiceService');
 
         // Generate preview audio using the selected voice
-        const audioBlob = await voiceService.generateSpeech(
+        const result = await voiceService.generateSpeech(
           VOICE_PREVIEW_TEXT,
           selectedVoice
         );
 
-        if (!audioBlob) {
+        if (!result.base64) {
           throw new Error('Failed to generate audio');
         }
 
-        // Create object URL for the audio blob
+        // Convert base64 to blob and create object URL
+        const binaryString = atob(result.base64);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        const audioBlob = new Blob([bytes], { type: 'audio/mpeg' });
         const audioUrl = URL.createObjectURL(audioBlob);
         setVoicePreviewUrl(audioUrl);
 

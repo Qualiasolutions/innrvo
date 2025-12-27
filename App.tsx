@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect, useCallback, useMemo, lazy, Suspens
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { View, VoiceProfile, ScriptTimingMap, CloningStatus, CreditInfo, VoiceMetadata } from './types';
-import { TEMPLATE_CATEGORIES, VOICE_PROFILES, ICONS, BACKGROUND_TRACKS, BackgroundTrack, AUDIO_TAG_CATEGORIES, KEYWORD_TAG_MAP, MUSIC_CATEGORY_CONFIG, TRACKS_BY_CATEGORY, getSuggestedTags } from './constants';
+import { TEMPLATE_CATEGORIES, VOICE_PROFILES, ICONS, BACKGROUND_TRACKS, BackgroundTrack, AUDIO_TAG_CATEGORIES, KEYWORD_TAG_MAP, MUSIC_CATEGORY_CONFIG, TRACKS_BY_CATEGORY, getSuggestedTags, NATURE_SOUNDS, NatureSound } from './constants';
 import { useModals } from './src/contexts/ModalContext';
 import { useVoice } from './src/contexts/VoiceContext';
 import { useAuth } from './src/contexts/AuthContext';
@@ -27,6 +27,7 @@ const MeditationPlayer = lazy(() => import('./components/V0MeditationPlayer'));
 const AgentChat = lazy(() => import('./components/AgentChat').then(m => ({ default: m.AgentChat })));
 // Modal components extracted to reduce App.tsx complexity
 import { MusicSelectorModal } from './src/components/MusicSelectorModal';
+import { NatureSoundSelectorModal } from './src/components/NatureSoundSelectorModal';
 import { AudioTagsModal } from './src/components/AudioTagsModal';
 import OfflineIndicator from './components/OfflineIndicator';
 import { buildTimingMap, getCurrentWordIndex } from './src/lib/textSync';
@@ -177,6 +178,14 @@ const App: React.FC = () => {
   const [backgroundVolume, setBackgroundVolume] = useState(0.3); // 30% default
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
   const [musicError, setMusicError] = useState<string | null>(null);
+
+  // Nature/ambient sound state
+  const [selectedNatureSound, setSelectedNatureSound] = useState<NatureSound>(NATURE_SOUNDS[0]); // 'none' by default
+  const [natureSoundVolume, setNatureSoundVolume] = useState(0.4); // 40% default
+  const [showNatureSoundModal, setShowNatureSoundModal] = useState(false);
+  const natureSoundAudioRef = useRef<HTMLAudioElement | null>(null);
+  const [previewingNatureSoundId, setPreviewingNatureSoundId] = useState<string | null>(null);
+  const previewNatureSoundAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // Voice playback controls
   const [playbackRate, setPlaybackRate] = useState(0.9); // 0.9x default for slower meditation
@@ -986,6 +995,112 @@ const App: React.FC = () => {
       backgroundAudioRef.current.volume = volume;
     }
   };
+
+  // ========== Nature Sound Functions ==========
+
+  // Start nature sound
+  const startNatureSound = async (sound: NatureSound) => {
+    stopNatureSound();
+    if (sound.id === 'none' || !sound.audioUrl) return;
+
+    try {
+      const audio = new Audio(sound.audioUrl);
+      audio.loop = true;
+      audio.volume = natureSoundVolume;
+      natureSoundAudioRef.current = audio;
+      // Only play if meditation is playing
+      if (isPlaying) {
+        await audio.play();
+      }
+    } catch (error) {
+      console.error('[Nature Sound] Failed to load:', error);
+    }
+  };
+
+  // Stop nature sound
+  const stopNatureSound = () => {
+    if (natureSoundAudioRef.current) {
+      natureSoundAudioRef.current.pause();
+      natureSoundAudioRef.current = null;
+    }
+  };
+
+  // Update nature sound volume
+  const updateNatureSoundVolume = (volume: number) => {
+    setNatureSoundVolume(volume);
+    if (natureSoundAudioRef.current) {
+      natureSoundAudioRef.current.volume = volume;
+    }
+  };
+
+  // Toggle nature sound preview
+  const togglePreviewNatureSound = (sound: NatureSound) => {
+    if (previewingNatureSoundId === sound.id) {
+      if (previewNatureSoundAudioRef.current) {
+        previewNatureSoundAudioRef.current.pause();
+        previewNatureSoundAudioRef.current = null;
+      }
+      setPreviewingNatureSoundId(null);
+      return;
+    }
+
+    if (previewNatureSoundAudioRef.current) {
+      previewNatureSoundAudioRef.current.pause();
+      previewNatureSoundAudioRef.current = null;
+    }
+
+    if (!sound.audioUrl) {
+      setPreviewingNatureSoundId(null);
+      return;
+    }
+
+    const audio = new Audio(sound.audioUrl);
+    audio.volume = 0.5;
+    audio.loop = true;
+
+    audio.onerror = () => {
+      console.error('[Nature Sound Preview] Failed to load:', sound.name);
+      setPreviewingNatureSoundId(null);
+      previewNatureSoundAudioRef.current = null;
+    };
+
+    audio.play().then(() => {
+      previewNatureSoundAudioRef.current = audio;
+      setPreviewingNatureSoundId(sound.id);
+    }).catch((err) => {
+      console.error('[Nature Sound Preview] Failed to play:', err);
+      setPreviewingNatureSoundId(null);
+    });
+  };
+
+  // Stop nature sound preview
+  const stopNatureSoundPreview = useCallback(() => {
+    if (previewNatureSoundAudioRef.current) {
+      previewNatureSoundAudioRef.current.pause();
+      previewNatureSoundAudioRef.current = null;
+    }
+    setPreviewingNatureSoundId(null);
+  }, []);
+
+  // Sync nature sound with meditation play/pause
+  useEffect(() => {
+    if (!natureSoundAudioRef.current) return;
+    if (isPlaying) {
+      natureSoundAudioRef.current.play().catch(() => {});
+    } else {
+      natureSoundAudioRef.current.pause();
+    }
+  }, [isPlaying]);
+
+  // Start nature sound when selected (if meditation is playing)
+  useEffect(() => {
+    if (selectedNatureSound.id !== 'none' && selectedNatureSound.audioUrl) {
+      startNatureSound(selectedNatureSound);
+    } else {
+      stopNatureSound();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedNatureSound]);
 
   // Update playback rate (can be changed during playback)
   const updatePlaybackRate = useCallback((rate: number) => {
