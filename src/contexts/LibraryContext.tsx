@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useMemo, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo, ReactNode, Dispatch, SetStateAction } from 'react';
 import { getMeditationHistoryPaginated, MeditationHistory } from '../../lib/supabase';
 
 /**
@@ -8,8 +8,9 @@ import { getMeditationHistoryPaginated, MeditationHistory } from '../../lib/supa
  */
 interface LibraryContextValue {
   meditationHistory: MeditationHistory[];
-  setMeditationHistory: (history: MeditationHistory[]) => void;
+  setMeditationHistory: Dispatch<SetStateAction<MeditationHistory[]>>;
   isLoadingHistory: boolean;
+  isLoadingMore: boolean;
   hasMoreHistory: boolean;
   loadMoreHistory: () => Promise<void>;
   refreshHistory: () => Promise<void>;
@@ -62,12 +63,14 @@ export const LibraryProvider: React.FC<{ children: ReactNode }> = ({ children })
     meditationHistory,
     setMeditationHistory,
     isLoadingHistory,
+    isLoadingMore,
     hasMoreHistory,
     loadMoreHistory,
     refreshHistory,
   }), [
     meditationHistory,
     isLoadingHistory,
+    isLoadingMore,
     hasMoreHistory,
     loadMoreHistory,
     refreshHistory,

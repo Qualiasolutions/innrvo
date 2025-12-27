@@ -6,6 +6,10 @@ import { View, VoiceProfile, ScriptTimingMap, CloningStatus, CreditInfo, VoiceMe
 import { TEMPLATE_CATEGORIES, VOICE_PROFILES, ICONS, BACKGROUND_TRACKS, BackgroundTrack, AUDIO_TAG_CATEGORIES, KEYWORD_TAG_MAP, MUSIC_CATEGORY_CONFIG, TRACKS_BY_CATEGORY, getSuggestedTags } from './constants';
 import { useModals } from './src/contexts/ModalContext';
 import { useVoice } from './src/contexts/VoiceContext';
+import { useAuth } from './src/contexts/AuthContext';
+import { useScript } from './src/contexts/ScriptContext';
+import { useLibrary } from './src/contexts/LibraryContext';
+import { useAudioTags } from './src/contexts/AudioTagsContext';
 import GlassCard from './components/GlassCard';
 import Starfield from './components/Starfield';
 import Background from './components/Background';
@@ -42,7 +46,7 @@ function base64ToBlob(base64: string, mimeType: string): Blob {
   return new Blob([bytes], { type: mimeType });
 }
 import { throttleLeading } from './src/utils/debounce';
-import { supabase, getCurrentUser, signOut, createVoiceProfile, getUserVoiceProfiles, getVoiceProfileById, VoiceProfile as DBVoiceProfile, createVoiceClone, saveMeditationHistory, getMeditationHistoryPaginated, deleteMeditationHistory, MeditationHistory, getAudioTagPreferences, updateAudioTagPreferences, AudioTagPreference, getMeditationAudioSignedUrl, toggleMeditationFavorite } from './lib/supabase';
+import { supabase, signOut, createVoiceProfile, getUserVoiceProfiles, getVoiceProfileById, VoiceProfile as DBVoiceProfile, createVoiceClone, saveMeditationHistory, deleteMeditationHistory, MeditationHistory, updateAudioTagPreferences, AudioTagPreference, getMeditationAudioSignedUrl, toggleMeditationFavorite } from './lib/supabase';
 
 // Rotating taglines - one shown randomly per session
 const TAGLINES = [
@@ -78,14 +82,35 @@ const App: React.FC = () => {
     closeAllModals,
   } = useModals();
 
+  // Use domain-specific contexts for shared state
+  const {
+    user, checkUser, savedVoices, setSavedVoices, currentClonedVoice, setCurrentClonedVoice,
+    loadUserVoices, isLoadingVoices
+  } = useAuth();
+
+  const {
+    script, setScript, enhancedScript, setEnhancedScript, editableScript, setEditableScript,
+    isGenerating, setIsGenerating, generationStage, setGenerationStage,
+    chatStarted, setChatStarted, restoredScript, setRestoredScript, resetScript
+  } = useScript();
+
+  const {
+    meditationHistory, setMeditationHistory, isLoadingHistory,
+    isLoadingMore, hasMoreHistory, loadMoreHistory, refreshHistory
+  } = useLibrary();
+
+  const {
+    selectedAudioTags, setSelectedAudioTags,
+    audioTagsEnabled, setAudioTagsEnabled,
+    favoriteAudioTags, setFavoriteAudioTags,
+    loadAudioTagPreferences
+  } = useAudioTags();
+
+  // UI-specific state (not shared across components)
   const [isLoading, setIsLoading] = useState(true);
   const [currentView, setCurrentView] = useState<View>(View.HOME);
   const [tagline] = useState(() => TAGLINES[Math.floor(Math.random() * TAGLINES.length)]);
-  const [chatStarted, setChatStarted] = useState(false); // Track if user has started chatting
-  const [script, setScript] = useState<string>('');
-  const [isGenerating, setIsGenerating] = useState(false);
   const [isExtending, setIsExtending] = useState(false);
-  const [generationStage, setGenerationStage] = useState<'idle' | 'script' | 'voice' | 'ready'>('idle');
   const [availableVoices, setAvailableVoices] = useState<VoiceProfile[]>(VOICE_PROFILES);
   const [selectedVoice, setSelectedVoice] = useState<VoiceProfile | null>(null);
 
@@ -105,25 +130,11 @@ const App: React.FC = () => {
   const [previewingTrackId, setPreviewingTrackId] = useState<string | null>(null);
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Audio tags states
-  const [selectedAudioTags, setSelectedAudioTags] = useState<string[]>([]);
-  const [audioTagsEnabled, setAudioTagsEnabled] = useState(false);
-  const [favoriteAudioTags, setFavoriteAudioTags] = useState<string[]>([]);
+  // Audio tags - suggestedAudioTags is computed locally, rest from context
   const [suggestedAudioTags, setSuggestedAudioTags] = useState<string[]>([]);
 
-  // Static data now imported from constants.tsx for better performance:
-  // - KEYWORD_TAG_MAP: Keyword to audio tag mapping
-  // - MUSIC_CATEGORY_CONFIG: Category styling configuration
-  // - TRACKS_BY_CATEGORY: Pre-computed tracks grouped by category
-  // - getSuggestedTags(): Function to get suggested tags from prompt
-
-  // Library state with pagination
+  // Library UI state - pagination managed by context
   const [libraryTab, setLibraryTab] = useState<'all' | 'favorites'>('all');
-  const [meditationHistory, setMeditationHistory] = useState<MeditationHistory[]>([]);
-  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
-  const [historyPage, setHistoryPage] = useState(0);
-  const [hasMoreHistory, setHasMoreHistory] = useState(false);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [libraryPlayingId, setLibraryPlayingId] = useState<string | null>(null);
   const [libraryAudioRef, setLibraryAudioRef] = useState<HTMLAudioElement | null>(null);
 
@@ -143,14 +154,11 @@ const App: React.FC = () => {
   const audioBufferRef = useRef<AudioBuffer | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
 
-  // Inline player state
+  // Inline player state - script content from ScriptContext
   const [isInlineMode, setIsInlineMode] = useState(false);
-  const [enhancedScript, setEnhancedScript] = useState('');
-  const [restoredScript, setRestoredScript] = useState<string | null>(null);
 
-  // Script edit preview state (after generation, before playing)
+  // Script edit preview state - editableScript from ScriptContext
   const [showScriptPreview, setShowScriptPreview] = useState(false);
-  const [editableScript, setEditableScript] = useState('');
   const [originalPrompt, setOriginalPrompt] = useState('');
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -173,10 +181,7 @@ const App: React.FC = () => {
   const gainNodeRef = useRef<GainNode | null>(null);
   const playbackRateRef = useRef(0.9);
 
-  // Auth states
-  const [user, setUser] = useState<any>(null);
-  const [savedVoices, setSavedVoices] = useState<DBVoiceProfile[]>([]);
-  const [currentClonedVoice, setCurrentClonedVoice] = useState<DBVoiceProfile | null>(null);
+  // Auth states now managed by AuthContext
 
   // Voice clone recording states
   const [isRecordingClone, setIsRecordingClone] = useState(false);
@@ -192,69 +197,20 @@ const App: React.FC = () => {
   const cloneChunksRef = useRef<Blob[]>([]);
   const scriptTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 
-  // Load audio tag preferences
-  const loadAudioTagPrefs = async () => {
-    try {
-      const prefs = await getAudioTagPreferences();
-      setAudioTagsEnabled(prefs.enabled);
-      setFavoriteAudioTags(prefs.favorite_tags || []);
-    } catch (err) {
-      console.warn('Failed to load audio tag preferences:', err);
-    }
-  };
+  // Auth state is now managed by AuthContext - it handles:
+  // - checkUser() on mount
+  // - Auth listener subscription
+  // - Loading voice profiles on login
+  // Audio tag preferences are loaded by AudioTagsContext
 
-  // Check auth state on mount
-  useEffect(() => {
-    checkUser();
-
-    // Only set up auth listener if supabase is available
-    if (!supabase) return;
-
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        // Run initial data fetches in parallel for faster startup
-        Promise.all([loadUserVoices(), loadAudioTagPrefs()]).catch(console.error);
-      }
-    });
-
-    return () => {
-      authListener?.subscription.unsubscribe();
-    };
-  }, []);
-
-  // Fetch meditation history when library or burger menu opens (with pagination)
+  // Fetch meditation history when library or burger menu opens
   useEffect(() => {
     if ((showLibrary || showBurgerMenu) && user && meditationHistory.length === 0) {
-      setIsLoadingHistory(true);
-      setHistoryPage(0);
-      getMeditationHistoryPaginated(0, 20)
-        .then(result => {
-          setMeditationHistory(result.data);
-          setHasMoreHistory(result.hasMore);
-        })
-        .catch(err => console.error('Failed to load history:', err))
-        .finally(() => setIsLoadingHistory(false));
+      refreshHistory();
     }
-  }, [showLibrary, showBurgerMenu, user]);
+  }, [showLibrary, showBurgerMenu, user, meditationHistory.length, refreshHistory]);
 
-  // Load more meditation history
-  const loadMoreHistory = useCallback(async () => {
-    if (isLoadingMore || !hasMoreHistory) return;
-
-    setIsLoadingMore(true);
-    try {
-      const nextPage = historyPage + 1;
-      const result = await getMeditationHistoryPaginated(nextPage, 20);
-      setMeditationHistory(prev => [...prev, ...result.data]);
-      setHistoryPage(nextPage);
-      setHasMoreHistory(result.hasMore);
-    } catch (err) {
-      console.error('Failed to load more history:', err);
-    } finally {
-      setIsLoadingMore(false);
-    }
-  }, [historyPage, hasMoreHistory, isLoadingMore]);
+  // loadMoreHistory is now provided by LibraryContext
 
   // Library audio playback functions
   const playLibraryMeditation = async (meditation: MeditationHistory) => {
@@ -363,55 +319,40 @@ const App: React.FC = () => {
     };
   }, [showBurgerMenu]);
 
-  const checkUser = async () => {
-    const currentUser = await getCurrentUser();
-    setUser(currentUser);
-    if (currentUser) {
-      await loadUserVoices();
+  // Sync savedVoices from AuthContext to availableVoices format
+  useEffect(() => {
+    // Convert saved voice profiles to available voices format
+    const clonedVoiceProfiles = savedVoices
+      .filter(v => v.fish_audio_model_id || v.voice_sample_url || v.provider_voice_id)
+      .map(v => {
+        // Determine the correct provider based on available IDs
+        // Priority: fish-audio > chatterbox
+        const provider = v.fish_audio_model_id ? 'fish-audio' as const : 'chatterbox' as const;
+        return {
+          id: v.id,
+          name: v.name,
+          provider,
+          voiceName: v.name,
+          description: v.description || 'Your personalized voice clone',
+          isCloned: true,
+          providerVoiceId: v.provider_voice_id,
+          fishAudioModelId: v.fish_audio_model_id,
+          voiceSampleUrl: v.voice_sample_url,
+        };
+      });
+
+    setAvailableVoices(clonedVoiceProfiles);
+
+    // Auto-select first cloned voice if none selected
+    if (!selectedVoice && clonedVoiceProfiles.length > 0) {
+      setSelectedVoice(clonedVoiceProfiles[0]);
     }
-  };
-
-  const loadUserVoices = async () => {
-    try {
-      const voices = await getUserVoiceProfiles();
-      setSavedVoices(voices);
-
-      // Add saved voices to available voices (cloned voices only)
-      // A voice is cloned if it has fish_audio_model_id OR voice_sample_url
-      const clonedVoiceProfiles = voices
-        .filter(v => v.fish_audio_model_id || v.voice_sample_url || v.provider_voice_id)
-        .map(v => {
-          // Determine the correct provider based on available IDs
-          // Priority: fish-audio > chatterbox
-          const provider = v.fish_audio_model_id ? 'fish-audio' as const : 'chatterbox' as const;
-          return {
-            id: v.id,
-            name: v.name,
-            provider,
-            voiceName: v.name,
-            description: v.description || 'Your personalized voice clone',
-            isCloned: true,
-            providerVoiceId: v.provider_voice_id,
-            fishAudioModelId: v.fish_audio_model_id,
-            voiceSampleUrl: v.voice_sample_url,
-          };
-        });
-
-      setAvailableVoices(clonedVoiceProfiles);
-
-      // Auto-select first cloned voice if none selected
-      if (!selectedVoice && clonedVoiceProfiles.length > 0) {
-        setSelectedVoice(clonedVoiceProfiles[0]);
-      }
-    } catch (error) {
-      console.error('Failed to load voices:', error);
-    }
-  };
+  }, [savedVoices, selectedVoice]);
 
   const handleSignOut = async () => {
     await signOut();
-    setUser(null);
-    setSavedVoices([]);
+    // AuthContext's auth listener will handle clearing user and voices
+    // We just need to clear local UI state
     setAvailableVoices([]);
     setSelectedVoice(null);
   };

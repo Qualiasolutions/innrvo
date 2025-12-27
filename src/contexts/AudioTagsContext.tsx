@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect, useMemo, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo, ReactNode, Dispatch, SetStateAction } from 'react';
 import { getAudioTagPreferences } from '../../lib/supabase';
 
 /**
@@ -8,11 +8,11 @@ import { getAudioTagPreferences } from '../../lib/supabase';
  */
 interface AudioTagsContextValue {
   selectedAudioTags: string[];
-  setSelectedAudioTags: (tags: string[]) => void;
+  setSelectedAudioTags: Dispatch<SetStateAction<string[]>>;
   audioTagsEnabled: boolean;
-  setAudioTagsEnabled: (enabled: boolean) => void;
+  setAudioTagsEnabled: Dispatch<SetStateAction<boolean>>;
   favoriteAudioTags: string[];
-  setFavoriteAudioTags: (tags: string[]) => void;
+  setFavoriteAudioTags: Dispatch<SetStateAction<string[]>>;
   loadAudioTagPreferences: () => Promise<void>;
 }
 

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useMemo, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useMemo, ReactNode, Dispatch, SetStateAction } from 'react';
 
 /**
  * Script context - manages meditation script generation state
@@ -8,23 +8,23 @@ import React, { createContext, useContext, useState, useMemo, ReactNode } from '
 interface ScriptContextValue {
   // Script content
   script: string;
-  setScript: (script: string) => void;
+  setScript: Dispatch<SetStateAction<string>>;
   enhancedScript: string;
-  setEnhancedScript: (script: string) => void;
+  setEnhancedScript: Dispatch<SetStateAction<string>>;
   editableScript: string;
-  setEditableScript: (script: string) => void;
+  setEditableScript: Dispatch<SetStateAction<string>>;
 
   // Generation state
   isGenerating: boolean;
-  setIsGenerating: (generating: boolean) => void;
+  setIsGenerating: Dispatch<SetStateAction<boolean>>;
   generationStage: 'idle' | 'script' | 'voice' | 'ready';
-  setGenerationStage: (stage: 'idle' | 'script' | 'voice' | 'ready') => void;
+  setGenerationStage: Dispatch<SetStateAction<'idle' | 'script' | 'voice' | 'ready'>>;
 
   // Chat state
   chatStarted: boolean;
-  setChatStarted: (started: boolean) => void;
+  setChatStarted: Dispatch<SetStateAction<boolean>>;
   restoredScript: string | null;
-  setRestoredScript: (script: string | null) => void;
+  setRestoredScript: Dispatch<SetStateAction<string | null>>;
 
   // Helper
   resetScript: () => void;
