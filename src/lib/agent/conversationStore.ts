@@ -5,10 +5,70 @@
  * - Local session storage for current conversation
  * - Supabase persistence for conversation history
  * - Context window management for token limits
+ * - Quota protection for localStorage limits
  */
 
 import { supabase, getCurrentUser } from '../../../lib/supabase';
 import type { ConversationMessage, UserPreferences, SessionState } from './MeditationAgent';
+
+// ============================================================================
+// LOCALSTORAGE QUOTA HELPERS
+// ============================================================================
+
+/**
+ * Safely set localStorage item with quota protection
+ * Returns true if successful, false if quota exceeded
+ */
+function safeLocalStorageSet(key: string, value: string): boolean {
+  try {
+    localStorage.setItem(key, value);
+    return true;
+  } catch (error) {
+    if (error instanceof DOMException &&
+        (error.code === 22 || // QuotaExceededError
+         error.code === 1014 || // Firefox NS_ERROR_DOM_QUOTA_REACHED
+         error.name === 'QuotaExceededError' ||
+         error.name === 'NS_ERROR_DOM_QUOTA_REACHED')) {
+      console.warn('localStorage quota exceeded, attempting cleanup...');
+      return false;
+    }
+    console.error('Error setting localStorage:', error);
+    return false;
+  }
+}
+
+/**
+ * Get approximate localStorage usage in bytes
+ */
+function getLocalStorageUsage(): number {
+  let total = 0;
+  for (const key in localStorage) {
+    if (Object.prototype.hasOwnProperty.call(localStorage, key)) {
+      total += (localStorage[key].length + key.length) * 2; // UTF-16
+    }
+  }
+  return total;
+}
+
+/**
+ * Prune old conversation history to free up space
+ */
+function pruneConversationHistory(maxItems: number = 5): void {
+  try {
+    const historyKey = 'inrvo_conversation_history';
+    const stored = localStorage.getItem(historyKey);
+    if (stored) {
+      const history = JSON.parse(stored);
+      if (Array.isArray(history) && history.length > maxItems) {
+        const pruned = history.slice(-maxItems);
+        localStorage.setItem(historyKey, JSON.stringify(pruned));
+        console.info(`Pruned conversation history from ${history.length} to ${pruned.length} items`);
+      }
+    }
+  } catch (error) {
+    console.error('Error pruning conversation history:', error);
+  }
+}
 
 // ============================================================================
 // TYPES
@@ -79,19 +139,44 @@ export class ConversationStore {
   }
 
   /**
-   * Save current conversation to local storage
+   * Save current conversation to local storage with quota protection
    */
   private saveToLocalStorage(): void {
-    try {
-      if (this.currentConversation) {
-        localStorage.setItem(
-          STORAGE_KEYS.CURRENT_CONVERSATION,
-          JSON.stringify(this.currentConversation)
-        );
-      }
-    } catch (error) {
-      console.error('Error saving conversation to local storage:', error);
+    if (!this.currentConversation) return;
+
+    const data = JSON.stringify(this.currentConversation);
+
+    // First attempt
+    if (safeLocalStorageSet(STORAGE_KEYS.CURRENT_CONVERSATION, data)) {
+      return;
     }
+
+    // Quota exceeded - try pruning history and retry
+    pruneConversationHistory(3);
+
+    if (safeLocalStorageSet(STORAGE_KEYS.CURRENT_CONVERSATION, data)) {
+      return;
+    }
+
+    // Still failing - trim messages in current conversation
+    if (this.currentConversation.messages.length > 10) {
+      const trimmedConversation = {
+        ...this.currentConversation,
+        messages: this.currentConversation.messages.slice(-10),
+      };
+      const trimmedData = JSON.stringify(trimmedConversation);
+
+      if (safeLocalStorageSet(STORAGE_KEYS.CURRENT_CONVERSATION, trimmedData)) {
+        console.warn('Saved trimmed conversation (last 10 messages) due to quota limits');
+        return;
+      }
+    }
+
+    // Last resort - log usage for debugging
+    console.error(
+      'Failed to save conversation to localStorage. Usage:',
+      Math.round(getLocalStorageUsage() / 1024) + 'KB'
+    );
   }
 
   /**
@@ -180,13 +265,15 @@ export class ConversationStore {
   }
 
   /**
-   * Update user preferences
+   * Update user preferences with quota protection
    */
   updatePreferences(preferences: Partial<UserPreferences>): void {
     const currentPrefs = this.loadPreferences();
     const updatedPrefs = { ...currentPrefs, ...preferences };
 
-    localStorage.setItem(STORAGE_KEYS.USER_PREFERENCES, JSON.stringify(updatedPrefs));
+    if (!safeLocalStorageSet(STORAGE_KEYS.USER_PREFERENCES, JSON.stringify(updatedPrefs))) {
+      console.warn('Failed to save preferences to localStorage due to quota limits');
+    }
 
     if (this.currentConversation) {
       this.currentConversation.preferences = updatedPrefs;

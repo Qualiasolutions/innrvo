@@ -5,7 +5,7 @@
  * Includes inline meditation panel with music, voice, and audio tag controls.
  */
 
-import React, { useState, useRef, useEffect, useCallback, memo, lazy, Suspense } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo, memo, lazy, Suspense } from 'react';
 import { useMeditationAgent, type ChatMessage, type AgentAction } from '../src/hooks/useMeditationAgent';
 import type { VoiceProfile } from '../types';
 import type { BackgroundTrack } from '../constants';
@@ -151,9 +151,12 @@ export const AgentChat: React.FC<AgentChatProps> = ({
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
 
-  const isProcessing = isLoading || isGeneratingMeditation || externalIsGenerating;
-  const hasMessages = messages.length > 0;
-  const showMicButton = !inputValue.trim() && !isRecording;
+  // Memoize derived state to prevent recalculation on every render
+  const { isProcessing, hasMessages, showMicButton } = useMemo(() => ({
+    isProcessing: isLoading || isGeneratingMeditation || externalIsGenerating,
+    hasMessages: messages.length > 0,
+    showMicButton: !inputValue.trim() && !isRecording,
+  }), [isLoading, isGeneratingMeditation, externalIsGenerating, messages.length, inputValue, isRecording]);
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {

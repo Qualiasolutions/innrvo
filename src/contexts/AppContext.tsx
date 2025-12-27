@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useRef, useCallback, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useRef, useCallback, useEffect, useMemo, ReactNode } from 'react';
 import { VoiceProfile, ScriptTimingMap, CloningStatus, CreditInfo } from '../../types';
 import { VOICE_PROFILES, BACKGROUND_TRACKS, BackgroundTrack } from '../../constants';
 import { supabase, getCurrentUser, getUserVoiceProfiles, VoiceProfile as DBVoiceProfile, getMeditationHistoryPaginated, MeditationHistory, getAudioTagPreferences } from '../../lib/supabase';
@@ -278,7 +278,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     };
   }, [checkUser, loadUserVoices]);
 
-  const value: AppContextType = {
+  // Memoize context value to prevent unnecessary re-renders
+  // Only re-creates object when dependencies actually change
+  const value = useMemo<AppContextType>(() => ({
     user,
     setUser,
     checkUser,
@@ -344,7 +346,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     micError,
     setMicError,
     loadUserVoices,
-  };
+  }), [
+    user, checkUser, availableVoices, selectedVoice, savedVoices,
+    cloningStatus, creditInfo, selectedBackgroundTrack, backgroundVolume,
+    voiceVolume, playbackRate, script, enhancedScript, editableScript,
+    selectedAudioTags, audioTagsEnabled, favoriteAudioTags, meditationHistory,
+    isLoadingHistory, hasMoreHistory, loadMoreHistory, refreshHistory,
+    isPlaying, currentTime, duration, currentWordIndex, timingMap,
+    isGenerating, generationStage, chatStarted, restoredScript, micError, loadUserVoices,
+  ]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };

@@ -102,7 +102,38 @@ export async function withRetry<T>(
   throw lastError;
 }
 
+// ============================================================================
+// Query deduplication - prevents duplicate concurrent requests
+// ============================================================================
+
+const pendingQueries = new Map<string, Promise<any>>();
+
+/**
+ * Execute a query with deduplication - concurrent identical calls share the same promise
+ * Reduces redundant database calls when multiple components request the same data
+ */
+export async function deduplicatedQuery<T>(
+  key: string,
+  operation: () => Promise<T>
+): Promise<T> {
+  // If there's already a pending request for this key, return the same promise
+  if (pendingQueries.has(key)) {
+    return pendingQueries.get(key)! as Promise<T>;
+  }
+
+  // Create new promise and store it
+  const promise = operation().finally(() => {
+    // Clean up after request completes (success or failure)
+    pendingQueries.delete(key);
+  });
+
+  pendingQueries.set(key, promise);
+  return promise;
+}
+
+// ============================================================================
 // Database types matching the existing schema
+// ============================================================================
 export type UserRole = 'USER' | 'ADMIN' | 'ENTERPRISE';
 export type SubscriptionTier = 'FREE' | 'BASIC' | 'PRO' | 'ENTERPRISE';
 export type VoiceProfileStatus = 'PENDING' | 'PROCESSING' | 'READY' | 'FAILED' | 'ARCHIVED';
@@ -362,25 +393,29 @@ export const getUserVoiceProfiles = async (): Promise<VoiceProfile[]> => {
   const user = await getCurrentUser();
   if (!user || !supabase) return [];
 
-  return withRetry(async () => {
-    const { data, error } = await supabase
-      .from('voice_profiles')
-      .select(VOICE_PROFILE_FIELDS)
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
+  // Use deduplication to prevent concurrent identical requests
+  return deduplicatedQuery(`voice_profiles:${user.id}`, () =>
+    withRetry(async () => {
+      const { data, error } = await supabase
+        .from('voice_profiles')
+        .select(VOICE_PROFILE_FIELDS)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
 
-    if (error) throw error;
-    return data || [];
-  });
+      if (error) throw error;
+      return data || [];
+    })
+  );
 };
 
 export const getVoiceProfileById = async (id: string): Promise<VoiceProfile | null> => {
   const user = await getCurrentUser();
   if (!user || !supabase) return null;
 
+  // Use VOICE_PROFILE_FIELDS for consistent, optimized column selection
   const { data, error } = await supabase
     .from('voice_profiles')
-    .select('*')
+    .select(VOICE_PROFILE_FIELDS)
     .eq('id', id)
     .eq('user_id', user.id)
     .single();

@@ -4,7 +4,7 @@
  * Bottom sheet controls with Voice/Music/Tags tabs.
  */
 
-import React, { memo, useState, useCallback } from 'react';
+import React, { memo, useState, useCallback, useMemo } from 'react';
 import type { VoiceProfile } from '../../../../types';
 import type { BackgroundTrack } from '../../../../constants';
 import type { AudioTagCategory, ControlTab } from '../types';
@@ -113,6 +113,9 @@ export const ControlPanel = memo<ControlPanelProps>(
     const toggleExpanded = useCallback(() => {
       setExpanded((prev) => !prev);
     }, []);
+
+    // Memoize music slice to prevent array recreation on each render
+    const visibleMusic = useMemo(() => availableMusic.slice(0, 8), [availableMusic]);
 
     return (
       <div className="flex-shrink-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent backdrop-blur-xl">
@@ -259,7 +262,7 @@ export const ControlPanel = memo<ControlPanelProps>(
                 {/* Music Tab */}
                 {activeTab === 'music' && (
                   <div className="grid grid-cols-2 gap-2">
-                    {availableMusic.slice(0, 8).map((track) => (
+                    {visibleMusic.map((track) => (
                       <button
                         key={track.id}
                         onClick={() => onMusicSelect(track)}
