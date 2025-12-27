@@ -296,7 +296,7 @@ export class MeditationAgent {
   async chat(userMessage: string): Promise<AgentResponse> {
     // FIRST: Handle disambiguation responses
     if (this.context.sessionState.awaitingDisambiguation && this.context.sessionState.lastDetectionResult) {
-      return this.handleDisambiguationResponse(userMessage);
+      return await this.handleDisambiguationResponse(userMessage);
     }
 
     // SECOND: Check if user pasted a ready-made meditation script
@@ -356,8 +356,10 @@ export class MeditationAgent {
       // Continue to normal conversational flow below (build prompt, generate, etc.)
       console.log('[MeditationAgent] Conversational input detected, flowing to LLM');
     }
-    // Handle disambiguation ONLY for actual content requests with low confidence
-    else if (detection.needsDisambiguation && detection.confidence < 70 && detection.confidence > 0) {
+    // ONLY trigger disambiguation for EXPLICIT generation requests with ambiguous type
+    // e.g., "create a meditation" (but what kind?) - NOT casual mentions like "looking for meditation platform"
+    else if (detection.needsDisambiguation && detection.confidence < 70 && detection.confidence > 0
+             && this.isExplicitGenerationRequest(userMessage)) {
       this.context.sessionState.awaitingDisambiguation = true;
       this.context.sessionState.lastDetectionResult = detection;
 
@@ -405,11 +407,12 @@ export class MeditationAgent {
 
   /**
    * Handle user response to disambiguation question
+   * NOTE: This method is now async to allow falling back to Gemini
    */
-  private handleDisambiguationResponse(userMessage: string): AgentResponse {
+  private async handleDisambiguationResponse(userMessage: string): Promise<AgentResponse> {
     const previousResult = this.context.sessionState.lastDetectionResult!;
 
-    // Clear disambiguation state
+    // Clear disambiguation state - we're exiting this mode regardless
     this.context.sessionState.awaitingDisambiguation = false;
     this.context.sessionState.lastDetectionResult = undefined;
 
@@ -430,15 +433,19 @@ export class MeditationAgent {
     });
     this.context.sessionState.messageCount++;
 
-    // If still needs disambiguation (couldn't parse response), ask again
+    // If still needs disambiguation (couldn't parse response), DON'T ask again
+    // Instead, fall back to natural conversation via Gemini
+    // This prevents the annoying "I didn't catch that" loop
     if (updatedResult.needsDisambiguation) {
-      this.context.sessionState.awaitingDisambiguation = true;
-      this.context.sessionState.lastDetectionResult = updatedResult;
+      console.log('[MeditationAgent] Disambiguation unclear, falling back to Gemini conversation');
+
+      // Build conversational prompt and let Gemini handle it naturally
+      const prompt = this.buildPrompt(userMessage, this.context.sessionState.currentMood);
+      const responseText = await this.generateContent(prompt);
 
       return {
-        message: "I didn't quite catch that. " + (updatedResult.disambiguationQuestion || "What kind of experience would you like?"),
-        awaitingDisambiguation: true,
-        disambiguationQuestion: updatedResult.disambiguationQuestion,
+        message: responseText,
+        emotionalState: this.context.sessionState.currentMood,
       };
     }
 
