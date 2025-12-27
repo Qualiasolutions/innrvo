@@ -12,459 +12,737 @@ export interface TemplateCategory {
   id: string;
   name: string;
   description: string;
-  icon: 'sparkle' | 'story' | 'affirmation' | 'hypnosis';
+  icon: 'leaf' | 'moon' | 'sparkle' | 'book' | 'fire' | 'pray';
   color: string; // Tailwind color class for category theming
   subgroups: TemplateSubgroup[];
 }
 
+// 12 Universal Themes used across all categories
+const THEMES = {
+  selfLove: { id: 'self-love', name: 'Self Love & Worth', description: 'Cultivate deep self-love and recognize your inherent worth' },
+  loveCompassion: { id: 'love-compassion', name: 'Love & Compassion', description: 'Open your heart to love and compassion for self and others' },
+  peaceHealing: { id: 'peace-healing', name: 'Peace & Healing', description: 'Find inner peace and promote healing in body and mind' },
+  higherSelf: { id: 'higher-self', name: 'Higher Self & Consciousness', description: 'Connect with your higher self and expand consciousness' },
+  clearingBeliefs: { id: 'clearing-beliefs', name: 'Clearing Limiting Beliefs', description: 'Release limiting beliefs that hold you back' },
+  wealthAbundance: { id: 'wealth-abundance', name: 'Wealth & Abundance', description: 'Attract wealth, prosperity, and abundance into your life' },
+  gratitude: { id: 'gratitude', name: 'Gratitude & Appreciation', description: 'Cultivate deep gratitude and appreciation for life' },
+  joyHappiness: { id: 'joy-happiness', name: 'Joy & Happiness', description: 'Reconnect with your natural state of joy and happiness' },
+  confidence: { id: 'confidence', name: 'Confidence & Self Belief', description: 'Build unshakeable confidence and self-belief' },
+  servicePurpose: { id: 'service-purpose', name: 'Service & Purpose', description: 'Discover your purpose and live a life of service' },
+  emotionalHealing: { id: 'emotional-healing', name: 'Emotional Healing & Sadness', description: 'Heal emotional wounds and process sadness' },
+  trustSurrender: { id: 'trust-surrender', name: 'Trust & Surrender', description: 'Learn to trust the process and surrender to life\'s flow' },
+};
+
 export const TEMPLATE_CATEGORIES: TemplateCategory[] = [
-  {
-    id: 'meditation',
-    name: 'Meditation',
-    description: 'Guided meditations for transformation and inner peace',
-    icon: 'sparkle',
-    color: 'cyan',
-    subgroups: [
-      {
-        id: 'happiness',
-        name: 'Happiness',
-        description: 'Cultivate joy, gratitude, and inner peace',
-        templates: [
-          {
-            id: 'self-love',
-            title: 'Self-Love & Confidence',
-            description: 'Manifest unshakeable confidence and deep self-worth.',
-            prompt: 'Create a transformative self-love meditation that helps the listener see themselves through eyes of unconditional love. Include mirror visualization, healing inner child work, and powerful affirmations of worthiness. End with feeling radiantly confident and magnetically attractive.'
-          },
-          {
-            id: 'gratitude',
-            title: 'Gratitude Flow',
-            description: 'Open your heart to appreciation and abundance.',
-            prompt: 'Write a heartfelt gratitude meditation. Guide the listener to reflect on blessings in their life - relationships, health, simple pleasures. Include visualization of gratitude as warm golden light filling the heart. End with feeling deeply thankful and at peace.'
-          },
-          {
-            id: 'inner-joy',
-            title: 'Awakening Inner Joy',
-            description: 'Reconnect with your natural state of happiness.',
-            prompt: 'Create a meditation to awaken the listener\'s inner joy. Guide them to release stress and reconnect with childlike wonder. Include visualization of a golden sun in the heart center radiating warmth, and memories of pure happiness. End with feeling light, playful, and genuinely happy.'
-          }
-        ]
-      },
-      {
-        id: 'money',
-        name: 'Money & Abundance',
-        description: 'Attract wealth, prosperity, and financial freedom',
-        templates: [
-          {
-            id: 'abundance',
-            title: 'Abundance Flow',
-            description: 'Open yourself to unlimited wealth and prosperity.',
-            prompt: 'Create a powerful 5-minute manifesting meditation for attracting financial abundance. Use visualization of golden light flowing through the body, affirmations of worthiness, and imagery of money flowing effortlessly. Include gratitude for current blessings and certainty that more is coming.'
-          },
-          {
-            id: 'success-mindset',
-            title: 'Success Mindset',
-            description: 'Reprogram your mind for unstoppable success.',
-            prompt: 'Write a powerful success manifesting meditation. Include visualization of achieving major goals, standing ovations, celebrating wins, and feeling deeply fulfilled. Use anchoring techniques to lock in the feeling of success. Include affirmations about being destined for greatness.'
-          },
-          {
-            id: 'money-magnet',
-            title: 'Money Magnet',
-            description: 'Become a magnet for financial opportunities.',
-            prompt: 'Create a meditation that transforms limiting beliefs about money. Guide the listener to release scarcity mindset and embrace abundance consciousness. Include visualization of being surrounded by opportunities, doors opening, and wealth flowing naturally toward them.'
-          }
-        ]
-      },
-      {
-        id: 'health',
-        name: 'Health & Vitality',
-        description: 'Heal your body and cultivate radiant wellness',
-        templates: [
-          {
-            id: 'healing-light',
-            title: 'Healing Light',
-            description: 'Channel healing energy throughout your body.',
-            prompt: 'Create a healing meditation where warm, golden healing light enters through the crown and flows through every cell of the body. Focus on releasing tension, pain, and illness. Include visualization of cells regenerating and the body returning to perfect health. End feeling vibrant and whole.'
-          },
-          {
-            id: 'dream-life',
-            title: 'Dream Life Vision',
-            description: 'Visualize your ideal life in vivid detail.',
-            prompt: 'Write an immersive manifesting meditation where the listener walks through their perfect day in their dream life. Include waking up in their ideal home, doing work they love, surrounded by loving relationships, feeling complete health and vitality. Make it sensory-rich and emotionally powerful.'
-          },
-          {
-            id: 'immune-boost',
-            title: 'Immune System Boost',
-            description: 'Strengthen your body\'s natural defenses.',
-            prompt: 'Create a meditation focused on boosting the immune system. Guide the listener to visualize their white blood cells as tiny warriors of light, patrolling and protecting the body. Include affirmations of health and vitality, ending with feeling strong, protected, and resilient.'
-          }
-        ]
-      },
-      {
-        id: 'sleep',
-        name: 'Sleep & Relaxation',
-        description: 'Deep relaxation for restful, restorative sleep',
-        templates: [
-          {
-            id: 'deep-sleep',
-            title: 'Deep Sleep Journey',
-            description: 'Drift into the deepest, most restful sleep.',
-            prompt: 'Create a sleep meditation that guides the listener into deep, restorative rest. Include progressive relaxation from toes to head, visualization of sinking into a soft cloud, and gentle affirmations about sleeping peacefully through the night. Use a slow, hypnotic pace.'
-          },
-          {
-            id: 'release-day',
-            title: 'Release the Day',
-            description: 'Let go of the day\'s stress and worries.',
-            prompt: 'Write a meditation for releasing the day\'s tensions. Guide the listener to mentally review and release each worry, visualizing them floating away like leaves on a stream. Include body scan relaxation and gentle transition into peaceful sleep.'
-          }
-        ]
-      },
-      {
-        id: 'anxiety',
-        name: 'Anxiety & Stress Relief',
-        description: 'Calm the mind and soothe the nervous system',
-        templates: [
-          {
-            id: 'calm-storm',
-            title: 'Calm Within the Storm',
-            description: 'Find your center of peace amid chaos.',
-            prompt: 'Create a meditation for anxiety relief. Guide the listener to find their inner sanctuary of calm, using breath awareness and grounding techniques. Include visualization of being in the eye of a storm - peaceful and still while chaos swirls outside. End with feeling centered and capable.'
-          },
-          {
-            id: 'letting-go',
-            title: 'Letting Go of Worry',
-            description: 'Release anxious thoughts and find peace.',
-            prompt: 'Write a meditation focused on releasing worry and anxiety. Use the metaphor of placing each worry in a balloon and watching them float away into the sky. Include grounding exercises and affirmations of safety and trust in the process of life.'
-          }
-        ]
-      }
-    ]
-  },
+  // 🌿 AFFIRMATIONS
   {
     id: 'affirmations',
     name: 'Affirmations',
     description: 'Powerful positive statements to reprogram your mind',
-    icon: 'affirmation',
-    color: 'amber',
+    icon: 'leaf',
+    color: 'emerald',
     subgroups: [
       {
-        id: 'confidence',
-        name: 'Confidence & Self-Worth',
-        description: 'Build unshakeable confidence and self-belief',
+        id: THEMES.selfLove.id,
+        name: THEMES.selfLove.name,
+        description: THEMES.selfLove.description,
         templates: [
-          {
-            id: 'i-am-worthy',
-            title: 'I Am Worthy',
-            description: 'Affirmations for deep self-worth and value.',
-            prompt: 'Create a powerful affirmation script focused on self-worth. Include statements like "I am worthy of love and respect", "I deserve all the good things life has to offer", and "My worth is not determined by others." Use a confident, empowering tone with pauses between affirmations for integration.'
-          },
-          {
-            id: 'unstoppable-confidence',
-            title: 'Unstoppable Confidence',
-            description: 'Feel confident in any situation.',
-            prompt: 'Write confidence-building affirmations that create unshakeable self-belief. Include "I am confident in who I am", "I trust my abilities completely", "I radiate confidence and attract success." Use a strong, assertive tone with breathing pauses between statements.'
-          },
-          {
-            id: 'self-acceptance',
-            title: 'Complete Self-Acceptance',
-            description: 'Embrace and love yourself fully.',
-            prompt: 'Create affirmations for radical self-acceptance. Include "I accept myself exactly as I am", "I love and approve of myself", "My imperfections make me unique and beautiful." Guide the listener to feel complete acceptance and compassion for themselves.'
-          }
+          { id: 'aff-self-love-1', title: 'I Am Worthy of Love', description: 'Affirm your inherent worthiness of love and respect.', prompt: 'Create powerful affirmations focused on self-love and self-worth. Include statements like "I am worthy of love exactly as I am", "I deserve happiness and joy", "I am enough". Use a warm, nurturing tone with pauses between affirmations.' },
+          { id: 'aff-self-love-2', title: 'Embracing My True Self', description: 'Accept and celebrate who you truly are.', prompt: 'Write affirmations for radical self-acceptance and self-love. Include "I love and accept myself completely", "I honor my unique journey", "I am beautiful inside and out". Create a gentle, affirming tone.' }
         ]
       },
       {
-        id: 'abundance-aff',
-        name: 'Abundance & Prosperity',
-        description: 'Attract wealth, success, and opportunities',
+        id: THEMES.loveCompassion.id,
+        name: THEMES.loveCompassion.name,
+        description: THEMES.loveCompassion.description,
         templates: [
-          {
-            id: 'money-flows',
-            title: 'Money Flows to Me',
-            description: 'Attract financial abundance effortlessly.',
-            prompt: 'Create wealth affirmations that reprogram the subconscious for abundance. Include "Money flows to me easily and effortlessly", "I am a magnet for wealth", "Abundance is my natural state." Use a calm yet confident tone with pauses for the affirmations to sink in.'
-          },
-          {
-            id: 'success-attracts',
-            title: 'I Attract Success',
-            description: 'Draw success and opportunities to you.',
-            prompt: 'Write success-focused affirmations. Include "I attract success in everything I do", "Opportunities come to me naturally", "I am destined for greatness." Create a powerful, motivating tone that builds momentum and belief.'
-          },
-          {
-            id: 'abundant-life',
-            title: 'Living an Abundant Life',
-            description: 'Embody abundance in all areas of life.',
-            prompt: 'Create holistic abundance affirmations covering wealth, health, love, and happiness. Include "I live an abundantly blessed life", "Everything I need comes to me at the perfect time", "I am grateful for the abundance that surrounds me."'
-          }
+          { id: 'aff-love-1', title: 'Heart of Compassion', description: 'Open your heart to give and receive love.', prompt: 'Create affirmations focused on love and compassion. Include "My heart is open to give and receive love", "I radiate love and kindness", "Compassion flows through me naturally". Use a soft, heartfelt tone.' },
+          { id: 'aff-love-2', title: 'Loving Kindness', description: 'Cultivate loving kindness for all beings.', prompt: 'Write loving-kindness affirmations. Include "I send love to myself and all beings", "My compassion knows no bounds", "Love guides all my actions". Create a peaceful, expansive tone.' }
         ]
       },
       {
-        id: 'health-aff',
-        name: 'Health & Vitality',
-        description: 'Program your mind for optimal health',
+        id: THEMES.peaceHealing.id,
+        name: THEMES.peaceHealing.name,
+        description: THEMES.peaceHealing.description,
         templates: [
-          {
-            id: 'perfect-health',
-            title: 'Perfect Health',
-            description: 'Affirm vibrant health and wellness.',
-            prompt: 'Create health affirmations that support physical wellbeing. Include "My body is healthy, strong, and vital", "Every cell in my body radiates health", "I am grateful for my perfect health." Use a calm, nurturing tone that promotes healing.'
-          },
-          {
-            id: 'energy-vitality',
-            title: 'Boundless Energy',
-            description: 'Feel energized and alive.',
-            prompt: 'Write energy and vitality affirmations. Include "I have unlimited energy", "My body is strong and capable", "I wake up each day feeling refreshed and alive." Create an uplifting, energizing tone.'
-          }
+          { id: 'aff-peace-1', title: 'Inner Peace Flows', description: 'Affirm your natural state of peace.', prompt: 'Create peace and healing affirmations. Include "Peace flows through every cell of my body", "I am calm, centered, and at ease", "Healing energy surrounds me". Use a serene, calming tone.' },
+          { id: 'aff-peace-2', title: 'Healing Body & Mind', description: 'Support your body\'s natural healing.', prompt: 'Write healing affirmations for body and mind. Include "My body knows how to heal itself", "Every breath brings healing", "I release all that no longer serves me". Create a nurturing, supportive tone.' }
         ]
       },
       {
-        id: 'love-aff',
-        name: 'Love & Relationships',
-        description: 'Attract love and nurture relationships',
+        id: THEMES.higherSelf.id,
+        name: THEMES.higherSelf.name,
+        description: THEMES.higherSelf.description,
         templates: [
-          {
-            id: 'attract-love',
-            title: 'Attracting True Love',
-            description: 'Open your heart to romantic love.',
-            prompt: 'Create affirmations for attracting romantic love. Include "I am ready to receive deep, lasting love", "My soulmate is drawn to me", "I deserve a loving, supportive partner." Use a warm, open-hearted tone that radiates love energy.'
-          },
-          {
-            id: 'self-love-aff',
-            title: 'Deep Self-Love',
-            description: 'Cultivate unconditional self-love.',
-            prompt: 'Write self-love affirmations that build a foundation of inner love. Include "I love myself unconditionally", "I treat myself with kindness and compassion", "I am my own best friend." Create a gentle, nurturing tone.'
-          }
+          { id: 'aff-higher-1', title: 'Connected to My Higher Self', description: 'Strengthen your connection to divine wisdom.', prompt: 'Create affirmations for higher consciousness. Include "I am connected to infinite wisdom", "My higher self guides me perfectly", "I am one with universal consciousness". Use an elevated, spiritual tone.' },
+          { id: 'aff-higher-2', title: 'Expanding Consciousness', description: 'Expand your awareness and spiritual growth.', prompt: 'Write consciousness-expanding affirmations. Include "My awareness expands daily", "I am awakening to my true nature", "Divine light flows through me". Create an inspiring, transcendent tone.' }
         ]
       },
       {
-        id: 'morning-aff',
-        name: 'Morning Power',
-        description: 'Start your day with intention and power',
+        id: THEMES.clearingBeliefs.id,
+        name: THEMES.clearingBeliefs.name,
+        description: THEMES.clearingBeliefs.description,
         templates: [
-          {
-            id: 'morning-power',
-            title: 'Morning Power Routine',
-            description: 'Energize and set intentions for the day.',
-            prompt: 'Create morning affirmations to start the day powerfully. Include "Today is going to be an amazing day", "I am focused, energized, and ready", "Great things are coming to me today." Use an energizing, motivating tone to kickstart the day.'
-          },
-          {
-            id: 'gratitude-morning',
-            title: 'Morning Gratitude',
-            description: 'Begin your day in a state of thankfulness.',
-            prompt: 'Write morning gratitude affirmations. Include "I am grateful for this new day", "I appreciate all the blessings in my life", "Today I choose to see the good in everything." Create a warm, appreciative tone.'
-          }
+          { id: 'aff-clearing-1', title: 'Releasing Old Patterns', description: 'Let go of beliefs that limit you.', prompt: 'Create affirmations for releasing limiting beliefs. Include "I release all beliefs that no longer serve me", "I am free from the past", "New empowering beliefs flow into my life". Use a liberating, empowering tone.' },
+          { id: 'aff-clearing-2', title: 'Breaking Free', description: 'Break free from self-imposed limitations.', prompt: 'Write affirmations for breaking through barriers. Include "I break free from all limitations", "Nothing can hold me back", "I choose new, empowering thoughts". Create a powerful, determined tone.' }
+        ]
+      },
+      {
+        id: THEMES.wealthAbundance.id,
+        name: THEMES.wealthAbundance.name,
+        description: THEMES.wealthAbundance.description,
+        templates: [
+          { id: 'aff-wealth-1', title: 'Money Flows to Me', description: 'Attract financial abundance effortlessly.', prompt: 'Create wealth and abundance affirmations. Include "Money flows to me easily and effortlessly", "I am a magnet for prosperity", "Abundance is my birthright". Use a confident, abundant tone.' },
+          { id: 'aff-wealth-2', title: 'Prosperity Consciousness', description: 'Embody the energy of abundance.', prompt: 'Write prosperity affirmations. Include "I live in an abundant universe", "Wealth comes to me from expected and unexpected sources", "I am worthy of financial freedom". Create an expansive, prosperous tone.' }
+        ]
+      },
+      {
+        id: THEMES.gratitude.id,
+        name: THEMES.gratitude.name,
+        description: THEMES.gratitude.description,
+        templates: [
+          { id: 'aff-gratitude-1', title: 'Grateful Heart', description: 'Cultivate deep appreciation for life.', prompt: 'Create gratitude affirmations. Include "I am grateful for the abundance in my life", "Thank you for this beautiful day", "Gratitude fills my heart". Use a warm, appreciative tone.' },
+          { id: 'aff-gratitude-2', title: 'Appreciation for All', description: 'Find blessings in every moment.', prompt: 'Write appreciation affirmations. Include "I appreciate the small miracles in my life", "Every experience is a gift", "I see beauty everywhere". Create a joyful, thankful tone.' }
+        ]
+      },
+      {
+        id: THEMES.joyHappiness.id,
+        name: THEMES.joyHappiness.name,
+        description: THEMES.joyHappiness.description,
+        templates: [
+          { id: 'aff-joy-1', title: 'I Choose Joy', description: 'Embrace your natural state of happiness.', prompt: 'Create joy and happiness affirmations. Include "I choose joy in every moment", "Happiness is my natural state", "I radiate positive energy". Use an uplifting, joyful tone.' },
+          { id: 'aff-joy-2', title: 'Living in Bliss', description: 'Experience deep, lasting happiness.', prompt: 'Write bliss affirmations. Include "I am filled with joy and contentment", "My life is full of wonderful moments", "I attract happiness wherever I go". Create a bright, cheerful tone.' }
+        ]
+      },
+      {
+        id: THEMES.confidence.id,
+        name: THEMES.confidence.name,
+        description: THEMES.confidence.description,
+        templates: [
+          { id: 'aff-conf-1', title: 'Unstoppable Confidence', description: 'Build unshakeable self-belief.', prompt: 'Create confidence affirmations. Include "I am confident in who I am", "I trust myself completely", "I am capable of achieving anything". Use a strong, empowering tone.' },
+          { id: 'aff-conf-2', title: 'I Believe in Myself', description: 'Strengthen your inner power.', prompt: 'Write self-belief affirmations. Include "I believe in my abilities", "I am powerful beyond measure", "My confidence grows stronger each day". Create a bold, assertive tone.' }
+        ]
+      },
+      {
+        id: THEMES.servicePurpose.id,
+        name: THEMES.servicePurpose.name,
+        description: THEMES.servicePurpose.description,
+        templates: [
+          { id: 'aff-purpose-1', title: 'Living My Purpose', description: 'Align with your life\'s mission.', prompt: 'Create purpose affirmations. Include "I am living my divine purpose", "My life has meaning and significance", "I serve the world with my unique gifts". Use an inspired, purposeful tone.' },
+          { id: 'aff-purpose-2', title: 'Called to Serve', description: 'Embrace your role in service to others.', prompt: 'Write service affirmations. Include "I am here to make a difference", "My work matters", "I serve with love and dedication". Create a meaningful, heartfelt tone.' }
+        ]
+      },
+      {
+        id: THEMES.emotionalHealing.id,
+        name: THEMES.emotionalHealing.name,
+        description: THEMES.emotionalHealing.description,
+        templates: [
+          { id: 'aff-emotional-1', title: 'Healing My Heart', description: 'Gently heal emotional wounds.', prompt: 'Create emotional healing affirmations. Include "I allow myself to feel and heal", "My heart is mending beautifully", "I release old pain with love". Use a gentle, compassionate tone.' },
+          { id: 'aff-emotional-2', title: 'From Sadness to Strength', description: 'Transform pain into wisdom.', prompt: 'Write affirmations for processing sadness. Include "It is safe to feel my emotions", "Sadness passes through me like a wave", "I emerge stronger from every experience". Create a supportive, understanding tone.' }
+        ]
+      },
+      {
+        id: THEMES.trustSurrender.id,
+        name: THEMES.trustSurrender.name,
+        description: THEMES.trustSurrender.description,
+        templates: [
+          { id: 'aff-trust-1', title: 'Trusting the Journey', description: 'Let go and trust life\'s process.', prompt: 'Create trust and surrender affirmations. Include "I trust the process of life", "Everything is unfolding perfectly", "I surrender control and embrace flow". Use a peaceful, accepting tone.' },
+          { id: 'aff-trust-2', title: 'Divine Surrender', description: 'Release attachment to outcomes.', prompt: 'Write surrender affirmations. Include "I let go and let the universe guide me", "I am exactly where I need to be", "I trust in divine timing". Create a serene, faithful tone.' }
         ]
       }
     ]
   },
+
+  // 🌙 MEDITATIONS
   {
-    id: 'hypnosis',
-    name: 'Self-Hypnosis',
-    description: 'Deep subconscious reprogramming for lasting change',
-    icon: 'hypnosis',
+    id: 'meditations',
+    name: 'Meditations',
+    description: 'Guided meditations for transformation and inner peace',
+    icon: 'moon',
+    color: 'cyan',
+    subgroups: [
+      {
+        id: THEMES.selfLove.id,
+        name: THEMES.selfLove.name,
+        description: THEMES.selfLove.description,
+        templates: [
+          { id: 'med-self-love-1', title: 'Self-Love Meditation', description: 'A journey to embrace your beautiful self.', prompt: 'Create a guided meditation focused on self-love. Guide the listener to see themselves through eyes of unconditional love. Include heart-opening visualizations, mirror work, and affirmations of worthiness. End with feeling deeply loved and accepted.' },
+          { id: 'med-self-love-2', title: 'Inner Child Healing', description: 'Embrace and heal your inner child.', prompt: 'Write a meditation for inner child healing. Guide the listener to meet and embrace their younger self with love. Include gentle reassurance, nurturing visualizations, and healing of old wounds. End with integration and wholeness.' }
+        ]
+      },
+      {
+        id: THEMES.loveCompassion.id,
+        name: THEMES.loveCompassion.name,
+        description: THEMES.loveCompassion.description,
+        templates: [
+          { id: 'med-love-1', title: 'Loving-Kindness Meditation', description: 'Radiate love to yourself and all beings.', prompt: 'Create a loving-kindness (metta) meditation. Guide the listener to cultivate feelings of love for themselves, loved ones, neutral people, difficult people, and all beings. Include heart visualization and expansion of compassion.' },
+          { id: 'med-love-2', title: 'Heart Opening', description: 'Open your heart center to give and receive love.', prompt: 'Write a heart chakra meditation. Guide the listener to open and heal their heart center. Include visualization of green or pink light, releasing past hurts, and expanding capacity for love.' }
+        ]
+      },
+      {
+        id: THEMES.peaceHealing.id,
+        name: THEMES.peaceHealing.name,
+        description: THEMES.peaceHealing.description,
+        templates: [
+          { id: 'med-peace-1', title: 'Deep Peace Meditation', description: 'Sink into profound inner peace.', prompt: 'Create a meditation for deep peace. Guide the listener into progressively deeper states of relaxation and peace. Include body scan, breath awareness, and visualization of peaceful settings. End with feeling completely at peace.' },
+          { id: 'med-peace-2', title: 'Healing Light Meditation', description: 'Channel healing energy through your body.', prompt: 'Write a healing meditation with visualization of healing light. Guide the listener to draw healing energy into their body, directing it to areas needing healing. Include golden or white light visualization.' }
+        ]
+      },
+      {
+        id: THEMES.higherSelf.id,
+        name: THEMES.higherSelf.name,
+        description: THEMES.higherSelf.description,
+        templates: [
+          { id: 'med-higher-1', title: 'Meeting Your Higher Self', description: 'Connect with your wisest, highest self.', prompt: 'Create a meditation to meet the higher self. Guide the listener on a journey to meet their wisest, most enlightened self. Include receiving guidance, wisdom, and unconditional love from this higher aspect.' },
+          { id: 'med-higher-2', title: 'Expanding Consciousness', description: 'Expand your awareness beyond the physical.', prompt: 'Write an expansion meditation. Guide the listener to expand their awareness beyond the body, room, city, planet, into cosmic consciousness. Include feeling connected to all that is.' }
+        ]
+      },
+      {
+        id: THEMES.clearingBeliefs.id,
+        name: THEMES.clearingBeliefs.name,
+        description: THEMES.clearingBeliefs.description,
+        templates: [
+          { id: 'med-clearing-1', title: 'Releasing Limiting Beliefs', description: 'Let go of what holds you back.', prompt: 'Create a meditation for releasing limiting beliefs. Guide the listener to identify, release, and replace limiting beliefs with empowering ones. Include visualization of releasing old programming and installing new beliefs.' },
+          { id: 'med-clearing-2', title: 'Cord Cutting Meditation', description: 'Release energetic attachments.', prompt: 'Write a cord cutting meditation. Guide the listener to identify and release unhealthy energetic cords and attachments. Include visualization of loving release and reclaiming personal energy.' }
+        ]
+      },
+      {
+        id: THEMES.wealthAbundance.id,
+        name: THEMES.wealthAbundance.name,
+        description: THEMES.wealthAbundance.description,
+        templates: [
+          { id: 'med-wealth-1', title: 'Abundance Meditation', description: 'Open to receive unlimited prosperity.', prompt: 'Create an abundance meditation. Guide the listener to shift into abundance consciousness. Include visualization of golden light of prosperity, feeling wealthy, and releasing scarcity mindset.' },
+          { id: 'med-wealth-2', title: 'Manifesting Prosperity', description: 'Align your energy with wealth.', prompt: 'Write a prosperity manifestation meditation. Guide the listener to visualize their ideal financial reality. Include feeling the emotions of having achieved financial freedom.' }
+        ]
+      },
+      {
+        id: THEMES.gratitude.id,
+        name: THEMES.gratitude.name,
+        description: THEMES.gratitude.description,
+        templates: [
+          { id: 'med-gratitude-1', title: 'Gratitude Meditation', description: 'Cultivate deep appreciation.', prompt: 'Create a gratitude meditation. Guide the listener to deeply appreciate their blessings. Include visualization of gratitude as golden light in the heart, expanding with each blessing acknowledged.' },
+          { id: 'med-gratitude-2', title: 'Thankfulness Journey', description: 'A journey through your blessings.', prompt: 'Write a gratitude journey meditation. Guide the listener through different areas of life, finding gratitude in each. Include relationships, health, experiences, and simple pleasures.' }
+        ]
+      },
+      {
+        id: THEMES.joyHappiness.id,
+        name: THEMES.joyHappiness.name,
+        description: THEMES.joyHappiness.description,
+        templates: [
+          { id: 'med-joy-1', title: 'Awakening Inner Joy', description: 'Reconnect with your natural happiness.', prompt: 'Create a meditation for awakening inner joy. Guide the listener to their natural state of happiness. Include accessing joyful memories, feeling lightness, and radiating positive energy.' },
+          { id: 'med-joy-2', title: 'Bliss Meditation', description: 'Experience deep states of bliss.', prompt: 'Write a bliss meditation. Guide the listener into deep states of contentment and happiness. Include releasing resistance, opening to pleasure, and feeling deeply fulfilled.' }
+        ]
+      },
+      {
+        id: THEMES.confidence.id,
+        name: THEMES.confidence.name,
+        description: THEMES.confidence.description,
+        templates: [
+          { id: 'med-conf-1', title: 'Confidence Activation', description: 'Activate your inner power.', prompt: 'Create a confidence meditation. Guide the listener to access and amplify feelings of confidence. Include recalling past successes, power poses, and visualization of confident self.' },
+          { id: 'med-conf-2', title: 'Inner Strength Meditation', description: 'Connect with your core strength.', prompt: 'Write a meditation for inner strength. Guide the listener to their core of inner power. Include visualization of golden energy in the solar plexus, feeling unshakeable.' }
+        ]
+      },
+      {
+        id: THEMES.servicePurpose.id,
+        name: THEMES.servicePurpose.name,
+        description: THEMES.servicePurpose.description,
+        templates: [
+          { id: 'med-purpose-1', title: 'Discovering Your Purpose', description: 'Uncover your life\'s mission.', prompt: 'Create a purpose discovery meditation. Guide the listener to connect with their life purpose. Include questions from the soul, receiving guidance, and clarity about their mission.' },
+          { id: 'med-purpose-2', title: 'Aligned with Service', description: 'Align your life with meaningful service.', prompt: 'Write a meditation for service alignment. Guide the listener to understand how they can best serve. Include connecting with the desire to contribute and finding their unique way to help.' }
+        ]
+      },
+      {
+        id: THEMES.emotionalHealing.id,
+        name: THEMES.emotionalHealing.name,
+        description: THEMES.emotionalHealing.description,
+        templates: [
+          { id: 'med-emotional-1', title: 'Emotional Release', description: 'Safely release stored emotions.', prompt: 'Create an emotional release meditation. Guide the listener to safely feel and release stored emotions. Include body awareness, allowing feelings to flow, and gentle release.' },
+          { id: 'med-emotional-2', title: 'Healing Grief & Sadness', description: 'Gently process grief and loss.', prompt: 'Write a grief healing meditation. Guide the listener through processing sadness and grief. Include honoring the pain, gentle release, and finding peace.' }
+        ]
+      },
+      {
+        id: THEMES.trustSurrender.id,
+        name: THEMES.trustSurrender.name,
+        description: THEMES.trustSurrender.description,
+        templates: [
+          { id: 'med-trust-1', title: 'Surrender Meditation', description: 'Release control and trust the flow.', prompt: 'Create a surrender meditation. Guide the listener to let go of the need to control. Include releasing tension, trusting the universe, and flowing with life.' },
+          { id: 'med-trust-2', title: 'Trusting Divine Timing', description: 'Trust that everything happens perfectly.', prompt: 'Write a meditation for trusting divine timing. Guide the listener to release impatience and trust that everything happens at the right time.' }
+        ]
+      }
+    ]
+  },
+
+  // ✨ MANIFESTATIONS
+  {
+    id: 'manifestations',
+    name: 'Manifestations',
+    description: 'Powerful visualizations to create your dream reality',
+    icon: 'sparkle',
     color: 'violet',
     subgroups: [
       {
-        id: 'weight-loss',
-        name: 'Weight Loss',
-        description: 'Reprogram your relationship with food and body',
+        id: THEMES.selfLove.id,
+        name: THEMES.selfLove.name,
+        description: THEMES.selfLove.description,
         templates: [
-          {
-            id: 'eat-mindfully',
-            title: 'Mindful Eating',
-            description: 'Transform your relationship with food.',
-            prompt: 'Create a self-hypnosis script for mindful eating. Include deep relaxation induction, then suggestions for eating slowly, savoring each bite, recognizing true hunger vs emotional eating, and stopping when satisfied. Use hypnotic language patterns and embed suggestions in the subconscious.'
-          },
-          {
-            id: 'love-exercise',
-            title: 'Love Exercise',
-            description: 'Program your mind to enjoy movement.',
-            prompt: 'Write a hypnosis script for developing a love of exercise. Include relaxation, then suggestions for feeling energized by movement, looking forward to workouts, and seeing exercise as self-care. Use future pacing and visualization of an active, fit lifestyle.'
-          },
-          {
-            id: 'ideal-body',
-            title: 'Visualize Your Ideal Body',
-            description: 'See and become your healthiest self.',
-            prompt: 'Create a hypnosis script for weight loss visualization. Guide the listener into deep relaxation, then have them vividly imagine their ideal healthy body, how it feels to move in that body, the confidence they carry. Anchor these feelings and suggest they are manifesting this reality.'
-          }
+          { id: 'man-self-love-1', title: 'Manifesting Self-Love', description: 'Become someone who deeply loves themselves.', prompt: 'Create a manifestation script for becoming someone who truly loves themselves. Guide the listener to visualize themselves living with complete self-love, how they treat themselves, their boundaries, and their inner dialogue.' },
+          { id: 'man-self-love-2', title: 'Your Most Confident Self', description: 'Step into your highest version.', prompt: 'Write a manifestation for embodying your most confident, self-loving self. Include vivid visualization of how this version walks, talks, and lives.' }
         ]
       },
       {
-        id: 'quit-smoking',
-        name: 'Quit Smoking',
-        description: 'Break free from nicotine addiction',
+        id: THEMES.loveCompassion.id,
+        name: THEMES.loveCompassion.name,
+        description: THEMES.loveCompassion.description,
         templates: [
-          {
-            id: 'smoke-free',
-            title: 'Becoming Smoke-Free',
-            description: 'Release the smoking habit for good.',
-            prompt: 'Create a hypnosis script for quitting smoking. Include deep relaxation, then powerful suggestions for feeling disgusted by cigarettes, breathing freely, and feeling proud as a non-smoker. Use aversion techniques and positive visualization of a healthy, smoke-free life.'
-          },
-          {
-            id: 'freedom-from-cravings',
-            title: 'Freedom from Cravings',
-            description: 'Eliminate nicotine cravings.',
-            prompt: 'Write a hypnosis script focused on eliminating cravings. Guide into deep trance, then suggest that cravings are simply signals to breathe deeply, that each passing craving makes you stronger, and that you are free from the need for nicotine.'
-          }
+          { id: 'man-love-1', title: 'Manifesting True Love', description: 'Attract your perfect partner.', prompt: 'Create a manifestation for attracting romantic love. Guide the listener to visualize their ideal relationship, how it feels, the connection they share, and the life they build together.' },
+          { id: 'man-love-2', title: 'Loving Relationships', description: 'Manifest harmonious relationships.', prompt: 'Write a manifestation for loving relationships in all areas. Include visualization of peaceful family dynamics, supportive friendships, and meaningful connections.' }
         ]
       },
       {
-        id: 'fear-phobia',
-        name: 'Fears & Phobias',
-        description: 'Overcome deep-seated fears',
+        id: THEMES.peaceHealing.id,
+        name: THEMES.peaceHealing.name,
+        description: THEMES.peaceHealing.description,
         templates: [
-          {
-            id: 'fear-release',
-            title: 'Release Fear',
-            description: 'Let go of limiting fears and anxiety.',
-            prompt: 'Create a general fear-release hypnosis script. Guide into deep relaxation, then use dissociation techniques to view fear from a safe distance. Include suggestions for feeling safe, capable, and confident. Reframe the fear as excitement and install feelings of courage and calm.'
-          },
-          {
-            id: 'public-speaking',
-            title: 'Confident Public Speaking',
-            description: 'Speak with ease and confidence.',
-            prompt: 'Write a hypnosis script for overcoming fear of public speaking. Include relaxation, then visualization of speaking confidently to audiences, enjoying the spotlight, and receiving positive responses. Anchor confidence to the act of speaking publicly.'
-          }
+          { id: 'man-peace-1', title: 'Manifesting Perfect Health', description: 'Visualize your body in perfect health.', prompt: 'Create a health manifestation. Guide the listener to visualize their body in perfect health, every cell vibrating with vitality, feeling strong and energetic.' },
+          { id: 'man-peace-2', title: 'A Peaceful Life', description: 'Manifest a life of peace and ease.', prompt: 'Write a manifestation for a peaceful, stress-free life. Include visualization of calm mornings, easy days, and restful nights.' }
         ]
       },
       {
-        id: 'sleep-hyp',
-        name: 'Deep Sleep',
-        description: 'Hypnotic induction for profound rest',
+        id: THEMES.higherSelf.id,
+        name: THEMES.higherSelf.name,
+        description: THEMES.higherSelf.description,
         templates: [
-          {
-            id: 'deep-sleep-hyp',
-            title: 'Hypnotic Sleep Journey',
-            description: 'Fall into the deepest, most restorative sleep.',
-            prompt: 'Create a sleep hypnosis script with progressive relaxation. Include counting down from 10 to 1 while descending a beautiful staircase, each step bringing deeper relaxation. Suggest sleeping through the night, waking refreshed, and having pleasant dreams.'
-          },
-          {
-            id: 'insomnia-cure',
-            title: 'Cure Insomnia',
-            description: 'Reprogram for natural, easy sleep.',
-            prompt: 'Write a hypnosis script for chronic insomnia. Include suggestions that the bed is a trigger for deep sleep, that the mind quiets naturally at night, and that sleep comes easily. Use hypnotic compounding and post-hypnotic suggestions for future nights.'
-          }
+          { id: 'man-higher-1', title: 'Manifesting Spiritual Growth', description: 'Accelerate your spiritual evolution.', prompt: 'Create a manifestation for spiritual growth. Guide the listener to visualize themselves as deeply connected, intuitive, and spiritually evolved.' },
+          { id: 'man-higher-2', title: 'Living from Higher Consciousness', description: 'Embody elevated awareness daily.', prompt: 'Write a manifestation for living from higher consciousness. Include visualization of responding from wisdom, seeing clearly, and living in alignment.' }
         ]
       },
       {
-        id: 'confidence-hyp',
-        name: 'Confidence & Success',
-        description: 'Unlock your full potential',
+        id: THEMES.clearingBeliefs.id,
+        name: THEMES.clearingBeliefs.name,
+        description: THEMES.clearingBeliefs.description,
         templates: [
-          {
-            id: 'unstoppable-you',
-            title: 'Unstoppable You',
-            description: 'Install unshakeable confidence.',
-            prompt: 'Create a confidence-building hypnosis script. Guide into trance, then access memories of past confidence, amplify those feelings, and install them as the default state. Include suggestions for radiating confidence, handling any situation, and attracting success naturally.'
-          },
-          {
-            id: 'millionaire-mind',
-            title: 'Millionaire Mindset',
-            description: 'Reprogram your brain for wealth.',
-            prompt: 'Write a hypnosis script for developing a millionaire mindset. Include suggestions for seeing opportunities everywhere, making smart decisions, taking inspired action, and believing you deserve wealth. Use embedded commands and visualization of financial success.'
-          }
+          { id: 'man-clearing-1', title: 'New Empowering Beliefs', description: 'Manifest a new mindset.', prompt: 'Create a manifestation for new empowering beliefs. Guide the listener to visualize themselves thinking, believing, and acting from empowering perspectives.' },
+          { id: 'man-clearing-2', title: 'Freedom from the Past', description: 'Visualize being completely free.', prompt: 'Write a manifestation for freedom from past limitations. Include visualization of being unburdened, light, and completely free.' }
+        ]
+      },
+      {
+        id: THEMES.wealthAbundance.id,
+        name: THEMES.wealthAbundance.name,
+        description: THEMES.wealthAbundance.description,
+        templates: [
+          { id: 'man-wealth-1', title: 'Manifesting Financial Freedom', description: 'Create your abundant reality.', prompt: 'Create a wealth manifestation. Guide the listener through a day in their financially free life - waking up without money stress, making choices freely, giving generously.' },
+          { id: 'man-wealth-2', title: 'Millionaire Lifestyle', description: 'Visualize your dream lifestyle.', prompt: 'Write a manifestation for achieving wealth. Include vivid visualization of the home, car, travel, and lifestyle they desire, feeling it as already real.' }
+        ]
+      },
+      {
+        id: THEMES.gratitude.id,
+        name: THEMES.gratitude.name,
+        description: THEMES.gratitude.description,
+        templates: [
+          { id: 'man-gratitude-1', title: 'Manifesting from Gratitude', description: 'Attract more through appreciation.', prompt: 'Create a gratitude manifestation. Guide the listener to give thanks for what they want as if already received, feeling deep appreciation for their manifested reality.' },
+          { id: 'man-gratitude-2', title: 'Abundance Through Thanks', description: 'Multiply blessings through gratitude.', prompt: 'Write a manifestation using gratitude as the creative force. Include thanking the universe for all that is coming and all that has been received.' }
+        ]
+      },
+      {
+        id: THEMES.joyHappiness.id,
+        name: THEMES.joyHappiness.name,
+        description: THEMES.joyHappiness.description,
+        templates: [
+          { id: 'man-joy-1', title: 'Manifesting Joy', description: 'Create a life filled with happiness.', prompt: 'Create a joy manifestation. Guide the listener to visualize a life filled with laughter, fun, and genuine happiness. Include specific joyful moments and experiences.' },
+          { id: 'man-joy-2', title: 'Your Happiest Life', description: 'Visualize your most joyful existence.', prompt: 'Write a manifestation for ultimate happiness. Include visualization of daily moments of joy, fulfilling activities, and deep contentment.' }
+        ]
+      },
+      {
+        id: THEMES.confidence.id,
+        name: THEMES.confidence.name,
+        description: THEMES.confidence.description,
+        templates: [
+          { id: 'man-conf-1', title: 'Unstoppable Success', description: 'Manifest your successful self.', prompt: 'Create a success manifestation. Guide the listener to visualize achieving their biggest goals, receiving recognition, and feeling deeply successful.' },
+          { id: 'man-conf-2', title: 'Confident in All Situations', description: 'See yourself handling anything with ease.', prompt: 'Write a confidence manifestation. Include visualization of handling challenging situations with ease, speaking up, and being respected.' }
+        ]
+      },
+      {
+        id: THEMES.servicePurpose.id,
+        name: THEMES.servicePurpose.name,
+        description: THEMES.servicePurpose.description,
+        templates: [
+          { id: 'man-purpose-1', title: 'Living Your Purpose', description: 'Manifest alignment with your mission.', prompt: 'Create a purpose manifestation. Guide the listener to visualize living fully aligned with their purpose, making an impact, and feeling deeply fulfilled.' },
+          { id: 'man-purpose-2', title: 'Dream Career Manifestation', description: 'Visualize your ideal work.', prompt: 'Write a manifestation for dream career or calling. Include visualization of meaningful work, positive impact, and professional fulfillment.' }
+        ]
+      },
+      {
+        id: THEMES.emotionalHealing.id,
+        name: THEMES.emotionalHealing.name,
+        description: THEMES.emotionalHealing.description,
+        templates: [
+          { id: 'man-emotional-1', title: 'Manifesting Emotional Freedom', description: 'Visualize being emotionally free.', prompt: 'Create a manifestation for emotional freedom. Guide the listener to visualize themselves as emotionally healthy, resilient, and at peace with their past.' },
+          { id: 'man-emotional-2', title: 'Healed and Whole', description: 'See yourself completely healed.', prompt: 'Write a manifestation for complete emotional healing. Include visualization of being whole, healed, and emotionally balanced.' }
+        ]
+      },
+      {
+        id: THEMES.trustSurrender.id,
+        name: THEMES.trustSurrender.name,
+        description: THEMES.trustSurrender.description,
+        templates: [
+          { id: 'man-trust-1', title: 'Manifesting with Trust', description: 'Release and let the universe deliver.', prompt: 'Create a trust-based manifestation. Guide the listener to state their intention, then completely release attachment, trusting the universe to deliver in perfect timing.' },
+          { id: 'man-trust-2', title: 'Surrendered Manifestation', description: 'Manifest through letting go.', prompt: 'Write a manifestation through surrender. Include setting the intention then visualizing completely letting go, trusting all is handled.' }
         ]
       }
     ]
   },
+
+  // 📖 BEDTIME STORIES
   {
-    id: 'stories',
-    name: 'Sleep Stories',
-    description: 'Immersive narrative journeys for relaxation and escape',
-    icon: 'story',
+    id: 'bedtime-stories',
+    name: 'Bedtime Stories',
+    description: 'Soothing stories to guide you into peaceful sleep',
+    icon: 'book',
     color: 'pink',
     subgroups: [
       {
-        id: 'bedtime',
-        name: 'Bedtime',
-        description: 'Drift into peaceful sleep with calming tales',
+        id: THEMES.selfLove.id,
+        name: THEMES.selfLove.name,
+        description: THEMES.selfLove.description,
         templates: [
-          {
-            id: 'enchanted-forest',
-            title: 'The Enchanted Forest',
-            description: 'Wander through a magical woodland filled with wonder.',
-            prompt: 'Write an immersive bedtime story about discovering a hidden enchanted forest. Include glowing mushrooms, friendly woodland creatures, a wise ancient oak tree that shares life wisdom, and a peaceful clearing where the listener can rest. Make it dreamy, slow-paced, and deeply calming.'
-          },
-          {
-            id: 'ocean-voyage',
-            title: 'Midnight Ocean Voyage',
-            description: 'Sail across calm seas under a blanket of stars.',
-            prompt: 'Create a sleep story about a peaceful nighttime boat journey across a calm, moonlit ocean. Include the gentle rocking of the boat, the sound of waves, bioluminescent creatures glowing in the water, and constellations telling ancient stories overhead. End with drifting into peaceful sleep.'
-          },
-          {
-            id: 'cloud-village',
-            title: 'Village in the Clouds',
-            description: 'Discover a peaceful village floating among the clouds.',
-            prompt: 'Write a bedtime story about floating up to a magical village in the clouds. Include soft, cottony ground, gentle cloud beings who tend to dreams, a cozy cloud cottage where the listener can rest, and the distant twinkling of stars above. Make it ethereal and deeply peaceful.'
-          }
+          { id: 'bed-self-love-1', title: 'The Garden of Self-Love', description: 'A magical garden where you learn to love yourself.', prompt: 'Write a bedtime story about discovering a magical garden where every flower represents something beautiful about the listener. Include a wise gardener who teaches self-love. Make it dreamy and soothing.' },
+          { id: 'bed-self-love-2', title: 'The Mirror Lake', description: 'A lake that shows your true beauty.', prompt: 'Create a sleep story about finding a magical lake that reflects the listener\'s inner beauty and worth. Include gentle imagery and a peaceful journey to self-acceptance.' }
         ]
       },
       {
-        id: 'afternoon',
-        name: 'Afternoon',
-        description: 'Relaxing escapes for daytime unwinding',
+        id: THEMES.loveCompassion.id,
+        name: THEMES.loveCompassion.name,
+        description: THEMES.loveCompassion.description,
         templates: [
-          {
-            id: 'mountain-retreat',
-            title: 'Mountain Sanctuary',
-            description: 'Find peace in a cozy cabin high in the misty mountains.',
-            prompt: 'Write a relaxing story about discovering a hidden cabin in the mountains. Include the journey up through misty forests, arriving at a warm cabin with a crackling fireplace, hot tea, soft blankets, and snow gently falling outside. Describe the deep silence and peace of being far from the world.'
-          },
-          {
-            id: 'garden-meditation',
-            title: 'Secret Garden',
-            description: 'Discover a hidden garden of tranquility.',
-            prompt: 'Create a peaceful story about finding a secret walled garden. Include wandering through fragrant flowers, sitting by a gentle fountain, watching butterflies dance, and feeling the warm sun on your skin. Make it sensory-rich and deeply calming for afternoon relaxation.'
-          },
-          {
-            id: 'library-rain',
-            title: 'Rainy Day Library',
-            description: 'Cozy up in a grand library while rain patters outside.',
-            prompt: 'Write a relaxing story about spending an afternoon in a grand old library. Include tall bookshelves, comfortable leather chairs, the smell of old books, and rain gently tapping against tall windows. The listener finds a perfect book and loses themselves in peaceful reading.'
-          }
+          { id: 'bed-love-1', title: 'The Village of Kind Hearts', description: 'A village where everyone lives with love.', prompt: 'Write a bedtime story about discovering a village where everyone radiates love and kindness. Include warm interactions and the feeling of belonging. Make it cozy and heartwarming.' },
+          { id: 'bed-love-2', title: 'The Lighthouse of Love', description: 'A lighthouse that beams love across the world.', prompt: 'Create a sleep story about visiting a lighthouse that sends love-light across the ocean. Include the peaceful keeper and the warmth of the light.' }
         ]
       },
       {
-        id: 'morning',
-        name: 'Morning',
-        description: 'Energizing stories to start your day with intention',
+        id: THEMES.peaceHealing.id,
+        name: THEMES.peaceHealing.name,
+        description: THEMES.peaceHealing.description,
         templates: [
-          {
-            id: 'space-journey',
-            title: 'Journey Through the Stars',
-            description: 'Float weightlessly through the cosmos.',
-            prompt: 'Create a story about floating peacefully through space. Include passing colorful nebulas, watching distant galaxies spin, feeling completely weightless and free, and being held safely by the universe. Make it awe-inspiring yet grounding, perfect for starting the day with wonder.'
-          },
-          {
-            id: 'sunrise-beach',
-            title: 'Sunrise Beach Walk',
-            description: 'Greet the day on a peaceful shoreline.',
-            prompt: 'Write an uplifting morning story about walking along a beautiful beach at sunrise. Include the soft sand beneath your feet, gentle waves, seabirds calling, and the golden sun rising over the horizon. Fill the listener with hope, energy, and gratitude for the new day.'
-          }
+          { id: 'bed-peace-1', title: 'The Healing Forest', description: 'A forest where nature heals all wounds.', prompt: 'Write a bedtime story about walking through a healing forest. Include magical plants, soothing streams, and the feeling of being restored. Very calming and slow-paced.' },
+          { id: 'bed-peace-2', title: 'The Temple of Peace', description: 'An ancient temple of perfect tranquility.', prompt: 'Create a sleep story about finding an ancient temple of peace. Include gentle monks, sacred silence, and deep serenity.' }
         ]
       },
       {
-        id: 'children',
-        name: 'Children\'s Stories',
-        description: 'Magical tales for young listeners',
+        id: THEMES.higherSelf.id,
+        name: THEMES.higherSelf.name,
+        description: THEMES.higherSelf.description,
         templates: [
-          {
-            id: 'teddy-adventure',
-            title: 'Teddy\'s Big Adventure',
-            description: 'Join Teddy Bear on a magical nighttime journey.',
-            prompt: 'Write a children\'s bedtime story about a teddy bear who comes alive at night and goes on adventures. Include visiting the moon, making friends with friendly stars, and returning safely before morning. Keep it warm, safe, and full of wonder. Perfect for ages 3-8.'
-          },
-          {
-            id: 'dream-train',
-            title: 'The Dream Train',
-            description: 'Take a magical train ride to the land of dreams.',
-            prompt: 'Create a children\'s sleep story about a magical train that takes sleepy children to dreamland. Include colorful carriages, friendly conductors, passing through cotton candy clouds, and arriving at a wonderful land of happy dreams. Gentle and reassuring for young listeners.'
-          },
-          {
-            id: 'underwater-kingdom',
-            title: 'The Underwater Kingdom',
-            description: 'Discover a magical world beneath the waves.',
-            prompt: 'Write a children\'s story about visiting a friendly underwater kingdom. Include meeting kind mermaids, playing with dolphins, exploring coral castles, and attending a bubble party. Make it magical, safe, and ending with the child floating back to their cozy bed.'
-          }
+          { id: 'bed-higher-1', title: 'The Mountain of Wisdom', description: 'A journey to meet your wisest self.', prompt: 'Write a bedtime story about climbing a peaceful mountain to meet your higher self at the summit. Include beautiful scenery and profound wisdom.' },
+          { id: 'bed-higher-2', title: 'The Starlight Temple', description: 'A temple in the stars for cosmic wisdom.', prompt: 'Create a sleep story about floating to a temple among the stars. Include meeting celestial guides and receiving wisdom for your journey.' }
+        ]
+      },
+      {
+        id: THEMES.clearingBeliefs.id,
+        name: THEMES.clearingBeliefs.name,
+        description: THEMES.clearingBeliefs.description,
+        templates: [
+          { id: 'bed-clearing-1', title: 'The River of Release', description: 'A magical river that carries away worries.', prompt: 'Write a bedtime story about sitting by a magical river and placing worries on leaves to float away. Include the peace of letting go.' },
+          { id: 'bed-clearing-2', title: 'The Clearing in the Woods', description: 'A sacred clearing where burdens lift away.', prompt: 'Create a sleep story about finding a clearing where old beliefs and burdens magically dissolve. Include feeling lighter with each moment.' }
+        ]
+      },
+      {
+        id: THEMES.wealthAbundance.id,
+        name: THEMES.wealthAbundance.name,
+        description: THEMES.wealthAbundance.description,
+        templates: [
+          { id: 'bed-wealth-1', title: 'The Golden Valley', description: 'A valley where abundance flows freely.', prompt: 'Write a bedtime story about discovering a valley where abundance is everywhere - golden fields, overflowing orchards, and generous inhabitants. Make it feel prosperous and peaceful.' },
+          { id: 'bed-wealth-2', title: 'The Treasure Within', description: 'A journey to find the treasure inside.', prompt: 'Create a sleep story about a quest that leads not to external treasure, but to discovering the wealth within. Include the realization that you have everything you need.' }
+        ]
+      },
+      {
+        id: THEMES.gratitude.id,
+        name: THEMES.gratitude.name,
+        description: THEMES.gratitude.description,
+        templates: [
+          { id: 'bed-gratitude-1', title: 'The Gratitude Garden', description: 'A garden that grows with thankfulness.', prompt: 'Write a bedtime story about a magical garden where flowers bloom each time you feel grateful. Include beautiful imagery and the joy of appreciation.' },
+          { id: 'bed-gratitude-2', title: 'The Thank You Stars', description: 'Stars that light up with gratitude.', prompt: 'Create a sleep story about stars that shine brighter when you send them gratitude. Include lying under the night sky and watching it illuminate with thankfulness.' }
+        ]
+      },
+      {
+        id: THEMES.joyHappiness.id,
+        name: THEMES.joyHappiness.name,
+        description: THEMES.joyHappiness.description,
+        templates: [
+          { id: 'bed-joy-1', title: 'The Carnival of Joy', description: 'A magical carnival of pure happiness.', prompt: 'Write a bedtime story about visiting a magical carnival where everything brings joy. Include gentle rides, sweet treats, and infectious laughter. Make it whimsical and happy.' },
+          { id: 'bed-joy-2', title: 'The Laughter Meadow', description: 'A meadow where happiness blooms.', prompt: 'Create a sleep story about finding a meadow where the flowers release giggles and the breeze carries contentment. Include playful animals and warm sunshine.' }
+        ]
+      },
+      {
+        id: THEMES.confidence.id,
+        name: THEMES.confidence.name,
+        description: THEMES.confidence.description,
+        templates: [
+          { id: 'bed-conf-1', title: 'The Castle of Courage', description: 'A castle where you discover your strength.', prompt: 'Write a bedtime story about visiting a castle where each room reveals a strength you possess. Include kind guardians and the feeling of empowerment.' },
+          { id: 'bed-conf-2', title: 'The Dragon and the Knight', description: 'Befriending the dragon of fear.', prompt: 'Create a sleep story where a gentle knight befriends a dragon who represents their fears. Include the dragon becoming a protective ally.' }
+        ]
+      },
+      {
+        id: THEMES.servicePurpose.id,
+        name: THEMES.servicePurpose.name,
+        description: THEMES.servicePurpose.description,
+        templates: [
+          { id: 'bed-purpose-1', title: 'The Map of Meaning', description: 'Finding a map to your purpose.', prompt: 'Write a bedtime story about discovering an old map that leads to your life purpose. Include clues along the way and the joy of discovery.' },
+          { id: 'bed-purpose-2', title: 'The Village That Needed You', description: 'Discovering how you can help.', prompt: 'Create a sleep story about finding a village that needed exactly what you have to offer. Include the fulfillment of contributing your unique gifts.' }
+        ]
+      },
+      {
+        id: THEMES.emotionalHealing.id,
+        name: THEMES.emotionalHealing.name,
+        description: THEMES.emotionalHealing.description,
+        templates: [
+          { id: 'bed-emotional-1', title: 'The Healing Rain', description: 'Gentle rain that washes away pain.', prompt: 'Write a bedtime story about being in a safe shelter while healing rain falls outside, washing away old pain and nourishing new growth.' },
+          { id: 'bed-emotional-2', title: 'The Comfort Cottage', description: 'A cottage where all feelings are welcome.', prompt: 'Create a sleep story about finding a cottage where a wise grandmother figure welcomes all emotions and helps them pass gently.' }
+        ]
+      },
+      {
+        id: THEMES.trustSurrender.id,
+        name: THEMES.trustSurrender.name,
+        description: THEMES.trustSurrender.description,
+        templates: [
+          { id: 'bed-trust-1', title: 'Floating Down the River', description: 'Trusting the river to carry you.', prompt: 'Write a bedtime story about floating peacefully down a gentle river, completely trusting it to carry you to beautiful destinations.' },
+          { id: 'bed-trust-2', title: 'The Cloud Bed', description: 'Surrendering to sleep on a cloud.', prompt: 'Create a sleep story about being carried to a soft cloud bed where you can completely let go and trust you are held safely.' }
+        ]
+      }
+    ]
+  },
+
+  // 🔥 EMPOWERING SPEECHES
+  {
+    id: 'empowering-speeches',
+    name: 'Empowering Speeches',
+    description: 'Motivational speeches to ignite your inner fire',
+    icon: 'fire',
+    color: 'orange',
+    subgroups: [
+      {
+        id: THEMES.selfLove.id,
+        name: THEMES.selfLove.name,
+        description: THEMES.selfLove.description,
+        templates: [
+          { id: 'emp-self-love-1', title: 'You Are Enough', description: 'A powerful reminder of your inherent worth.', prompt: 'Write an empowering speech about being enough exactly as you are. Include powerful reminders of inherent worth, examples of self-acceptance, and a call to love yourself fiercely. Motivational and heartfelt.' },
+          { id: 'emp-self-love-2', title: 'Becoming Your Own Best Friend', description: 'Learn to be there for yourself.', prompt: 'Create a motivational speech about becoming your own biggest supporter. Include how to talk to yourself with kindness and show up for yourself.' }
+        ]
+      },
+      {
+        id: THEMES.loveCompassion.id,
+        name: THEMES.loveCompassion.name,
+        description: THEMES.loveCompassion.description,
+        templates: [
+          { id: 'emp-love-1', title: 'Lead with Love', description: 'Let love guide all your actions.', prompt: 'Write an empowering speech about leading life with love. Include how love transforms relationships, work, and self. Inspiring and warm.' },
+          { id: 'emp-love-2', title: 'The Power of Compassion', description: 'Compassion as your superpower.', prompt: 'Create a motivational speech about compassion as strength. Include how caring for others and self makes you powerful.' }
+        ]
+      },
+      {
+        id: THEMES.peaceHealing.id,
+        name: THEMES.peaceHealing.name,
+        description: THEMES.peaceHealing.description,
+        templates: [
+          { id: 'emp-peace-1', title: 'Your Healing Journey', description: 'Embrace your path to wholeness.', prompt: 'Write an empowering speech about the healing journey. Include validation of the process, encouragement to keep going, and celebration of progress. Supportive and hopeful.' },
+          { id: 'emp-peace-2', title: 'Choosing Peace', description: 'Peace is always a choice.', prompt: 'Create a motivational speech about actively choosing peace. Include practical wisdom about finding calm amid chaos.' }
+        ]
+      },
+      {
+        id: THEMES.higherSelf.id,
+        name: THEMES.higherSelf.name,
+        description: THEMES.higherSelf.description,
+        templates: [
+          { id: 'emp-higher-1', title: 'Awaken Your Potential', description: 'You have unlimited potential within.', prompt: 'Write an empowering speech about awakening dormant potential. Include reminders of inner power, examples of transformation, and encouragement to reach higher.' },
+          { id: 'emp-higher-2', title: 'Rise to Your Highest Self', description: 'Become who you were meant to be.', prompt: 'Create a motivational speech about embodying your highest self. Include the vision of who you can become and steps to get there.' }
+        ]
+      },
+      {
+        id: THEMES.clearingBeliefs.id,
+        name: THEMES.clearingBeliefs.name,
+        description: THEMES.clearingBeliefs.description,
+        templates: [
+          { id: 'emp-clearing-1', title: 'Break the Chains', description: 'Free yourself from limiting beliefs.', prompt: 'Write an empowering speech about breaking free from limiting beliefs. Include identifying common limitations, how they formed, and powerful permission to release them.' },
+          { id: 'emp-clearing-2', title: 'Rewrite Your Story', description: 'You can change your narrative.', prompt: 'Create a motivational speech about rewriting your internal story. Include the power of new perspectives and choosing empowering beliefs.' }
+        ]
+      },
+      {
+        id: THEMES.wealthAbundance.id,
+        name: THEMES.wealthAbundance.name,
+        description: THEMES.wealthAbundance.description,
+        templates: [
+          { id: 'emp-wealth-1', title: 'You Deserve Abundance', description: 'Claim your right to prosperity.', prompt: 'Write an empowering speech about deserving abundance. Include permission to desire wealth, releasing money shame, and stepping into prosperity consciousness.' },
+          { id: 'emp-wealth-2', title: 'The Wealth Mindset', description: 'Think like the successful person you are.', prompt: 'Create a motivational speech about developing a wealth mindset. Include how successful people think and how to adopt those patterns.' }
+        ]
+      },
+      {
+        id: THEMES.gratitude.id,
+        name: THEMES.gratitude.name,
+        description: THEMES.gratitude.description,
+        templates: [
+          { id: 'emp-gratitude-1', title: 'Gratitude Changes Everything', description: 'The transformative power of thanks.', prompt: 'Write an empowering speech about how gratitude transforms life. Include science of gratitude, personal examples, and a call to practice daily appreciation.' },
+          { id: 'emp-gratitude-2', title: 'Count Your Blessings', description: 'Recognize the abundance you already have.', prompt: 'Create a motivational speech about recognizing current blessings. Include shifting focus from lack to abundance.' }
+        ]
+      },
+      {
+        id: THEMES.joyHappiness.id,
+        name: THEMES.joyHappiness.name,
+        description: THEMES.joyHappiness.description,
+        templates: [
+          { id: 'emp-joy-1', title: 'Choose Joy Today', description: 'Happiness is a choice you make now.', prompt: 'Write an empowering speech about choosing joy regardless of circumstances. Include practical ways to shift into joy and permission to be happy.' },
+          { id: 'emp-joy-2', title: 'You Deserve to Be Happy', description: 'Claim your right to happiness.', prompt: 'Create a motivational speech about deserving happiness. Include releasing guilt about joy and embracing pleasure in life.' }
+        ]
+      },
+      {
+        id: THEMES.confidence.id,
+        name: THEMES.confidence.name,
+        description: THEMES.confidence.description,
+        templates: [
+          { id: 'emp-conf-1', title: 'Unleash Your Power', description: 'Step into your full power.', prompt: 'Write an empowering speech about claiming personal power. Include recognizing inner strength, standing tall, and owning your space. Bold and energizing.' },
+          { id: 'emp-conf-2', title: 'Fear Will Not Stop You', description: 'Act despite the fear.', prompt: 'Create a motivational speech about moving forward despite fear. Include reframing fear as excitement and taking bold action.' }
+        ]
+      },
+      {
+        id: THEMES.servicePurpose.id,
+        name: THEMES.servicePurpose.name,
+        description: THEMES.servicePurpose.description,
+        templates: [
+          { id: 'emp-purpose-1', title: 'Your Life Has Meaning', description: 'You are here for a reason.', prompt: 'Write an empowering speech about living with purpose. Include the importance of contribution, finding meaning, and making an impact.' },
+          { id: 'emp-purpose-2', title: 'Answer the Call', description: 'Step into your calling.', prompt: 'Create a motivational speech about answering your life\'s calling. Include recognizing the signs and having courage to pursue your mission.' }
+        ]
+      },
+      {
+        id: THEMES.emotionalHealing.id,
+        name: THEMES.emotionalHealing.name,
+        description: THEMES.emotionalHealing.description,
+        templates: [
+          { id: 'emp-emotional-1', title: 'Your Pain Has Purpose', description: 'Transform pain into power.', prompt: 'Write an empowering speech about how struggles become strengths. Include reframing hardship, finding meaning in pain, and emerging stronger.' },
+          { id: 'emp-emotional-2', title: 'It\'s Okay to Feel', description: 'Embrace all your emotions.', prompt: 'Create a motivational speech about emotional acceptance. Include permission to feel, the strength in vulnerability, and healthy expression.' }
+        ]
+      },
+      {
+        id: THEMES.trustSurrender.id,
+        name: THEMES.trustSurrender.name,
+        description: THEMES.trustSurrender.description,
+        templates: [
+          { id: 'emp-trust-1', title: 'Let Go and Trust', description: 'Surrender is strength.', prompt: 'Write an empowering speech about the power of surrender. Include releasing control, trusting the process, and finding peace in uncertainty.' },
+          { id: 'emp-trust-2', title: 'Everything Is Working Out', description: 'Trust that life has your back.', prompt: 'Create a motivational speech about trusting life\'s process. Include evidence of things working out and encouragement to believe in positive outcomes.' }
+        ]
+      }
+    ]
+  },
+
+  // 🙏 PRAYERS & GRATITUDE
+  {
+    id: 'prayers-gratitude',
+    name: 'Prayers & Gratitude',
+    description: 'Sacred words of prayer and deep appreciation',
+    icon: 'pray',
+    color: 'amber',
+    subgroups: [
+      {
+        id: THEMES.selfLove.id,
+        name: THEMES.selfLove.name,
+        description: THEMES.selfLove.description,
+        templates: [
+          { id: 'pray-self-love-1', title: 'Prayer for Self-Love', description: 'Ask for help loving yourself.', prompt: 'Write a heartfelt prayer asking for help with self-love. Include requesting the ability to see yourself as worthy, beloved, and enough. Reverent and personal.' },
+          { id: 'pray-self-love-2', title: 'Gratitude for Who I Am', description: 'Give thanks for your unique self.', prompt: 'Create a gratitude prayer thanking the divine for making you who you are. Include appreciation for your unique qualities and journey.' }
+        ]
+      },
+      {
+        id: THEMES.loveCompassion.id,
+        name: THEMES.loveCompassion.name,
+        description: THEMES.loveCompassion.description,
+        templates: [
+          { id: 'pray-love-1', title: 'Prayer for an Open Heart', description: 'Ask for capacity to love fully.', prompt: 'Write a prayer asking for an open, loving heart. Include requests for compassion, forgiveness, and the ability to love without conditions.' },
+          { id: 'pray-love-2', title: 'Gratitude for Love in My Life', description: 'Give thanks for those who love you.', prompt: 'Create a gratitude prayer for the love in your life. Include specific appreciation for loved ones and the feeling of being loved.' }
+        ]
+      },
+      {
+        id: THEMES.peaceHealing.id,
+        name: THEMES.peaceHealing.name,
+        description: THEMES.peaceHealing.description,
+        templates: [
+          { id: 'pray-peace-1', title: 'Prayer for Healing', description: 'Ask for healing in body and soul.', prompt: 'Write a healing prayer asking for restoration of body, mind, and spirit. Include surrender to divine healing and gratitude for the healing already occurring.' },
+          { id: 'pray-peace-2', title: 'Prayer for Peace', description: 'Request inner and outer peace.', prompt: 'Create a prayer for peace. Include personal peace, peace in relationships, and peace in the world. Calm and hopeful.' }
+        ]
+      },
+      {
+        id: THEMES.higherSelf.id,
+        name: THEMES.higherSelf.name,
+        description: THEMES.higherSelf.description,
+        templates: [
+          { id: 'pray-higher-1', title: 'Prayer for Divine Connection', description: 'Deepen your spiritual connection.', prompt: 'Write a prayer for deeper connection with the divine/higher power. Include longing for closeness, gratitude for presence, and openness to guidance.' },
+          { id: 'pray-higher-2', title: 'Prayer for Spiritual Growth', description: 'Ask for growth on your path.', prompt: 'Create a prayer for spiritual evolution. Include request for wisdom, awareness, and alignment with highest good.' }
+        ]
+      },
+      {
+        id: THEMES.clearingBeliefs.id,
+        name: THEMES.clearingBeliefs.name,
+        description: THEMES.clearingBeliefs.description,
+        templates: [
+          { id: 'pray-clearing-1', title: 'Prayer for Release', description: 'Ask for help letting go.', prompt: 'Write a prayer for releasing what no longer serves. Include asking for help letting go of old patterns, beliefs, and attachments.' },
+          { id: 'pray-clearing-2', title: 'Prayer for Freedom', description: 'Request liberation from the past.', prompt: 'Create a prayer for freedom from past wounds and limitations. Include request for breaking free and fresh start.' }
+        ]
+      },
+      {
+        id: THEMES.wealthAbundance.id,
+        name: THEMES.wealthAbundance.name,
+        description: THEMES.wealthAbundance.description,
+        templates: [
+          { id: 'pray-wealth-1', title: 'Prayer for Provision', description: 'Trust in divine provision.', prompt: 'Write a prayer of trust in divine provision. Include gratitude for current blessings and faith that needs will be met abundantly.' },
+          { id: 'pray-wealth-2', title: 'Gratitude for Abundance', description: 'Give thanks for prosperity.', prompt: 'Create a gratitude prayer for abundance in all forms. Include appreciation for material blessings, opportunities, and overflow.' }
+        ]
+      },
+      {
+        id: THEMES.gratitude.id,
+        name: THEMES.gratitude.name,
+        description: THEMES.gratitude.description,
+        templates: [
+          { id: 'pray-gratitude-1', title: 'Deep Gratitude Prayer', description: 'Profound thanks for all blessings.', prompt: 'Write a deep gratitude prayer covering all aspects of life. Include thanks for the big and small, seen and unseen blessings. Heartfelt and comprehensive.' },
+          { id: 'pray-gratitude-2', title: 'Morning Gratitude Prayer', description: 'Start the day with thanks.', prompt: 'Create a morning gratitude prayer. Include thanks for the new day, opportunities ahead, and blessings already received.' }
+        ]
+      },
+      {
+        id: THEMES.joyHappiness.id,
+        name: THEMES.joyHappiness.name,
+        description: THEMES.joyHappiness.description,
+        templates: [
+          { id: 'pray-joy-1', title: 'Prayer for Joy', description: 'Ask for the gift of joy.', prompt: 'Write a prayer asking for joy regardless of circumstances. Include request for lightness of spirit and ability to find happiness.' },
+          { id: 'pray-joy-2', title: 'Gratitude for Happiness', description: 'Give thanks for moments of joy.', prompt: 'Create a prayer of gratitude for joy and happiness. Include specific moments of happiness and the ability to experience pleasure.' }
+        ]
+      },
+      {
+        id: THEMES.confidence.id,
+        name: THEMES.confidence.name,
+        description: THEMES.confidence.description,
+        templates: [
+          { id: 'pray-conf-1', title: 'Prayer for Courage', description: 'Ask for strength and bravery.', prompt: 'Write a prayer for courage and confidence. Include request for boldness, strength to overcome fear, and trust in capabilities.' },
+          { id: 'pray-conf-2', title: 'Prayer Before Challenge', description: 'Seek support facing difficulty.', prompt: 'Create a prayer for support before facing a challenge. Include request for calm, confidence, and positive outcome.' }
+        ]
+      },
+      {
+        id: THEMES.servicePurpose.id,
+        name: THEMES.servicePurpose.name,
+        description: THEMES.servicePurpose.description,
+        templates: [
+          { id: 'pray-purpose-1', title: 'Prayer for Purpose', description: 'Seek guidance on your path.', prompt: 'Write a prayer for clarity of purpose. Include asking for guidance, revelation of calling, and courage to follow it.' },
+          { id: 'pray-purpose-2', title: 'Prayer to Serve', description: 'Offer yourself in service.', prompt: 'Create a prayer of offering yourself in service. Include willingness to be used for good and request for opportunities to help.' }
+        ]
+      },
+      {
+        id: THEMES.emotionalHealing.id,
+        name: THEMES.emotionalHealing.name,
+        description: THEMES.emotionalHealing.description,
+        templates: [
+          { id: 'pray-emotional-1', title: 'Prayer Through Pain', description: 'Seek comfort in difficult times.', prompt: 'Write a prayer for comfort during emotional pain. Include crying out honestly, asking for comfort, and trusting in being held.' },
+          { id: 'pray-emotional-2', title: 'Prayer for Emotional Healing', description: 'Ask for healing of the heart.', prompt: 'Create a prayer specifically for emotional healing. Include naming the pain, asking for healing, and gratitude for the process.' }
+        ]
+      },
+      {
+        id: THEMES.trustSurrender.id,
+        name: THEMES.trustSurrender.name,
+        description: THEMES.trustSurrender.description,
+        templates: [
+          { id: 'pray-trust-1', title: 'Prayer of Surrender', description: 'Release control to the divine.', prompt: 'Write a prayer of complete surrender. Include letting go of outcomes, trusting divine plan, and finding peace in not knowing.' },
+          { id: 'pray-trust-2', title: 'Thy Will Be Done', description: 'Accept divine will over personal desires.', prompt: 'Create a prayer of accepting divine will. Include releasing personal agenda and embracing whatever is for highest good.' }
         ]
       }
     ]
@@ -932,6 +1210,34 @@ export const ICONS = {
       <circle cx="12" cy="12" r="7" fill="none" stroke="url(#hypnosisGrad)" strokeWidth="1.5" opacity="0.5" />
       <circle cx="12" cy="12" r="4" fill="none" stroke="url(#hypnosisGrad)" strokeWidth="1.5" opacity="0.7" />
       <circle cx="12" cy="12" r="1.5" fill="url(#hypnosisGrad)" />
+    </svg>
+  ),
+
+  // Moon icon for meditations
+  Moon: ({ className = "w-6 h-6" }: { className?: string }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className={`${className} icon-glow`}>
+      <defs>
+        <linearGradient id="moonGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#22d3ee" />
+          <stop offset="100%" stopColor="#0891b2" />
+        </linearGradient>
+      </defs>
+      <path fill="url(#moonGrad)" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
+    </svg>
+  ),
+
+  // Pray/Hands icon for prayers & gratitude
+  Pray: ({ className = "w-6 h-6" }: { className?: string }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className={`${className} icon-glow`}>
+      <defs>
+        <linearGradient id="prayGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#fbbf24" />
+          <stop offset="100%" stopColor="#f59e0b" />
+        </linearGradient>
+      </defs>
+      <path fill="url(#prayGrad)" d="M12 2C10.343 2 9 3.343 9 5v4.586l-1.293-1.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 9.586V5c0-.552.448-1 1-1s1 .448 1 1v4.586l1.293-1.293a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414L9 9.586V5c0-1.657 1.343-3 3-3z" />
+      <path fill="url(#prayGrad)" opacity="0.8" d="M7 14v6a2 2 0 002 2h6a2 2 0 002-2v-6l-5 3-5-3z" />
+      <path fill="url(#prayGrad)" d="M12 12l5-3v-1a2 2 0 00-2-2h-6a2 2 0 00-2 2v1l5 3z" opacity="0.6" />
     </svg>
   ),
 

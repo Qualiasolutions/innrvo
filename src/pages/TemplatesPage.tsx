@@ -12,17 +12,17 @@ const CATEGORY_COLORS: Record<string, {
   text: string;
   hoverBorder: string;
 }> = {
+  emerald: {
+    border: 'border-emerald-500/30',
+    bg: 'bg-gradient-to-br from-emerald-500/20 to-teal-500/20',
+    text: 'text-emerald-400',
+    hoverBorder: 'hover:border-emerald-500/30',
+  },
   cyan: {
     border: 'border-cyan-500/30',
     bg: 'bg-gradient-to-br from-cyan-500/20 to-purple-500/20',
     text: 'text-cyan-400',
     hoverBorder: 'hover:border-cyan-500/30',
-  },
-  amber: {
-    border: 'border-amber-500/30',
-    bg: 'bg-gradient-to-br from-amber-500/20 to-orange-500/20',
-    text: 'text-amber-400',
-    hoverBorder: 'hover:border-amber-500/30',
   },
   violet: {
     border: 'border-violet-500/30',
@@ -36,19 +36,35 @@ const CATEGORY_COLORS: Record<string, {
     text: 'text-pink-400',
     hoverBorder: 'hover:border-pink-500/30',
   },
+  orange: {
+    border: 'border-orange-500/30',
+    bg: 'bg-gradient-to-br from-orange-500/20 to-red-500/20',
+    text: 'text-orange-400',
+    hoverBorder: 'hover:border-orange-500/30',
+  },
+  amber: {
+    border: 'border-amber-500/30',
+    bg: 'bg-gradient-to-br from-amber-500/20 to-yellow-500/20',
+    text: 'text-amber-400',
+    hoverBorder: 'hover:border-amber-500/30',
+  },
 };
 
 // Get the appropriate icon component for a category
 const getCategoryIcon = (icon: TemplateCategory['icon'], className: string) => {
   switch (icon) {
+    case 'leaf':
+      return <ICONS.Leaf className={className} />;
+    case 'moon':
+      return <ICONS.Moon className={className} />;
     case 'sparkle':
       return <ICONS.Sparkle className={className} />;
-    case 'story':
+    case 'book':
       return <ICONS.Book className={className} />;
-    case 'affirmation':
-      return <ICONS.Affirmation className={className} />;
-    case 'hypnosis':
-      return <ICONS.Hypnosis className={className} />;
+    case 'fire':
+      return <ICONS.Flame className={className} />;
+    case 'pray':
+      return <ICONS.Pray className={className} />;
     default:
       return <ICONS.Sparkle className={className} />;
   }
