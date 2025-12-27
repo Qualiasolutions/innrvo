@@ -24,6 +24,9 @@ import { GenerateButton } from './components/GenerateButton';
 import Starfield from '@/components/Starfield';
 import { geminiService } from '../../../geminiService';
 
+// Voice preview sample text - short but representative
+const VOICE_PREVIEW_TEXT = `Take a deep breath in... and slowly release. Let yourself settle into this moment of calm.`;
+
 // ============================================================================
 // ICONS
 // ============================================================================
@@ -81,7 +84,10 @@ export const MeditationEditor = memo<MeditationEditorProps>(
     const [editedScript, setEditedScript] = useState(script);
     const [cursorPosition, setCursorPosition] = useState<number | null>(null);
     const [isHarmonizing, setIsHarmonizing] = useState(false);
+    const [voicePreviewUrl, setVoicePreviewUrl] = useState<string | null>(null);
+    const [isGeneratingPreview, setIsGeneratingPreview] = useState(false);
     const editorRef = useRef<HTMLDivElement>(null);
+    const previewAudioRef = useRef<HTMLAudioElement | null>(null);
 
     // Sanitize script content to prevent XSS attacks
     // Only allow text content - strip all HTML tags except our audio tag spans

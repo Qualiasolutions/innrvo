@@ -2,9 +2,12 @@
  * ControlPanel Component
  *
  * Bottom sheet controls with Voice/Music/Tags tabs.
+ * Includes voice preview functionality for testing voices before generation.
  */
 
 import React, { memo, useState, useCallback, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import AudioPreview from '../../../../components/ui/AudioPreview';
 import type { VoiceProfile } from '../../../../types';
 import type { BackgroundTrack } from '../../../../constants';
 import type { AudioTagCategory, ControlTab } from '../types';
@@ -84,6 +87,11 @@ interface ControlPanelProps {
   onTagInsert: (tagLabel: string) => void;
   onHarmonize?: () => void;
   isHarmonizing?: boolean;
+  // Voice preview
+  voicePreviewUrl?: string | null;
+  isGeneratingPreview?: boolean;
+  onGenerateVoicePreview?: () => void;
+  onStopVoicePreview?: () => void;
 }
 
 // Quick tags for easy insertion
@@ -99,24 +107,40 @@ const QUICK_TAGS = [
 // COMPONENT
 // ============================================================================
 
-// Harmonize icon - magic wand with sparkles
+// Harmonize icon - magic wand with sparkles (colored)
 const HarmonizeIcon = ({ className = 'w-4 h-4' }: { className?: string }) => (
   <svg
     className={className}
     viewBox="0 0 24 24"
     fill="none"
-    stroke="currentColor"
-    strokeWidth="1.5"
-    strokeLinecap="round"
-    strokeLinejoin="round"
   >
-    {/* Magic wand */}
-    <path d="M3 21L15 9" />
-    <rect x="13.5" y="5.5" width="2" height="8" rx="1" transform="rotate(45 14.5 9.5)" />
-    {/* Sparkles */}
-    <path d="M10 4c0 .5-.2 1-.5 1.3-.3.3-.8.5-1.3.5.5 0 1 .2 1.3.5.3.3.5.8.5 1.3 0-.5.2-1 .5-1.3.3-.3.8-.5 1.3-.5-.5 0-1-.2-1.3-.5-.3-.3-.5-.8-.5-1.3z" fill="currentColor" />
-    <path d="M17 2c0 .4-.15.75-.4 1-.25.25-.6.4-1 .4.4 0 .75.15 1 .4.25.25.4.6.4 1 0-.4.15-.75.4-1 .25-.25.6-.4 1-.4-.4 0-.75-.15-1-.4-.25-.25-.4-.6-.4-1z" fill="currentColor" />
-    <path d="M20 8c0 .4-.15.75-.4 1-.25.25-.6.4-1 .4.4 0 .75.15 1 .4.25.25.4.6.4 1 0-.4.15-.75.4-1 .25-.25.6-.4 1-.4-.4 0-.75-.15-1-.4-.25-.25-.4-.6-.4-1z" fill="currentColor" />
+    {/* Magic wand body */}
+    <rect x="1" y="14" width="16" height="2.5" rx="0.5" transform="rotate(-45 1 14)" fill="url(#wandGradient)" />
+    {/* Wand tip band */}
+    <rect x="11.2" y="3.8" width="1.5" height="0.6" rx="0.2" transform="rotate(-45 12 4.1)" fill="#ffffff" />
+    {/* Large 4-point sparkles */}
+    <path d="M16 5l.7 1.4 1.4.7-1.4.7-.7 1.4-.7-1.4-1.4-.7 1.4-.7z" fill="#22d3ee" />
+    <path d="M20 11l.5 1 1 .5-1 .5-.5 1-.5-1-1-.5 1-.5z" fill="#22d3ee" />
+    <path d="M12 2l.4.8.8.4-.8.4-.4.8-.4-.8-.8-.4.8-.4z" fill="#a78bfa" />
+    <path d="M18 16l.35.7.7.35-.7.35-.35.7-.35-.7-.7-.35.7-.35z" fill="#a78bfa" />
+    {/* Small sparkles */}
+    <path d="M8 4l.25.5.5.25-.5.25-.25.5-.25-.5-.5-.25.5-.25z" fill="#67e8f9" />
+    <path d="M14 9l.25.5.5.25-.5.25-.25.5-.25-.5-.5-.25.5-.25z" fill="#67e8f9" />
+    <path d="M10 7l.2.4.4.2-.4.2-.2.4-.2-.4-.4-.2.4-.2z" fill="#c4b5fd" />
+    {/* Dots */}
+    <circle cx="9" cy="2.5" r="0.5" fill="#c4b5fd" />
+    <circle cx="19" cy="8" r="0.5" fill="#67e8f9" />
+    <circle cx="21" cy="14" r="0.4" fill="#22d3ee" />
+    <circle cx="15" cy="12" r="0.4" fill="#a78bfa" />
+    <circle cx="17" cy="3" r="0.4" fill="#67e8f9" />
+    <circle cx="11" cy="5" r="0.3" fill="#c4b5fd" />
+    {/* Gradient definition */}
+    <defs>
+      <linearGradient id="wandGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#06b6d4" />
+        <stop offset="100%" stopColor="#8b5cf6" />
+      </linearGradient>
+    </defs>
   </svg>
 );
 
@@ -131,6 +155,10 @@ export const ControlPanel = memo<ControlPanelProps>(
     onTagInsert,
     onHarmonize,
     isHarmonizing = false,
+    voicePreviewUrl,
+    isGeneratingPreview = false,
+    onGenerateVoicePreview,
+    onStopVoicePreview,
   }) => {
     const [expanded, setExpanded] = useState(false);
     const [activeTab, setActiveTab] = useState<ControlTab>('voice');
@@ -278,36 +306,108 @@ export const ControlPanel = memo<ControlPanelProps>(
               <div className="max-h-40 overflow-y-auto">
                 {/* Voice Tab */}
                 {activeTab === 'voice' && (
-                  <button
-                    onClick={onVoiceSelect}
-                    className="w-full p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-all flex items-center gap-3 border border-white/5"
-                  >
-                    <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                        selectedVoice
-                          ? 'bg-cyan-500/20'
-                          : 'bg-white/10'
-                      }`}
+                  <div className="space-y-3">
+                    {/* Voice Selection Button */}
+                    <button
+                      onClick={onVoiceSelect}
+                      className="w-full p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-all flex items-center gap-3 border border-white/5"
                     >
-                      <VoiceIcon
-                        className={`w-5 h-5 ${
-                          selectedVoice ? 'text-cyan-400' : 'text-white/40'
+                      <div
+                        className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                          selectedVoice
+                            ? 'bg-cyan-500/20'
+                            : 'bg-white/10'
                         }`}
-                      />
-                    </div>
-                    <div className="text-left">
-                      <p className="text-white/80 text-sm font-medium">
-                        {selectedVoice
-                          ? selectedVoice.name
-                          : 'No voice selected'}
-                      </p>
-                      <p className="text-white/40 text-xs">
-                        {selectedVoice
-                          ? 'Tap to change voice'
-                          : 'Tap to select a voice'}
-                      </p>
-                    </div>
-                  </button>
+                      >
+                        <VoiceIcon
+                          className={`w-5 h-5 ${
+                            selectedVoice ? 'text-cyan-400' : 'text-white/40'
+                          }`}
+                        />
+                      </div>
+                      <div className="text-left flex-1">
+                        <p className="text-white/80 text-sm font-medium">
+                          {selectedVoice
+                            ? selectedVoice.name
+                            : 'No voice selected'}
+                        </p>
+                        <p className="text-white/40 text-xs">
+                          {selectedVoice
+                            ? 'Tap to change voice'
+                            : 'Tap to select a voice'}
+                        </p>
+                      </div>
+                      {selectedVoice && (
+                        <div className="text-xs text-cyan-400/60">
+                          {selectedVoice.isCloned ? 'Cloned' : 'Preset'}
+                        </div>
+                      )}
+                    </button>
+
+                    {/* Voice Preview Section */}
+                    {selectedVoice && onGenerateVoicePreview && (
+                      <div className="p-3 rounded-xl bg-gradient-to-r from-cyan-500/10 to-purple-500/10 border border-cyan-500/20">
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-xs font-medium text-white/70 flex items-center gap-1.5">
+                            <svg className="w-3.5 h-3.5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15.536a5 5 0 001.414 1.414m0-9.9a5 5 0 011.414-1.414" />
+                            </svg>
+                            Voice Preview
+                          </p>
+                        </div>
+
+                        <AnimatePresence mode="wait">
+                          {voicePreviewUrl ? (
+                            <motion.div
+                              key="preview"
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -10 }}
+                            >
+                              <AudioPreview
+                                audioUrl={voicePreviewUrl}
+                                compact
+                                accentColor="cyan"
+                                onEnded={onStopVoicePreview}
+                              />
+                            </motion.div>
+                          ) : (
+                            <motion.button
+                              key="generate"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              exit={{ opacity: 0 }}
+                              onClick={onGenerateVoicePreview}
+                              disabled={isGeneratingPreview}
+                              className={`w-full py-3 px-4 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2
+                                ${isGeneratingPreview
+                                  ? 'bg-cyan-500/20 text-cyan-300 cursor-wait'
+                                  : 'bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 active:scale-[0.98]'
+                                }`}
+                            >
+                              {isGeneratingPreview ? (
+                                <>
+                                  <div className="w-4 h-4 border-2 border-cyan-300/30 border-t-cyan-300 rounded-full animate-spin" />
+                                  <span>Generating preview...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M8 5v14l11-7z" />
+                                  </svg>
+                                  <span>Preview "{selectedVoice.name}"</span>
+                                </>
+                              )}
+                            </motion.button>
+                          )}
+                        </AnimatePresence>
+
+                        <p className="text-[10px] text-white/40 mt-2 text-center">
+                          Hear a sample before generating your full audio
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 )}
 
                 {/* Music Tab */}
