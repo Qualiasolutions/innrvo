@@ -4,6 +4,7 @@ import { getCorsHeaders, createCompressedResponse } from "../_shared/compression
 import { getRequestId, createLogger, getTracingHeaders } from "../_shared/tracing.ts";
 import { checkRateLimit, createRateLimitResponse, RATE_LIMITS } from "../_shared/rateLimit.ts";
 import { withCircuitBreaker, CIRCUIT_CONFIGS, CircuitBreakerError } from "../_shared/circuitBreaker.ts";
+import { addSecurityHeaders } from "../_shared/securityHeaders.ts";
 import {
   sanitizePromptInput,
   sanitizeAudioTags,
@@ -178,7 +179,7 @@ serve(async (req) => {
   const corsHeaders = getCorsHeaders(origin);
   const requestId = getRequestId(req);
   const tracingHeaders = getTracingHeaders(requestId);
-  const allHeaders = { ...corsHeaders, ...tracingHeaders };
+  const allHeaders = addSecurityHeaders({ ...corsHeaders, ...tracingHeaders });
 
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {

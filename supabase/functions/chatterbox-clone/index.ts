@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { getCorsHeaders } from "../_shared/compression.ts";
 import { getRequestId, createLogger, getTracingHeaders } from "../_shared/tracing.ts";
 import { checkRateLimit, createRateLimitResponse, RATE_LIMITS } from "../_shared/rateLimit.ts";
+import { addSecurityHeaders } from "../_shared/securityHeaders.ts";
 
 /**
  * Chatterbox Voice Cloning via Replicate
@@ -99,7 +100,7 @@ serve(async (req) => {
   const corsHeaders = getCorsHeaders(origin);
   const requestId = getRequestId(req);
   const tracingHeaders = getTracingHeaders(requestId);
-  const allHeaders = { ...corsHeaders, ...tracingHeaders };
+  const allHeaders = addSecurityHeaders({ ...corsHeaders, ...tracingHeaders });
 
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {

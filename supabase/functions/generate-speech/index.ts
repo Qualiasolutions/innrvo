@@ -4,6 +4,7 @@ import { getCorsHeaders, createCompressedResponse } from "../_shared/compression
 import { getRequestId, createLogger, getTracingHeaders } from "../_shared/tracing.ts";
 import { checkRateLimit, createRateLimitResponse, RATE_LIMITS } from "../_shared/rateLimit.ts";
 import { arrayBufferToBase64 } from "../_shared/encoding.ts";
+import { addSecurityHeaders, AUDIO_RESPONSE_HEADERS } from "../_shared/securityHeaders.ts";
 
 /**
  * Generate Speech - TTS endpoint using Fish Audio
@@ -220,7 +221,7 @@ serve(async (req) => {
   const corsHeaders = getCorsHeaders(origin);
   const requestId = getRequestId(req);
   const tracingHeaders = getTracingHeaders(requestId);
-  const allHeaders = { ...corsHeaders, ...tracingHeaders };
+  const allHeaders = addSecurityHeaders({ ...corsHeaders, ...tracingHeaders });
 
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: allHeaders });

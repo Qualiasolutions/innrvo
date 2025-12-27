@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { getCorsHeaders } from "../_shared/compression.ts";
+import { addSecurityHeaders } from "../_shared/securityHeaders.ts";
 
 // Database query timeout (5 seconds)
 const DB_TIMEOUT_MS = 5000;
@@ -36,10 +37,11 @@ interface HealthStatus {
 serve(async (req) => {
   const origin = req.headers.get('origin');
   const corsHeaders = getCorsHeaders(origin);
+  const allHeaders = addSecurityHeaders(corsHeaders);
 
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: allHeaders });
   }
 
   try {
@@ -114,9 +116,8 @@ serve(async (req) => {
       {
         status: statusCode,
         headers: {
-          ...corsHeaders,
+          ...allHeaders,
           'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
         },
       }
     );
@@ -140,9 +141,8 @@ serve(async (req) => {
       {
         status: 503,
         headers: {
-          ...corsHeaders,
+          ...allHeaders,
           'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
         },
       }
     );
