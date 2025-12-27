@@ -83,8 +83,15 @@ function validateHarmonizedOutput(script: string): string {
     return '';
   });
 
-  // Clean up any double spaces left by removed tags
-  return sanitized.replace(/\s{2,}/g, ' ').trim();
+  // Clean up extra spaces while preserving paragraph breaks (double newlines)
+  // First normalize line endings, then preserve paragraph breaks, clean spaces, restore paragraphs
+  return sanitized
+    .replace(/\r\n/g, '\n')           // Normalize line endings
+    .replace(/\n\n+/g, '{{PARA}}')    // Temporarily preserve paragraph breaks
+    .replace(/\n/g, ' ')              // Convert single newlines to spaces
+    .replace(/\s{2,}/g, ' ')          // Clean up multiple spaces
+    .replace(/{{PARA}}/g, '\n\n')     // Restore paragraph breaks
+    .trim();
 }
 
 // Optimized prompt templates - pre-compiled to reduce per-request overhead
@@ -124,6 +131,7 @@ HARMONIZATION RULES:
 6. Don't over-tag - aim for 1-2 tags per paragraph maximum
 7. Preserve the original text EXACTLY - only add tags between sentences/phrases
 8. Never add tags in the middle of a sentence
+9. CRITICAL: Preserve paragraph structure - keep paragraphs separated with blank lines
 
 OUTPUT: The complete harmonized script with audio tags inserted. No explanations, just the enhanced script.`;
 

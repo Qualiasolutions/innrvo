@@ -195,6 +195,32 @@ export const ControlPanel = memo<ControlPanelProps>(
               </button>
             )}
           </div>
+
+          {/* Harmonize Button - Always visible */}
+          {onHarmonize && (
+            <button
+              onClick={onHarmonize}
+              disabled={isHarmonizing}
+              className={`flex-shrink-0 h-10 px-4 rounded-xl text-xs font-semibold flex items-center gap-2 border transition-all duration-200
+                ${isHarmonizing
+                  ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30 cursor-wait'
+                  : 'bg-gradient-to-r from-cyan-500/15 to-teal-500/15 hover:from-cyan-500/25 hover:to-teal-500/25 text-cyan-300 border-cyan-500/30 hover:border-cyan-400/50'
+                }`}
+              title="AI-powered: Automatically add pauses and breathing cues"
+            >
+              {isHarmonizing ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-cyan-300/30 border-t-cyan-300 rounded-full animate-spin" />
+                  <span className="hidden sm:inline">Harmonizing...</span>
+                </>
+              ) : (
+                <>
+                  <HarmonizeIcon className="w-4 h-4" />
+                  <span className="hidden sm:inline">Harmonize</span>
+                </>
+              )}
+            </button>
+          )}
         </div>
 
         {/* Expanded Controls */}
@@ -306,36 +332,9 @@ export const ControlPanel = memo<ControlPanelProps>(
                 {/* Tags Tab */}
                 {activeTab === 'tags' && (
                   <div className="space-y-3">
-                    {/* Quick Tags Header with Harmonize Button */}
+                    {/* Quick Tags */}
                     <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <p className="text-xs text-white/40">Quick Insert</p>
-                        {onHarmonize && (
-                          <button
-                            onClick={onHarmonize}
-                            disabled={isHarmonizing}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all
-                              ${isHarmonizing
-                                ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30 cursor-wait'
-                                : 'bg-gradient-to-r from-cyan-500/20 to-teal-500/20 hover:from-cyan-500/30 hover:to-teal-500/30 border-cyan-500/30 hover:border-cyan-400/50 text-cyan-200'
-                              }
-                              border active:scale-95`}
-                            title="AI-powered: Automatically add pauses and breathing cues"
-                          >
-                            {isHarmonizing ? (
-                              <>
-                                <div className="w-3 h-3 border-2 border-cyan-300/30 border-t-cyan-300 rounded-full animate-spin" />
-                                <span>Harmonizing...</span>
-                              </>
-                            ) : (
-                              <>
-                                <HarmonizeIcon className="w-3.5 h-3.5" />
-                                <span>Harmonize</span>
-                              </>
-                            )}
-                          </button>
-                        )}
-                      </div>
+                      <p className="text-xs text-white/40 mb-2">Quick Insert</p>
                       <div className="flex flex-wrap gap-1.5">
                         {QUICK_TAGS.map((tag) => (
                           <button
