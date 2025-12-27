@@ -131,12 +131,25 @@ export function AIVoiceInput({
           className={cn(
             "group relative w-20 h-20 rounded-full flex items-center justify-center transition-all",
             isRecording
-              ? "bg-rose-500/20 border-2 border-rose-500/50 hover:bg-rose-500/30 active:scale-95"
+              ? "bg-gradient-to-br from-cyan-500/30 to-teal-500/20 hover:from-cyan-500/40 hover:to-teal-500/30 active:scale-95"
               : "bg-white/5 border-2 border-white/30 hover:border-white/50 hover:bg-white/10 hover:scale-105 active:scale-95"
           )}
+          style={isRecording ? {
+            border: '2px solid transparent',
+            backgroundClip: 'padding-box',
+          } : undefined}
           type="button"
           onClick={handleClick}
         >
+          {/* Gradient border for recording state */}
+          {isRecording && (
+            <div
+              className="absolute inset-[-2px] rounded-full -z-10"
+              style={{
+                background: 'linear-gradient(135deg, #22d3ee 0%, #06b6d4 50%, #ec4899 100%)',
+              }}
+            />
+          )}
           {isRecording ? (
             <div className="flex flex-col items-center gap-1">
               <div
@@ -148,7 +161,7 @@ export function AIVoiceInput({
             <Mic className="w-6 h-6 text-white/70" />
           )}
           {isRecording && (
-            <div className="absolute inset-0 rounded-full border-2 border-rose-500/50 animate-pulse" />
+            <div className="absolute inset-0 rounded-full border-2 border-cyan-400/50 animate-pulse" />
           )}
           {!isRecording && (
             <div className="absolute inset-0 rounded-full border-2 border-white/20 animate-pulse" />
