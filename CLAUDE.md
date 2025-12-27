@@ -290,3 +290,17 @@ supabase functions logs gemini-chat
 ```
 
 Edge functions require environment variables set in the Supabase Dashboard (Settings > Edge Functions > Secrets).
+
+## Deployment
+
+**Frontend:** Vercel (auto-deploys on push to main)
+```bash
+npx vercel --prod              # Manual production deploy
+```
+
+**Edge Functions:** Supabase
+```bash
+supabase functions deploy <name>   # Deploy single function
+```
+
+**After deployment:** Users may need to hard refresh (Ctrl+Shift+R) if they see 404 errors on lazy-loaded chunks due to browser caching old bundle hashes.
