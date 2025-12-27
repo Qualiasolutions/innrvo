@@ -25,6 +25,9 @@ const MeditationPlayer = lazy(() => import('./components/V0MeditationPlayer'));
 // InlinePlayer removed - using only V0MeditationPlayer now
 // AgentChat lazy-loaded to reduce initial bundle (~15KB savings)
 const AgentChat = lazy(() => import('./components/AgentChat').then(m => ({ default: m.AgentChat })));
+// Modal components extracted to reduce App.tsx complexity
+import { MusicSelectorModal } from './src/components/MusicSelectorModal';
+import { AudioTagsModal } from './src/components/AudioTagsModal';
 import OfflineIndicator from './components/OfflineIndicator';
 import { buildTimingMap, getCurrentWordIndex } from './src/lib/textSync';
 import { geminiService, blobToBase64 } from './geminiService';
@@ -2099,273 +2102,31 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {/* MODAL: Music Selector */}
-        {showMusicModal && (
-          <div className="fixed inset-0 z-[80] bg-[#020617]/95 backdrop-blur-3xl flex flex-col p-4 md:p-6 animate-in fade-in zoom-in duration-500 overflow-y-auto">
-            <Starfield />
+        {/* MODAL: Music Selector (extracted component) */}
+        <MusicSelectorModal
+          isOpen={showMusicModal}
+          onClose={() => setShowMusicModal(false)}
+          selectedTrack={selectedBackgroundTrack}
+          onSelectTrack={(track) => {
+            setSelectedBackgroundTrack(track);
+            startBackgroundMusic(track);
+          }}
+          previewingTrackId={previewingTrackId}
+          onTogglePreview={togglePreviewTrack}
+          onStopPreview={stopPreview}
+        />
 
-            <button
-              onClick={() => {
-                stopPreview();
-                setShowMusicModal(false);
-              }}
-              className="fixed top-4 left-4 md:top-6 md:left-6 text-slate-600 hover:text-white transition-all flex items-center gap-3 group btn-press focus-ring rounded-full z-[100]"
-            >
-              <div className="w-10 h-10 md:w-12 md:h-12 min-w-[40px] min-h-[40px] rounded-full border border-white/5 flex items-center justify-center group-hover:bg-white/10 group-hover:scale-110 transition-all">
-                <ICONS.ArrowBack className="w-4 h-4 md:w-5 md:h-5" />
-              </div>
-              <span className="hidden md:inline text-[11px] font-bold uppercase tracking-[0.3em]">Back</span>
-            </button>
-
-            <div className="flex-1 flex flex-col items-center pt-16 md:pt-12 relative z-10 max-w-5xl mx-auto w-full">
-              <div className="inline-block px-4 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-bold uppercase tracking-[0.4em] mb-4 md:mb-6">Background</div>
-              <h2 className="text-2xl md:text-4xl font-extralight text-center mb-2 tracking-tight">
-                <span className="bg-gradient-to-r from-emerald-300 via-cyan-200 to-teal-300 bg-clip-text text-transparent">Choose Music</span>
-              </h2>
-              <p className="text-slate-500 text-center mb-6 md:mb-8 text-sm">Select background audio for your meditation</p>
-
-              <div className="w-full space-y-6">
-                {Object.entries(TRACKS_BY_CATEGORY).map(([category, tracks]) => {
-                  const config = MUSIC_CATEGORY_CONFIG[category];
-                  if (!config) return null;
-                  return (
-                    <div key={category}>
-                      <h3 className={`text-sm font-bold uppercase tracking-wider mb-3 ${config.color}`}>
-                        {config.label}
-                      </h3>
-                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3">
-                        {tracks.map((track) => (
-                          <div
-                            key={track.id}
-                            className={`p-3 md:p-4 rounded-xl text-left transition-all relative group ${
-                              selectedBackgroundTrack.id === track.id
-                                ? `${config.bgColor} border-2 border-current ${config.color}`
-                                : 'bg-white/5 hover:bg-white/10 border border-transparent'
-                            }`}
-                          >
-                            <div className="flex items-center justify-between gap-2 mb-1">
-                              <div className="flex items-center gap-2 min-w-0 flex-1">
-                                <ICONS.Music className={`w-4 h-4 flex-shrink-0 ${selectedBackgroundTrack.id === track.id ? config.color : 'text-slate-500'}`} />
-                                <span className={`font-medium text-sm truncate ${selectedBackgroundTrack.id === track.id ? 'text-white' : 'text-slate-300'}`}>
-                                  {track.name}
-                                </span>
-                              </div>
-                              {/* Preview button - only show if track has audioUrl */}
-                              {track.audioUrl && (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    togglePreviewTrack(track);
-                                  }}
-                                  className={`w-7 h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center transition-all flex-shrink-0 ${
-                                    previewingTrackId === track.id
-                                      ? 'bg-emerald-500 text-white scale-110 shadow-lg shadow-emerald-500/30'
-                                      : 'bg-white/10 text-slate-400 hover:bg-white/20 hover:text-white hover:scale-105'
-                                  }`}
-                                  title={previewingTrackId === track.id ? 'Stop preview' : 'Preview track'}
-                                >
-                                  {previewingTrackId === track.id ? (
-                                    <ICONS.Pause className="w-3 h-3 md:w-3.5 md:h-3.5" />
-                                  ) : (
-                                    <ICONS.Player className="w-3 h-3 md:w-3.5 md:h-3.5" />
-                                  )}
-                                </button>
-                              )}
-                            </div>
-                            <p className="text-xs text-slate-500 line-clamp-2 mb-2">{track.description}</p>
-                            {/* Select button */}
-                            <button
-                              onClick={() => {
-                                stopPreview();
-                                setSelectedBackgroundTrack(track);
-                                startBackgroundMusic(track);
-                                setShowMusicModal(false);
-                              }}
-                              className={`w-full py-1.5 px-3 rounded-lg text-xs font-medium transition-all ${
-                                selectedBackgroundTrack.id === track.id
-                                  ? 'bg-white/20 text-white'
-                                  : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'
-                              }`}
-                            >
-                              {selectedBackgroundTrack.id === track.id ? '✓ Selected' : 'Select'}
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* MODAL: Audio Tags Selector */}
-        {showAudioTagsModal && (
-          <>
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-              {/* Backdrop */}
-              <div
-                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-                onClick={() => setShowAudioTagsModal(false)}
-              />
-
-              {/* Modal Content */}
-              <div className="relative z-10 w-full max-w-lg glass rounded-3xl border border-white/10 shadow-2xl shadow-black/50 max-h-[80vh] flex flex-col animate-in fade-in zoom-in-95 duration-200">
-                {/* Header */}
-                <div className="flex items-center justify-between p-4 md:p-6 border-b border-white/10">
-                  <div>
-                    <h2 className="text-xl md:text-2xl font-bold text-white">Audio Tags</h2>
-                    <p className="text-xs md:text-sm text-slate-400 mt-1">
-                      Add special markers to enhance your meditation
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setShowAudioTagsModal(false)}
-                    className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all"
-                  >
-                    <ICONS.Close className="w-5 h-5" />
-                  </button>
-                </div>
-
-                {/* Content */}
-                <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
-                  {/* Enable Toggle */}
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10">
-                    <div>
-                      <p className="text-sm font-medium text-white">Enable Audio Tags</p>
-                      <p className="text-xs text-slate-400">Include tags in generated scripts</p>
-                    </div>
-                    <button
-                      onClick={async () => {
-                        const newValue = !audioTagsEnabled;
-                        setAudioTagsEnabled(newValue);
-                        try {
-                          await updateAudioTagPreferences({ enabled: newValue });
-                        } catch (err) {
-                          console.warn('Failed to save audio tag preference:', err);
-                        }
-                      }}
-                      className={`relative w-12 h-6 rounded-full transition-colors ${
-                        audioTagsEnabled ? 'bg-violet-500' : 'bg-slate-600'
-                      }`}
-                    >
-                      <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
-                        audioTagsEnabled ? 'translate-x-7' : 'translate-x-1'
-                      }`} />
-                    </button>
-                  </div>
-
-                  {/* Smart Suggestions */}
-                  {suggestedAudioTags.length > 0 && (
-                    <div className="p-3 rounded-xl bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20">
-                      <p className="text-xs font-medium text-amber-300 mb-2">✨ Suggested for your prompt</p>
-                      <div className="flex flex-wrap gap-2">
-                        {suggestedAudioTags.map(tagId => {
-                          const tag = AUDIO_TAG_CATEGORIES.flatMap(c => c.tags).find(t => t.id === tagId);
-                          const isAlreadySelected = selectedAudioTags.includes(tagId);
-                          return tag ? (
-                            <button
-                              key={tagId}
-                              onClick={() => {
-                                if (!isAlreadySelected) {
-                                  setSelectedAudioTags(prev => [...prev, tagId]);
-                                }
-                              }}
-                              disabled={isAlreadySelected}
-                              className={`px-2 py-1 rounded-lg text-xs transition-colors ${
-                                isAlreadySelected
-                                  ? 'bg-amber-500/10 text-amber-500/50 cursor-not-allowed'
-                                  : 'bg-amber-500/20 text-amber-300 hover:bg-amber-500/30'
-                              }`}
-                            >
-                              {tag.label} {isAlreadySelected ? '✓' : '+'}
-                            </button>
-                          ) : null;
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Selected Tags Preview */}
-                  {selectedAudioTags.length > 0 && (
-                    <div className="p-3 rounded-xl bg-violet-500/10 border border-violet-500/20">
-                      <p className="text-xs font-medium text-violet-300 mb-2">Selected Tags ({selectedAudioTags.length})</p>
-                      <div className="flex flex-wrap gap-2">
-                        {selectedAudioTags.map(tagId => {
-                          const tag = AUDIO_TAG_CATEGORIES.flatMap(c => c.tags).find(t => t.id === tagId);
-                          return tag ? (
-                            <button
-                              key={tagId}
-                              onClick={() => setSelectedAudioTags(prev => prev.filter(id => id !== tagId))}
-                              className="px-2 py-1 rounded-lg bg-violet-500/20 text-violet-300 text-xs hover:bg-red-500/20 hover:text-red-300 transition-colors"
-                            >
-                              {tag.label} ×
-                            </button>
-                          ) : null;
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Tag Categories */}
-                  {AUDIO_TAG_CATEGORIES.map(category => (
-                    <div key={category.id}>
-                      <h3 className={`text-sm font-semibold mb-3 ${category.color}`}>
-                        {category.name}
-                      </h3>
-                      <div className="grid grid-cols-2 gap-2">
-                        {category.tags.map(tag => {
-                          const isSelected = selectedAudioTags.includes(tag.id);
-                          const isFavorite = favoriteAudioTags.includes(tag.id);
-                          return (
-                            <button
-                              key={tag.id}
-                              onClick={() => {
-                                setSelectedAudioTags(prev =>
-                                  isSelected
-                                    ? prev.filter(id => id !== tag.id)
-                                    : [...prev, tag.id]
-                                );
-                              }}
-                              className={`p-3 rounded-xl text-left transition-all btn-press ${
-                                isSelected
-                                  ? `${category.bgColor} ${category.color} border border-current/30`
-                                  : 'bg-white/5 hover:bg-white/10 text-slate-300 border border-transparent'
-                              }`}
-                            >
-                              <div className="flex items-center justify-between">
-                                <span className="text-sm font-medium">{tag.label}</span>
-                                {isFavorite && <span className="text-yellow-400 text-xs">★</span>}
-                              </div>
-                              <p className="text-xs text-slate-400 mt-1">{tag.description}</p>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Footer */}
-                <div className="p-4 md:p-6 border-t border-white/10 flex gap-3">
-                  <button
-                    onClick={() => setSelectedAudioTags([])}
-                    className="flex-1 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 font-medium transition-all"
-                  >
-                    Clear All
-                  </button>
-                  <button
-                    onClick={() => setShowAudioTagsModal(false)}
-                    className="flex-1 py-3 rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 text-white font-medium transition-all hover:shadow-lg hover:shadow-violet-500/25"
-                  >
-                    Done
-                  </button>
-                </div>
-              </div>
-            </div>
-          </>
-        )}
+        {/* MODAL: Audio Tags Selector (extracted component) */}
+        <AudioTagsModal
+          isOpen={showAudioTagsModal}
+          onClose={() => setShowAudioTagsModal(false)}
+          selectedTags={selectedAudioTags}
+          onSelectTags={setSelectedAudioTags}
+          audioTagsEnabled={audioTagsEnabled}
+          onSetEnabled={setAudioTagsEnabled}
+          suggestedTags={suggestedAudioTags}
+          favoriteTags={favoriteAudioTags}
+        />
 
         {/* MODAL: Script Preview & Edit - Using unified MeditationEditor */}
         {showScriptPreview && (
