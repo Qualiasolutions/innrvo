@@ -13,6 +13,7 @@ INrVO is a personalized meditation app built with React 19, Vite, and Supabase. 
 npm run dev              # Start dev server on port 3000
 npm run build            # Production build
 npm run preview          # Preview production build
+npx tsc --noEmit         # Type-check without emitting
 
 # Testing
 npm test                 # Run tests in watch mode
@@ -20,6 +21,11 @@ npm run test:run         # Run tests once
 npm run test:coverage    # Run with coverage report
 npm run test:ui          # Run tests with Vitest UI
 vitest run src/lib/credits.test.ts  # Run single test file
+
+# Supabase Edge Functions (requires supabase CLI)
+supabase functions serve                    # Run all functions locally
+supabase functions deploy <function-name>   # Deploy a single function
+supabase db push                            # Push migrations to remote
 ```
 
 ## Architecture
@@ -27,6 +33,8 @@ vitest run src/lib/credits.test.ts  # Run single test file
 ### Frontend (React 19 + Vite)
 
 **Routing:** Uses React Router v7 with lazy-loaded pages (`src/router.tsx`). All pages are code-split via `React.lazy()`.
+
+**Routes:** `/` (home), `/play/:id?` (player), `/library`, `/templates`, `/voice`, `/clone`, `/how-it-works`, `/about`, `/terms`, `/privacy`, `/pricing`
 
 **State Management:**
 - React Context for cross-cutting concerns:

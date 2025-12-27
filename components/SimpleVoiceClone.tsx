@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { toast } from 'sonner';
 import GlassCard from './GlassCard';
 import {
   CloningStatus,
@@ -51,6 +52,26 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
   const error = cloningStatus.state === 'error' ? cloningStatus.message : localError;
   const isSuccess = cloningStatus.state === 'success';
 
+  // Show toast notifications for cloning status changes
+  useEffect(() => {
+    if (cloningStatus.state === 'uploading_to_fish_audio' || cloningStatus.state === 'uploading_to_chatterbox') {
+      toast.loading('Creating your voice clone...', {
+        id: 'voice-clone',
+        description: 'This may take up to 30 seconds',
+      });
+    } else if (cloningStatus.state === 'success') {
+      toast.success('Voice clone created!', {
+        id: 'voice-clone',
+        description: `"${cloningStatus.voiceName}" is ready to use`,
+      });
+    } else if (cloningStatus.state === 'error') {
+      toast.error('Voice cloning failed', {
+        id: 'voice-clone',
+        description: cloningStatus.message || 'Please try again',
+      });
+    }
+  }, [cloningStatus.state, cloningStatus.voiceName, cloningStatus.message]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -72,7 +93,8 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
           echoCancellation: false,     // Preserve natural voice characteristics
           noiseSuppression: false,     // Keep voice qualities for better cloning
           autoGainControl: false,      // Preserve natural volume dynamics
-          sampleRate: 44100,           // High quality sample rate
+          sampleRate: 48000,           // Studio-quality sample rate (matches audioConverter.ts)
+          channelCount: 1,             // Mono for voice clarity
         }
       });
       streamRef.current = stream;

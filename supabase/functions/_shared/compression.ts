@@ -102,14 +102,29 @@ export async function createCompressedResponse(
 
 /**
  * Shared CORS headers configuration
+ * Uses environment variable for additional allowed origins
  */
-export const ALLOWED_ORIGINS = [
+const PRODUCTION_ORIGINS = [
   'https://www.inrvo.com',
   'https://inrvo.com',
   'https://inrvo.vercel.app',
+];
+
+// Development origins - only allowed when ALLOW_DEV_ORIGINS is set
+const DEV_ORIGINS = [
   'http://localhost:5173',
   'http://localhost:3000',
   'http://localhost:3001',
+];
+
+// Get allowed origins from environment or use defaults
+const envOrigins = Deno.env.get('ALLOWED_ORIGINS')?.split(',').map(o => o.trim()).filter(Boolean) || [];
+const allowDevOrigins = Deno.env.get('ALLOW_DEV_ORIGINS') === 'true';
+
+export const ALLOWED_ORIGINS = [
+  ...PRODUCTION_ORIGINS,
+  ...envOrigins,
+  ...(allowDevOrigins ? DEV_ORIGINS : []),
 ];
 
 /**
@@ -123,6 +138,11 @@ function isOriginAllowed(origin: string): boolean {
 
   // Allow Vercel preview deployments (pattern: *.vercel.app)
   if (origin.endsWith('.vercel.app') && origin.startsWith('https://')) {
+    return true;
+  }
+
+  // Allow GitHub Codespaces (pattern: *.github.dev)
+  if (origin.endsWith('.github.dev') && origin.startsWith('https://')) {
     return true;
   }
 

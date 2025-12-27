@@ -1,6 +1,7 @@
 
 import React, { useState, useRef, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { View, VoiceProfile, ScriptTimingMap, CloningStatus, CreditInfo, VoiceMetadata } from './types';
 import { TEMPLATE_CATEGORIES, VOICE_PROFILES, ICONS, BACKGROUND_TRACKS, BackgroundTrack, AUDIO_TAG_CATEGORIES, KEYWORD_TAG_MAP, MUSIC_CATEGORY_CONFIG, TRACKS_BY_CATEGORY, getSuggestedTags } from './constants';
 import { useModals } from './src/contexts/ModalContext';
@@ -1362,12 +1363,21 @@ const App: React.FC = () => {
     setGenerationStage('script');
     setMicError(null);
 
+    // Show loading toast
+    const toastId = toast.loading('Creating your meditation...', {
+      description: 'Generating personalized script',
+    });
+
     try {
       // Check credits FIRST (fail fast before expensive operations)
       if (selectedVoice.isCloned) {
         const estimatedCost = creditService.calculateTTSCost(script, 150);
         const credits = await creditService.getCredits(user?.id);
         if (credits < estimatedCost) {
+          toast.error('Insufficient credits', {
+            id: toastId,
+            description: `Need ${estimatedCost} credits for TTS generation.`,
+          });
           setMicError(`Insufficient credits for TTS generation. Need ${estimatedCost} credits.`);
           setIsGenerating(false);
           setGenerationStage('idle');
@@ -1395,8 +1405,17 @@ const App: React.FC = () => {
       setIsGenerating(false);
       setGenerationStage('idle');
 
+      toast.success('Script ready!', {
+        id: toastId,
+        description: 'Review and customize your meditation',
+      });
+
     } catch (error: any) {
       console.error('Failed to generate script:', error);
+      toast.error('Generation failed', {
+        id: toastId,
+        description: error?.message || 'Please try again',
+      });
       setMicError(error?.message || 'Failed to generate meditation. Please try again.');
       setIsGenerating(false);
       setGenerationStage('idle');
@@ -1431,6 +1450,11 @@ const App: React.FC = () => {
     setGenerationStage('voice');
     setMicError(null);
 
+    // Show loading toast for audio generation
+    const audioToastId = toast.loading('Generating audio...', {
+      description: 'Creating natural voice narration',
+    });
+
     try {
       // Initialize audio context
       if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
@@ -1449,6 +1473,10 @@ const App: React.FC = () => {
       }
 
       setGenerationStage('ready');
+      toast.success('Meditation ready!', {
+        id: audioToastId,
+        description: 'Enjoy your personalized experience',
+      });
 
       // Stop any existing playback
       if (audioSourceRef.current) {
@@ -1532,6 +1560,10 @@ const App: React.FC = () => {
       };
     } catch (error: any) {
       console.error('Failed to play edited script:', error);
+      toast.error('Audio generation failed', {
+        id: audioToastId,
+        description: error?.message || 'Please try again',
+      });
       setMicError(error?.message || 'Failed to generate audio. Please try again.');
       setIsGenerating(false);
       setGenerationStage('idle');

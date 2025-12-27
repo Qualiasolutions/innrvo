@@ -273,35 +273,75 @@ export const ChronosAvatar: React.FC<{ className?: string; size?: number }> = ({
   </div>
 );
 
+/** Generation phase type for progress display */
+export type GenerationPhase = 'idle' | 'thinking' | 'script' | 'voice' | 'ready';
+
+/** Phase configuration with display info */
+const PHASE_CONFIG: Record<GenerationPhase, { label: string; progress: number; color: string }> = {
+  idle: { label: 'Ready', progress: 0, color: 'text-slate-400' },
+  thinking: { label: 'Thinking...', progress: 15, color: 'text-amber-400/80' },
+  script: { label: 'Creating meditation...', progress: 40, color: 'text-amber-400/80' },
+  voice: { label: 'Generating audio...', progress: 75, color: 'text-cyan-400/80' },
+  ready: { label: 'Complete!', progress: 100, color: 'text-emerald-400' },
+};
+
 /**
  * ChronosLoader - Full loading state with message
  * Shows the complete clockwork animation with sparks
+ * Supports generation phases for progress display
  */
 export const ChronosLoader: React.FC<{
   message?: string;
   className?: string;
   size?: number;
+  phase?: GenerationPhase;
+  showProgress?: boolean;
 }> = ({
-  message = 'Processing...',
+  message,
   className = '',
   size = 200,
-}) => (
-  <div className={`flex flex-col items-center gap-6 ${className}`}>
-    <div
-      className="relative"
-      style={{
-        background: 'radial-gradient(ellipse at center, #1a1a2e 0%, transparent 70%)',
-        padding: 20,
-        borderRadius: '50%',
-      }}
-    >
-      <ChronosEngine variant="loading" size={size} />
+  phase = 'idle',
+  showProgress = false,
+}) => {
+  const phaseConfig = PHASE_CONFIG[phase] || PHASE_CONFIG.idle;
+  const displayMessage = message || (phase !== 'idle' ? phaseConfig.label : 'Processing...');
+
+  return (
+    <div className={`flex flex-col items-center gap-6 ${className}`}>
+      <div
+        className="relative"
+        style={{
+          background: 'radial-gradient(ellipse at center, #1a1a2e 0%, transparent 70%)',
+          padding: 20,
+          borderRadius: '50%',
+        }}
+      >
+        <ChronosEngine variant="loading" size={size} />
+      </div>
+
+      {/* Progress bar (optional) */}
+      {showProgress && phase !== 'idle' && (
+        <div className="w-48 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+          <div
+            className="h-full rounded-full transition-all duration-500 ease-out"
+            style={{
+              width: `${phaseConfig.progress}%`,
+              background: phase === 'ready'
+                ? 'linear-gradient(90deg, #10b981, #34d399)'
+                : 'linear-gradient(90deg, #f59e0b, #fbbf24)',
+            }}
+          />
+        </div>
+      )}
+
+      {displayMessage && (
+        <span className={`text-sm font-medium animate-pulse ${phaseConfig.color}`}>
+          {displayMessage}
+        </span>
+      )}
     </div>
-    {message && (
-      <span className="text-amber-400/80 text-sm font-medium animate-pulse">{message}</span>
-    )}
-  </div>
-);
+  );
+};
 
 /**
  * ChronosMiniLoader - Inline loading indicator

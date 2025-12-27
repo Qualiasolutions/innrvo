@@ -3,6 +3,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import * as Sentry from '@sentry/react';
 import { Analytics } from '@vercel/analytics/react';
+import { Toaster } from 'sonner';
 import './index.css';
 import { AppRouter } from './src/router';
 import { ModalProvider } from './src/contexts/ModalContext';
@@ -76,6 +77,20 @@ root.render(
           <VoiceProvider>
             <AppProvider>
               <AppRouter />
+              <Toaster
+                position="top-center"
+                richColors
+                closeButton
+                duration={4000}
+                toastOptions={{
+                  style: {
+                    background: 'rgba(15, 23, 42, 0.95)',
+                    border: '1px solid rgba(56, 189, 248, 0.2)',
+                    backdropFilter: 'blur(12px)',
+                    color: '#e2e8f0',
+                  },
+                }}
+              />
               <Analytics />
             </AppProvider>
           </VoiceProvider>
