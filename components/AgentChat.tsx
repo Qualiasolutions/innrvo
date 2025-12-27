@@ -425,7 +425,7 @@ export const AgentChat: React.FC<AgentChatProps> = ({
                           rounded-full px-4 md:px-6 py-2.5
                           transition-all duration-200 shadow-lg shadow-black/10
                           ${isRecording
-                            ? 'border-rose-500/50 bg-rose-500/10'
+                            ? 'border-cyan-500/50 bg-cyan-500/10'
                             : 'border-white/10 focus-within:border-cyan-500/40 focus-within:bg-white/[0.08]'
                           }`}>
               <textarea
@@ -453,7 +453,7 @@ export const AgentChat: React.FC<AgentChatProps> = ({
                   ${isProcessing && !isRecording
                     ? 'h-10 w-10 rounded-full bg-cyan-500/50 cursor-not-allowed'
                     : isRecording
-                      ? 'h-10 w-10 rounded-full bg-rose-500 hover:bg-rose-400 active:scale-95 text-white animate-pulse'
+                      ? 'h-10 w-10 rounded-full bg-gradient-to-br from-cyan-500 to-teal-500 hover:from-cyan-400 hover:to-teal-400 active:scale-95 text-white animate-pulse shadow-lg shadow-cyan-500/30'
                       : inputValue.trim()
                         ? 'h-10 w-10 rounded-full bg-cyan-500 hover:bg-cyan-400 active:scale-95 text-white'
                         : 'p-2 hover:opacity-80 active:scale-95'
