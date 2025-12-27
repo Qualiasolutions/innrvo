@@ -293,6 +293,15 @@ export const MeditationEditor = memo<MeditationEditorProps>(
       }
     }, [previewingMusicId]);
 
+    // Stop music preview (used when closing panel or switching tabs)
+    const handleStopMusicPreview = useCallback(() => {
+      if (musicPreviewRef.current) {
+        musicPreviewRef.current.pause();
+        musicPreviewRef.current.currentTime = 0;
+      }
+      setPreviewingMusicId(null);
+    }, []);
+
     // Cleanup music preview on unmount
     useEffect(() => {
       return () => {
@@ -320,6 +329,13 @@ export const MeditationEditor = memo<MeditationEditorProps>(
       // Use sanitized script for generation
       onGenerate(sanitizedScript);
     }, [sanitizedScript, selectedVoice, onGenerate, onVoiceSelect]);
+
+    // Handle close - stop music before closing
+    const handleClose = useCallback(() => {
+      handleStopMusicPreview();
+      handleStopVoicePreview();
+      onClose();
+    }, [handleStopMusicPreview, handleStopVoicePreview, onClose]);
 
     // Prevent body scroll when editor is open
     useEffect(() => {
@@ -390,7 +406,7 @@ export const MeditationEditor = memo<MeditationEditorProps>(
 
                   {/* Close button - larger touch target for mobile */}
                   <button
-                    onClick={onClose}
+                    onClick={handleClose}
                     aria-label="Close editor"
                     className="w-11 h-11 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 rounded-xl transition-colors duration-200 active:scale-95 relative z-20"
                   >
@@ -451,6 +467,7 @@ export const MeditationEditor = memo<MeditationEditorProps>(
             onMusicPreviewToggle={handleMusicPreviewToggle}
             onGenerateVoicePreview={handleGenerateVoicePreview}
             onStopVoicePreview={handleStopVoicePreview}
+            onStopMusicPreview={handleStopMusicPreview}
           />
 
           {/* Generate Button */}

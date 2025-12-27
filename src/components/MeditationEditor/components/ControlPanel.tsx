@@ -5,7 +5,7 @@
  * Includes voice preview functionality for testing voices before generation.
  */
 
-import React, { memo, useState, useCallback, useMemo } from 'react';
+import React, { memo, useState, useCallback, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import AudioPreview from '../../../../components/ui/AudioPreview';
 import type { VoiceProfile } from '../../../../types';
@@ -95,6 +95,7 @@ interface ControlPanelProps {
   // Music preview
   previewingMusicId?: string | null;
   onMusicPreviewToggle?: (track: BackgroundTrack) => void;
+  onStopMusicPreview?: () => void;
 }
 
 // Quick tags for easy insertion
@@ -164,6 +165,7 @@ export const ControlPanel = memo<ControlPanelProps>(
     onStopVoicePreview,
     previewingMusicId,
     onMusicPreviewToggle,
+    onStopMusicPreview,
   }) => {
     const [expanded, setExpanded] = useState(false);
     const [activeTab, setActiveTab] = useState<ControlTab>('voice');
@@ -171,6 +173,13 @@ export const ControlPanel = memo<ControlPanelProps>(
     const toggleExpanded = useCallback(() => {
       setExpanded((prev) => !prev);
     }, []);
+
+    // Stop music preview when panel collapses or tab changes away from music
+    useEffect(() => {
+      if (!expanded || activeTab !== 'music') {
+        onStopMusicPreview?.();
+      }
+    }, [expanded, activeTab, onStopMusicPreview]);
 
     // Memoize music slice to prevent array recreation on each render
     const visibleMusic = useMemo(() => availableMusic.slice(0, 8), [availableMusic]);
