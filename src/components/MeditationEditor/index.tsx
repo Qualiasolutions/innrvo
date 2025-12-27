@@ -86,8 +86,10 @@ export const MeditationEditor = memo<MeditationEditorProps>(
     const [isHarmonizing, setIsHarmonizing] = useState(false);
     const [voicePreviewUrl, setVoicePreviewUrl] = useState<string | null>(null);
     const [isGeneratingPreview, setIsGeneratingPreview] = useState(false);
+    const [previewingMusicId, setPreviewingMusicId] = useState<string | null>(null);
     const editorRef = useRef<HTMLDivElement>(null);
     const previewAudioRef = useRef<HTMLAudioElement | null>(null);
+    const musicPreviewRef = useRef<HTMLAudioElement | null>(null);
 
     // Sanitize script content to prevent XSS attacks
     // Only allow text content - strip all HTML tags except our audio tag spans
@@ -255,6 +257,51 @@ export const MeditationEditor = memo<MeditationEditorProps>(
       };
     }, []);
 
+    // Handle music preview toggle
+    const handleMusicPreviewToggle = useCallback((track: typeof availableMusic[0]) => {
+      // If already previewing this track, stop it
+      if (previewingMusicId === track.id) {
+        if (musicPreviewRef.current) {
+          musicPreviewRef.current.pause();
+          musicPreviewRef.current.currentTime = 0;
+        }
+        setPreviewingMusicId(null);
+        return;
+      }
+
+      // Stop any current preview
+      if (musicPreviewRef.current) {
+        musicPreviewRef.current.pause();
+        musicPreviewRef.current.currentTime = 0;
+      }
+
+      // Start new preview if track has audio
+      if (track.audioUrl) {
+        const audio = new Audio(track.audioUrl);
+        audio.volume = 0.5; // Preview at 50% volume
+        audio.onended = () => {
+          setPreviewingMusicId(null);
+        };
+        audio.onerror = () => {
+          setPreviewingMusicId(null);
+        };
+        musicPreviewRef.current = audio;
+        setPreviewingMusicId(track.id);
+        audio.play().catch(() => {
+          setPreviewingMusicId(null);
+        });
+      }
+    }, [previewingMusicId]);
+
+    // Cleanup music preview on unmount
+    useEffect(() => {
+      return () => {
+        if (musicPreviewRef.current) {
+          musicPreviewRef.current.pause();
+        }
+      };
+    }, []);
+
     // Restore cursor position after state update
     useEffect(() => {
       if (cursorPosition !== null && editorRef.current) {
@@ -400,6 +447,8 @@ export const MeditationEditor = memo<MeditationEditorProps>(
             isHarmonizing={isHarmonizing}
             voicePreviewUrl={voicePreviewUrl}
             isGeneratingPreview={isGeneratingPreview}
+            previewingMusicId={previewingMusicId}
+            onMusicPreviewToggle={handleMusicPreviewToggle}
             onGenerateVoicePreview={handleGenerateVoicePreview}
             onStopVoicePreview={handleStopVoicePreview}
           />

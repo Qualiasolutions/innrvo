@@ -417,24 +417,102 @@ export const ControlPanel = memo<ControlPanelProps>(
 
                 {/* Music Tab */}
                 {activeTab === 'music' && (
-                  <div className="grid grid-cols-2 gap-2">
-                    {visibleMusic.map((track) => (
-                      <button
-                        key={track.id}
-                        onClick={() => onMusicSelect(track)}
-                        className={`p-3 rounded-xl text-xs font-medium transition-all text-left
-                          ${
-                            selectedMusic?.id === track.id
-                              ? 'bg-emerald-500/30 text-emerald-300 border border-emerald-500/40'
-                              : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white/80 border border-transparent'
-                          }`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <MusicIcon className="w-4 h-4 flex-shrink-0" />
-                          <span className="truncate">{track.name}</span>
+                  <div className="space-y-3">
+                    {/* Currently previewing track */}
+                    {previewingMusicId && onMusicPreviewToggle && (
+                      <div className="p-3 rounded-xl bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/20">
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-xs font-medium text-white/70 flex items-center gap-1.5">
+                            <svg className="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                            </svg>
+                            Now Playing
+                          </p>
+                          <span className="text-xs text-emerald-400">
+                            {availableMusic.find(t => t.id === previewingMusicId)?.name}
+                          </span>
                         </div>
-                      </button>
-                    ))}
+                        <AudioPreview
+                          audioUrl={availableMusic.find(t => t.id === previewingMusicId)?.audioUrl || ''}
+                          compact
+                          accentColor="emerald"
+                          onEnded={() => {
+                            const track = availableMusic.find(t => t.id === previewingMusicId);
+                            if (track) onMusicPreviewToggle(track);
+                          }}
+                        />
+                      </div>
+                    )}
+
+                    {/* Music grid */}
+                    <div className="grid grid-cols-2 gap-2">
+                      {visibleMusic.map((track) => {
+                        const isSelected = selectedMusic?.id === track.id;
+                        const isPreviewing = previewingMusicId === track.id;
+                        const hasAudio = !!track.audioUrl && track.id !== 'none';
+
+                        return (
+                          <div
+                            key={track.id}
+                            className={`p-3 rounded-xl text-xs font-medium transition-all
+                              ${isSelected
+                                ? 'bg-emerald-500/30 text-emerald-300 border border-emerald-500/40'
+                                : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white/80 border border-transparent'
+                              }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              {/* Play/Pause button for tracks with audio */}
+                              {hasAudio && onMusicPreviewToggle ? (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onMusicPreviewToggle(track);
+                                  }}
+                                  className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-all
+                                    ${isPreviewing
+                                      ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30'
+                                      : 'bg-white/10 text-white/60 hover:bg-emerald-500/30 hover:text-emerald-300'
+                                    }`}
+                                  title={isPreviewing ? 'Stop preview' : 'Preview track'}
+                                >
+                                  {isPreviewing ? (
+                                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                                      <rect x="6" y="4" width="4" height="16" rx="1" />
+                                      <rect x="14" y="4" width="4" height="16" rx="1" />
+                                    </svg>
+                                  ) : (
+                                    <svg className="w-3 h-3 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                                      <path d="M8 5v14l11-7z" />
+                                    </svg>
+                                  )}
+                                </button>
+                              ) : (
+                                <MusicIcon className="w-4 h-4 flex-shrink-0" />
+                              )}
+
+                              {/* Track name - clickable to select */}
+                              <button
+                                onClick={() => onMusicSelect(track)}
+                                className="flex-1 text-left truncate hover:text-white transition-colors"
+                              >
+                                {track.name}
+                              </button>
+
+                              {/* Selected indicator */}
+                              {isSelected && (
+                                <svg className="w-4 h-4 text-emerald-400 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                                  <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                                </svg>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <p className="text-[10px] text-white/40 text-center">
+                      Tap play to preview • Tap name to select
+                    </p>
                   </div>
                 )}
 
