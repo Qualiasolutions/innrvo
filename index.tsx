@@ -113,22 +113,23 @@ root.render(
 );
 
 // Web Vitals monitoring - Core Web Vitals + additional metrics
-// Reports to console in development, could be sent to analytics in production
+// Reports to console in development, sends to Sentry in production
 const reportWebVitals = (metric: Metric) => {
   // Log to console in development for debugging
   if (import.meta.env.DEV) {
     const color = metric.rating === 'good' ? '#0cce6b' : metric.rating === 'needs-improvement' ? '#ffa400' : '#ff4e42';
     console.log(
-      `%c[Web Vitals] ${metric.name}: ${metric.value.toFixed(2)}ms (${metric.rating})`,
+      `%c[Web Vitals] ${metric.name}: ${metric.value.toFixed(2)}${metric.name === 'CLS' ? '' : 'ms'} (${metric.rating})`,
       `color: ${color}; font-weight: bold;`
     );
   }
 
   // Send to Sentry in production for performance monitoring
   if (import.meta.env.PROD && SENTRY_DSN) {
+    // Add as breadcrumb for context
     Sentry.addBreadcrumb({
       category: 'web-vitals',
-      message: `${metric.name}: ${metric.value.toFixed(2)}ms`,
+      message: `${metric.name}: ${metric.value.toFixed(2)}${metric.name === 'CLS' ? '' : 'ms'}`,
       level: metric.rating === 'good' ? 'info' : 'warning',
       data: {
         name: metric.name,
@@ -138,6 +139,25 @@ const reportWebVitals = (metric: Metric) => {
         id: metric.id,
       },
     });
+
+    // Set as custom measurement for Sentry performance monitoring
+    Sentry.setMeasurement(metric.name, metric.value, metric.name === 'CLS' ? '' : 'millisecond');
+
+    // Report poor metrics as issues for alerting
+    if (metric.rating === 'poor') {
+      Sentry.captureMessage(`Poor Web Vital: ${metric.name}`, {
+        level: 'warning',
+        tags: {
+          webVital: metric.name,
+          rating: metric.rating,
+        },
+        extra: {
+          value: metric.value,
+          delta: metric.delta,
+          id: metric.id,
+        },
+      });
+    }
   }
 };
 
