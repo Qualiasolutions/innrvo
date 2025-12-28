@@ -258,7 +258,7 @@ Vite config includes manual chunks for:
 - `react-vendor` - React/ReactDOM
 - `router-vendor` - React Router
 - `supabase-vendor` - Supabase client
-- `framer-motion-vendor` - Animation library (~120KB)
+- `framer-motion-vendor` - Animation library (~74KB gzipped)
 - `sentry-vendor` - Error tracking
 - `icons-vendor` - Lucide icons
 - `toast-vendor` - Sonner notifications
@@ -268,6 +268,41 @@ Vite config includes manual chunks for:
 - Heavy components (AuthModal, VoiceManager, SimpleVoiceClone, MeditationEditor, MeditationPlayer, AgentChat) lazy-loaded in App.tsx
 - Edge function imports are dynamic to defer voice cloning/AI code until needed
 - Initial bundle ~321KB gzipped, with ~400KB deferred via lazy loading
+
+### Animation Optimization (LazyMotion)
+
+App uses Framer Motion with `LazyMotion` and `domAnimation` feature set for smaller runtime:
+
+```typescript
+// App.tsx - Wraps entire app
+import { LazyMotion, domAnimation } from 'framer-motion';
+<LazyMotion features={domAnimation} strict>
+
+// Animation files use `m` instead of `motion`
+import { m, AnimatePresence } from 'framer-motion';
+<m.div animate={{ opacity: 1 }} />
+```
+
+**Files using `m` components:**
+- `components/V0MeditationPlayer/index.tsx` - Breathing orb, particles, controls
+- `components/ui/AudioPreview.tsx` - Play/pause animations, waveform
+- `src/pages/LibraryPage.tsx` - Card expansion animations
+- `src/components/MeditationEditor/components/ControlPanel.tsx` - Tab transitions
+
+**CSS Containment** (`index.css`):
+```css
+.animate-shimmer, .animate-gradient, [class*="animate-"] {
+  contain: layout paint;
+}
+```
+
+### Resource Preloading
+
+`index.html` includes preconnect hints for external APIs:
+- Supabase (`jcvfnkuppbvkbzltkioa.supabase.co`)
+- Gemini API (`generativelanguage.googleapis.com`)
+- Fish Audio (`api.fish.audio`)
+- Google Fonts (`fonts.googleapis.com`, `fonts.gstatic.com`)
 
 **Important:** Always use dynamic imports for `edgeFunctions.ts` to maintain code splitting:
 ```typescript
@@ -431,3 +466,13 @@ supabase functions deploy <name>   # Deploy single function
 ```
 
 **After deployment:** Users may need to hard refresh (Ctrl+Shift+R) if they see 404 errors on lazy-loaded chunks due to browser caching old bundle hashes.
+
+## Stack Research
+
+See `docs/STACK_RESEARCH_2025.md` for current best practices research on:
+- React 19 hooks (`useActionState`, `useOptimistic`, `useFormStatus`)
+- Supabase Edge Functions optimization
+- Tailwind CSS v4 migration
+- Vite 6 build optimization
+- React Router v7 patterns
+- Framer Motion performance
