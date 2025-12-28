@@ -336,29 +336,32 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
                   {onVoiceVolumeChange && (
                     <div className="space-y-2">
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-white/50 flex items-center gap-2">
+                        <span className="text-cyan-400/80 flex items-center gap-2">
                           <Volume2 className="h-4 w-4" />
                           Voice Volume
                         </span>
-                        <span className="text-white/80 font-mono">{Math.round(voiceVolume * 100)}%</span>
+                        <span className="text-cyan-300 font-mono">{Math.round(voiceVolume * 100)}%</span>
                       </div>
                       <div className="flex items-center gap-3">
-                        <span className="text-xs text-white/40">0%</span>
-                        <input
-                          type="range"
-                          min="0"
-                          max="1"
-                          step="0.05"
-                          value={voiceVolume}
-                          onChange={(e) => onVoiceVolumeChange(parseFloat(e.target.value))}
-                          className="flex-1 h-1.5 bg-white/10 rounded-full appearance-none cursor-pointer
-                            [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4
-                            [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-purple-400
-                            [&::-webkit-slider-thumb]:shadow-[0_0_10px_rgba(168,85,247,0.5)]
-                            [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full
-                            [&::-moz-range-thumb]:bg-purple-400 [&::-moz-range-thumb]:border-0"
-                        />
-                        <span className="text-xs text-white/40">100%</span>
+                        <span className="text-xs text-cyan-400/40">0%</span>
+                        <div className="relative flex-1 h-1.5">
+                          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-cyan-500/20 to-cyan-400/30" />
+                          <input
+                            type="range"
+                            min="0"
+                            max="1"
+                            step="0.05"
+                            value={voiceVolume}
+                            onChange={(e) => onVoiceVolumeChange(parseFloat(e.target.value))}
+                            className="relative w-full h-1.5 bg-transparent rounded-full appearance-none cursor-pointer
+                              [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4
+                              [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-gradient-to-br [&::-webkit-slider-thumb]:from-cyan-400 [&::-webkit-slider-thumb]:to-cyan-500
+                              [&::-webkit-slider-thumb]:shadow-[0_0_12px_rgba(34,211,238,0.6),0_0_4px_rgba(34,211,238,0.8)]
+                              [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full
+                              [&::-moz-range-thumb]:bg-cyan-400 [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:shadow-[0_0_12px_rgba(34,211,238,0.6)]"
+                          />
+                        </div>
+                        <span className="text-xs text-cyan-400/40">100%</span>
                       </div>
                     </div>
                   )}
@@ -367,29 +370,32 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
                   {natureSoundEnabled && onNatureSoundVolumeChange && (
                     <div className="space-y-2">
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-white/50 flex items-center gap-2">
-                          <span className="text-emerald-400">{renderNatureIcon(natureSoundIcon, "w-4 h-4")}</span>
+                        <span className="text-violet-400/80 flex items-center gap-2">
+                          <span className="text-violet-400">{renderNatureIcon(natureSoundIcon, "w-4 h-4")}</span>
                           {natureSoundName || 'Nature Sound'}
                         </span>
-                        <span className="text-white/80 font-mono">{Math.round(natureSoundVolume * 100)}%</span>
+                        <span className="text-violet-300 font-mono">{Math.round(natureSoundVolume * 100)}%</span>
                       </div>
                       <div className="flex items-center gap-3">
-                        <span className="text-xs text-white/40">0%</span>
-                        <input
-                          type="range"
-                          min="0"
-                          max="1"
-                          step="0.05"
-                          value={natureSoundVolume}
-                          onChange={(e) => onNatureSoundVolumeChange(parseFloat(e.target.value))}
-                          className="flex-1 h-1.5 bg-white/10 rounded-full appearance-none cursor-pointer
-                            [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4
-                            [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-emerald-400
-                            [&::-webkit-slider-thumb]:shadow-[0_0_10px_rgba(52,211,153,0.5)]
-                            [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full
-                            [&::-moz-range-thumb]:bg-emerald-400 [&::-moz-range-thumb]:border-0"
-                        />
-                        <span className="text-xs text-white/40">100%</span>
+                        <span className="text-xs text-violet-400/40">0%</span>
+                        <div className="relative flex-1 h-1.5">
+                          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-cyan-500/20 via-violet-500/25 to-purple-500/20" />
+                          <input
+                            type="range"
+                            min="0"
+                            max="1"
+                            step="0.05"
+                            value={natureSoundVolume}
+                            onChange={(e) => onNatureSoundVolumeChange(parseFloat(e.target.value))}
+                            className="relative w-full h-1.5 bg-transparent rounded-full appearance-none cursor-pointer
+                              [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4
+                              [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-gradient-to-br [&::-webkit-slider-thumb]:from-cyan-400 [&::-webkit-slider-thumb]:via-violet-400 [&::-webkit-slider-thumb]:to-purple-500
+                              [&::-webkit-slider-thumb]:shadow-[0_0_12px_rgba(139,92,246,0.6),0_0_4px_rgba(139,92,246,0.8)]
+                              [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full
+                              [&::-moz-range-thumb]:bg-violet-400 [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:shadow-[0_0_12px_rgba(139,92,246,0.6)]"
+                          />
+                        </div>
+                        <span className="text-xs text-violet-400/40">100%</span>
                       </div>
                     </div>
                   )}
@@ -398,26 +404,32 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
                   {backgroundMusicEnabled && (
                     <div className="space-y-2">
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-white/50">🎵 Music Volume</span>
-                        <span className="text-white/80 font-mono">{Math.round(backgroundVolume * 100)}%</span>
+                        <span className="text-purple-400/80 flex items-center gap-2">
+                          <span>🎵</span>
+                          Music Volume
+                        </span>
+                        <span className="text-purple-300 font-mono">{Math.round(backgroundVolume * 100)}%</span>
                       </div>
                       <div className="flex items-center gap-3">
-                        <span className="text-xs text-white/40">0%</span>
-                        <input
-                          type="range"
-                          min="0"
-                          max="1"
-                          step="0.05"
-                          value={backgroundVolume}
-                          onChange={(e) => onBackgroundVolumeChange(parseFloat(e.target.value))}
-                          className="flex-1 h-1.5 bg-white/10 rounded-full appearance-none cursor-pointer
-                            [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4
-                            [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-indigo-400
-                            [&::-webkit-slider-thumb]:shadow-[0_0_10px_rgba(129,140,248,0.5)]
-                            [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full
-                            [&::-moz-range-thumb]:bg-indigo-400 [&::-moz-range-thumb]:border-0"
-                        />
-                        <span className="text-xs text-white/40">100%</span>
+                        <span className="text-xs text-purple-400/40">0%</span>
+                        <div className="relative flex-1 h-1.5">
+                          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-purple-500/20 to-purple-400/30" />
+                          <input
+                            type="range"
+                            min="0"
+                            max="1"
+                            step="0.05"
+                            value={backgroundVolume}
+                            onChange={(e) => onBackgroundVolumeChange(parseFloat(e.target.value))}
+                            className="relative w-full h-1.5 bg-transparent rounded-full appearance-none cursor-pointer
+                              [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4
+                              [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-gradient-to-br [&::-webkit-slider-thumb]:from-purple-400 [&::-webkit-slider-thumb]:to-purple-600
+                              [&::-webkit-slider-thumb]:shadow-[0_0_12px_rgba(168,85,247,0.6),0_0_4px_rgba(168,85,247,0.8)]
+                              [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full
+                              [&::-moz-range-thumb]:bg-purple-500 [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:shadow-[0_0_12px_rgba(168,85,247,0.6)]"
+                          />
+                        </div>
+                        <span className="text-xs text-purple-400/40">100%</span>
                       </div>
                     </div>
                   )}
