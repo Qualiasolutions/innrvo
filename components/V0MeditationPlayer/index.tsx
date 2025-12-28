@@ -1,4 +1,4 @@
-import React, { useCallback, memo, useState } from 'react';
+import React, { useCallback, memo, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Play, Pause, RotateCcw, RotateCw, Volume2, Gauge } from 'lucide-react';
 import { ICONS } from '../../constants';
@@ -23,8 +23,7 @@ const renderNatureIcon = (iconName: string | undefined, className: string = "w-4
 };
 
 // Module-level constants to avoid recreating on each render
-const PLAYBACK_RATE_PRESETS = [0.7, 0.8, 0.9, 1.0, 1.2] as const;
-const PARTICLE_COUNT = 15; // Reduced from 25 for better performance
+const PARTICLE_COUNT = 20; // Enhanced for better ambient effect
 
 interface MeditationPlayerProps {
   // Playback control
@@ -88,7 +87,7 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
   onOpenNatureSoundModal,
   voiceVolume = 0.7,
   onVoiceVolumeChange,
-  playbackRate = 0.9,
+  playbackRate = 1.0,
   onPlaybackRateChange,
   userId,
   voiceId,
@@ -149,8 +148,8 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
 
         {/* Center content */}
         <div className="flex flex-1 flex-col items-center justify-center gap-6 sm:gap-8">
-          {/* Breathing circle visualizer */}
-          <BreathingCircle isPlaying={isPlaying} />
+          {/* Breathing orb visualizer */}
+          <BreathingOrb isPlaying={isPlaying} />
 
           {/* Title and time */}
           <motion.div
@@ -248,7 +247,11 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => setShowControls(!showControls)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 text-white/60 text-sm transition-colors hover:bg-white/10 hover:text-white/80"
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm transition-all backdrop-blur-sm ${
+                showControls
+                  ? 'bg-gradient-to-r from-cyan-500/20 to-purple-500/20 text-white/90 border border-cyan-400/30'
+                  : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white/80 border border-transparent'
+              }`}
             >
               <Gauge className="h-4 w-4" />
               <span>{playbackRate.toFixed(1)}x</span>
@@ -276,16 +279,17 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
             )}
           </div>
 
-          {/* Expanded controls panel */}
+          {/* Expanded controls panel - Glassmorphism */}
           <AnimatePresence>
             {showControls && (
               <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
+                initial={{ opacity: 0, height: 0, scale: 0.95 }}
+                animate={{ opacity: 1, height: 'auto', scale: 1 }}
+                exit={{ opacity: 0, height: 0, scale: 0.95 }}
+                transition={{ type: 'spring', damping: 25, stiffness: 300 }}
                 className="overflow-hidden"
               >
-                <div className="pt-4 space-y-4">
+                <div className="pt-4 pb-2 px-4 sm:px-5 space-y-5 rounded-2xl bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
                   {/* Playback Speed */}
                   {onPlaybackRateChange && (
                     <div className="space-y-2">
@@ -313,21 +317,6 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
                             [&::-moz-range-thumb]:bg-cyan-400 [&::-moz-range-thumb]:border-0"
                         />
                         <span className="text-xs text-white/40">1.5x</span>
-                      </div>
-                      <div className="flex justify-center gap-2">
-                        {PLAYBACK_RATE_PRESETS.map((rate) => (
-                          <button
-                            key={rate}
-                            onClick={() => onPlaybackRateChange(rate)}
-                            className={`px-2 py-1 text-xs rounded transition-colors ${
-                              Math.abs(playbackRate - rate) < 0.05
-                                ? 'bg-cyan-400/20 text-cyan-300'
-                                : 'bg-white/5 text-white/50 hover:bg-white/10'
-                            }`}
-                          >
-                            {rate}x
-                          </button>
-                        ))}
                       </div>
                     </div>
                   )}
@@ -446,139 +435,298 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
 
 V0MeditationPlayer.displayName = 'V0MeditationPlayer';
 
+// Orb size configuration for responsive design
+const ORB_CONFIG = {
+  // Responsive orb sizes
+  orbSize: 'w-[160px] h-[160px] sm:w-[180px] sm:h-[180px] md:w-[200px] md:h-[200px] lg:w-[220px] lg:h-[220px]',
+  auroraRings: [
+    { size: 'w-[220px] h-[220px] sm:w-[250px] sm:h-[250px] md:w-[280px] md:h-[280px] lg:w-[300px] lg:h-[300px]' },
+    { size: 'w-[260px] h-[260px] sm:w-[300px] sm:h-[300px] md:w-[340px] md:h-[340px] lg:w-[360px] lg:h-[360px]' },
+    { size: 'w-[300px] h-[300px] sm:w-[350px] sm:h-[350px] md:w-[400px] md:h-[400px] lg:w-[420px] lg:h-[420px]' },
+    { size: 'w-[340px] h-[340px] sm:w-[400px] sm:h-[400px] md:w-[460px] md:h-[460px] lg:w-[480px] lg:h-[480px]' },
+  ],
+};
+
 /**
- * Breathing Circle - Animated visualizer with 4-7-8 breathing pattern
+ * BreathingOrb - Awe-inspiring 5-layer breathing visualization
+ *
+ * Layers (outer to inner):
+ * 5. Ambient Glow Field - soft surrounding blur
+ * 4. Aurora Rings - expanding color waves
+ * 3. Particle Orbit - circling energy particles
+ * 2. Main Orb - primary breathing element
+ * 1. Inner Core - bright center with radiating rays
  */
-const BreathingCircle = memo(({ isPlaying }: { isPlaying: boolean }) => {
+const BreathingOrb = memo(({ isPlaying }: { isPlaying: boolean }) => {
+  // Generate orbit particles
+  const orbitParticles = useMemo(() =>
+    [...Array(14)].map((_, i) => ({
+      id: i,
+      angle: (i / 14) * 360,
+      orbitRadius: 85 + (i % 2) * 15, // Alternating orbit distances
+      size: 2 + Math.random() * 2,
+      duration: 25 + Math.random() * 15,
+      delay: (i / 14) * -40,
+      colorOffset: i * 25, // For gradient color variation
+    })),
+    []
+  );
+
+  // Generate ray angles for inner core
+  const coreRays = useMemo(() => [...Array(12)].map((_, i) => i * 30), []);
+
   return (
     <div className="relative flex items-center justify-center">
-      {/* Outer glow rings */}
-      {[...Array(3)].map((_, i) => (
+      {/* Layer 5: Ambient Glow Field */}
+      <motion.div
+        className="absolute w-[240px] h-[240px] sm:w-[280px] sm:h-[280px] md:w-[320px] md:h-[320px] lg:w-[350px] lg:h-[350px] rounded-full"
+        style={{
+          background: 'radial-gradient(circle, rgba(34, 211, 238, 0.18) 0%, rgba(168, 85, 247, 0.12) 35%, rgba(99, 102, 241, 0.06) 60%, transparent 80%)',
+          filter: 'blur(40px)',
+        }}
+        animate={isPlaying ? {
+          scale: [1, 1.18, 1.18, 1],
+          opacity: [0.4, 0.7, 0.7, 0.4],
+        } : { scale: 1, opacity: 0.25 }}
+        transition={{
+          duration: 19,
+          times: [0, 0.21, 0.58, 1],
+          repeat: Infinity,
+          ease: 'easeInOut',
+        }}
+      />
+
+      {/* Layer 4: Aurora Rings - 4 expanding waves */}
+      {ORB_CONFIG.auroraRings.map((ring, i) => (
         <motion.div
-          key={i}
-          className="absolute rounded-full border border-cyan-400/10"
+          key={`aurora-${i}`}
+          className={`absolute ${ring.size} rounded-full`}
           style={{
-            width: 200 + i * 36,
-            height: 200 + i * 36,
+            border: `1px solid rgba(34, 211, 238, ${0.2 - i * 0.03})`,
+            background: `radial-gradient(circle, transparent 50%, rgba(${i % 2 === 0 ? '34, 211, 238' : '168, 85, 247'}, ${0.04 - i * 0.008}) 100%)`,
           }}
-          animate={
-            isPlaying
-              ? {
-                  scale: [1, 1.1, 1],
-                  opacity: [0.3 - i * 0.08, 0.15 - i * 0.04, 0.3 - i * 0.08],
-                }
-              : { scale: 1, opacity: 0.15 - i * 0.04 }
-          }
+          animate={isPlaying ? {
+            scale: [1, 1.06 + i * 0.015, 1.06 + i * 0.015, 1],
+            opacity: [0.5 - i * 0.08, 0.85 - i * 0.1, 0.85 - i * 0.1, 0.5 - i * 0.08],
+            rotate: [0, (i % 2 === 0 ? 8 : -8), (i % 2 === 0 ? 8 : -8), 0],
+          } : { scale: 1, opacity: 0.2 - i * 0.04, rotate: 0 }}
           transition={{
-            duration: 8,
+            duration: 19,
+            times: [0, 0.21, 0.58, 1],
+            delay: i * 0.2,
             repeat: Infinity,
-            delay: i * 0.5,
             ease: 'easeInOut',
           }}
         />
       ))}
 
-      {/* Main breathing circle */}
+      {/* Layer 3: Particle Orbit System */}
+      <div className="absolute w-[180px] h-[180px] sm:w-[200px] sm:h-[200px] md:w-[220px] md:h-[220px]">
+        {orbitParticles.map((particle) => (
+          <motion.div
+            key={particle.id}
+            className="absolute left-1/2 top-1/2"
+            style={{
+              width: particle.size,
+              height: particle.size,
+              marginLeft: -particle.size / 2,
+              marginTop: -particle.size / 2,
+              background: `radial-gradient(circle, rgba(34, 211, 238, 0.9) 0%, rgba(168, 85, 247, 0.7) 100%)`,
+              borderRadius: '50%',
+              boxShadow: `0 0 ${particle.size * 3}px rgba(34, 211, 238, 0.6)`,
+            }}
+            animate={isPlaying ? {
+              x: [
+                Math.cos(particle.angle * Math.PI / 180) * particle.orbitRadius,
+                Math.cos((particle.angle + 90) * Math.PI / 180) * particle.orbitRadius,
+                Math.cos((particle.angle + 180) * Math.PI / 180) * particle.orbitRadius,
+                Math.cos((particle.angle + 270) * Math.PI / 180) * particle.orbitRadius,
+                Math.cos(particle.angle * Math.PI / 180) * particle.orbitRadius,
+              ],
+              y: [
+                Math.sin(particle.angle * Math.PI / 180) * particle.orbitRadius,
+                Math.sin((particle.angle + 90) * Math.PI / 180) * particle.orbitRadius,
+                Math.sin((particle.angle + 180) * Math.PI / 180) * particle.orbitRadius,
+                Math.sin((particle.angle + 270) * Math.PI / 180) * particle.orbitRadius,
+                Math.sin(particle.angle * Math.PI / 180) * particle.orbitRadius,
+              ],
+              opacity: [0.6, 0.9, 0.6, 0.9, 0.6],
+            } : {
+              x: Math.cos(particle.angle * Math.PI / 180) * particle.orbitRadius,
+              y: Math.sin(particle.angle * Math.PI / 180) * particle.orbitRadius,
+              opacity: 0.3,
+            }}
+            transition={{
+              duration: particle.duration,
+              repeat: Infinity,
+              ease: 'linear',
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Layer 2: Main Pulsing Orb */}
       <motion.div
-        className="relative flex h-40 w-40 sm:h-44 sm:w-44 items-center justify-center rounded-full"
-        animate={
-          isPlaying
-            ? { scale: [1, 1.15, 1.15, 1] }
-            : { scale: 1 }
-        }
+        className={`relative ${ORB_CONFIG.orbSize} rounded-full flex items-center justify-center`}
+        style={{
+          background: 'linear-gradient(135deg, rgba(34, 211, 238, 0.28) 0%, rgba(168, 85, 247, 0.22) 50%, rgba(99, 102, 241, 0.28) 100%)',
+          boxShadow: 'inset 0 0 50px rgba(168, 85, 247, 0.15), inset 0 0 100px rgba(34, 211, 238, 0.1)',
+        }}
+        animate={isPlaying ? {
+          scale: [1, 1.18, 1.18, 1],
+          filter: [
+            'drop-shadow(0 0 35px rgba(34, 211, 238, 0.45)) drop-shadow(0 0 70px rgba(168, 85, 247, 0.25))',
+            'drop-shadow(0 0 70px rgba(34, 211, 238, 0.7)) drop-shadow(0 0 120px rgba(168, 85, 247, 0.4))',
+            'drop-shadow(0 0 70px rgba(34, 211, 238, 0.7)) drop-shadow(0 0 120px rgba(168, 85, 247, 0.4))',
+            'drop-shadow(0 0 35px rgba(34, 211, 238, 0.45)) drop-shadow(0 0 70px rgba(168, 85, 247, 0.25))',
+          ],
+        } : {
+          scale: 1,
+          filter: 'drop-shadow(0 0 25px rgba(34, 211, 238, 0.3)) drop-shadow(0 0 50px rgba(168, 85, 247, 0.15))',
+        }}
         transition={{
-          duration: 8, // 4-7-8 breathing rhythm approximation
-          times: [0, 0.21, 0.58, 1], // 4s inhale, 7s hold, 8s exhale
+          duration: 19, // 4-7-8 breathing: 4s inhale, 7s hold, 8s exhale
+          times: [0, 0.21, 0.58, 1],
           repeat: Infinity,
           ease: 'easeInOut',
         }}
       >
-        {/* Gradient background */}
-        <div className="absolute inset-0 rounded-full bg-gradient-to-br from-cyan-500/20 via-purple-500/20 to-indigo-500/20" />
-
-        {/* Inner glow */}
+        {/* Inner gradient layer */}
         <motion.div
-          className="absolute inset-4 rounded-full bg-gradient-to-br from-cyan-400/30 via-purple-400/20 to-indigo-400/30 blur-sm"
-          animate={
-            isPlaying
-              ? { opacity: [0.5, 0.8, 0.8, 0.5] }
-              : { opacity: 0.4 }
-          }
-          transition={{
-            duration: 8,
-            times: [0, 0.21, 0.58, 1],
-            repeat: Infinity,
-            ease: 'easeInOut',
-          }}
-        />
-
-        {/* Core circle - uses filter for GPU-accelerated animation (30% less CPU than boxShadow) */}
-        <motion.div
-          className="absolute inset-8 rounded-full bg-gradient-to-br from-cyan-400/40 to-purple-500/40"
+          className="absolute inset-4 sm:inset-5 md:inset-6 rounded-full"
           style={{
-            // Static base shadow for the inset effect
-            boxShadow: 'inset 0 0 25px rgba(168, 85, 247, 0.2)',
+            background: 'radial-gradient(circle, rgba(34, 211, 238, 0.35) 0%, rgba(168, 85, 247, 0.2) 50%, transparent 100%)',
+            filter: 'blur(8px)',
           }}
-          animate={
-            isPlaying
-              ? {
-                  filter: [
-                    'drop-shadow(0 0 30px rgba(94, 234, 212, 0.3))',
-                    'drop-shadow(0 0 50px rgba(94, 234, 212, 0.5))',
-                    'drop-shadow(0 0 50px rgba(94, 234, 212, 0.5))',
-                    'drop-shadow(0 0 30px rgba(94, 234, 212, 0.3))',
-                  ],
-                }
-              : {
-                  filter: 'drop-shadow(0 0 20px rgba(94, 234, 212, 0.2))',
-                }
-          }
+          animate={isPlaying ? {
+            opacity: [0.5, 0.9, 0.9, 0.5],
+          } : { opacity: 0.35 }}
           transition={{
-            duration: 8,
+            duration: 19,
             times: [0, 0.21, 0.58, 1],
             repeat: Infinity,
             ease: 'easeInOut',
           }}
         />
 
-        {/* Center dot */}
-        <div className="absolute h-3 w-3 rounded-full bg-white/60 shadow-[0_0_20px_rgba(255,255,255,0.5)]" />
+        {/* Secondary inner ring */}
+        <div
+          className="absolute inset-8 sm:inset-10 md:inset-12 rounded-full"
+          style={{
+            background: 'linear-gradient(135deg, rgba(34, 211, 238, 0.25) 0%, rgba(168, 85, 247, 0.2) 100%)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+          }}
+        />
       </motion.div>
+
+      {/* Layer 1: Inner Energy Core with Radiating Rays */}
+      <motion.div
+        className="absolute w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full z-10"
+        style={{
+          background: 'radial-gradient(circle, rgba(255, 255, 255, 0.95) 0%, rgba(34, 211, 238, 0.85) 35%, rgba(168, 85, 247, 0.5) 65%, transparent 100%)',
+          boxShadow: '0 0 30px rgba(255, 255, 255, 0.6), 0 0 60px rgba(34, 211, 238, 0.5), 0 0 90px rgba(168, 85, 247, 0.3)',
+        }}
+        animate={isPlaying ? {
+          scale: [1, 1.12, 1],
+          opacity: [0.85, 1, 0.85],
+        } : { scale: 1, opacity: 0.65 }}
+        transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+      >
+        {/* Radiating rays */}
+        {coreRays.map((angle) => (
+          <motion.div
+            key={`ray-${angle}`}
+            className="absolute left-1/2 top-1/2 origin-bottom"
+            style={{
+              width: 2,
+              height: 28,
+              marginLeft: -1,
+              marginTop: -28,
+              background: 'linear-gradient(to top, rgba(255, 255, 255, 0.7), rgba(34, 211, 238, 0.3), transparent)',
+              transform: `rotate(${angle}deg)`,
+              borderRadius: '1px',
+            }}
+            animate={isPlaying ? {
+              scaleY: [1, 1.4, 1],
+              opacity: [0.4, 0.85, 0.4],
+            } : { scaleY: 1, opacity: 0.25 }}
+            transition={{
+              duration: 2.5,
+              delay: (angle / 360) * 2.5,
+              repeat: Infinity,
+              ease: 'easeInOut',
+            }}
+          />
+        ))}
+      </motion.div>
+
+      {/* Center bright dot */}
+      <motion.div
+        className="absolute w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full z-20"
+        style={{
+          background: 'radial-gradient(circle, white 0%, rgba(34, 211, 238, 0.9) 100%)',
+          boxShadow: '0 0 15px rgba(255, 255, 255, 0.9), 0 0 30px rgba(34, 211, 238, 0.7)',
+        }}
+        animate={isPlaying ? {
+          scale: [1, 1.2, 1],
+          boxShadow: [
+            '0 0 15px rgba(255, 255, 255, 0.9), 0 0 30px rgba(34, 211, 238, 0.7)',
+            '0 0 25px rgba(255, 255, 255, 1), 0 0 50px rgba(34, 211, 238, 0.9)',
+            '0 0 15px rgba(255, 255, 255, 0.9), 0 0 30px rgba(34, 211, 238, 0.7)',
+          ],
+        } : {}}
+        transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+      />
     </div>
   );
 });
 
-BreathingCircle.displayName = 'BreathingCircle';
+BreathingOrb.displayName = 'BreathingOrb';
 
 /**
- * Floating Particles - Subtle ambient particle effect
- * Uses PARTICLE_COUNT (15) for better performance vs 25
+ * Floating Particles - Enhanced ambient particle effect with INrVO colors
+ * Uses PARTICLE_COUNT (20) for immersive atmosphere
  */
 const FloatingParticles = memo(() => {
-  const particles = [...Array(PARTICLE_COUNT)].map((_, i) => ({
+  const particles = useMemo(() => [...Array(PARTICLE_COUNT)].map((_, i) => ({
     id: i,
     x: Math.random() * 100,
     y: Math.random() * 100,
-    size: Math.random() * 2 + 1,
-    duration: Math.random() * 20 + 20,
-    delay: Math.random() * 10,
-  }));
+    size: Math.random() * 2.5 + 1,
+    duration: Math.random() * 25 + 18,
+    delay: Math.random() * 12,
+    // Color variation: cyan, purple, or white
+    color: i % 3 === 0
+      ? 'rgba(34, 211, 238, 0.4)' // cyan
+      : i % 3 === 1
+        ? 'rgba(168, 85, 247, 0.35)' // purple
+        : 'rgba(255, 255, 255, 0.25)', // white
+    glow: i % 3 === 0
+      ? '0 0 6px rgba(34, 211, 238, 0.5)'
+      : i % 3 === 1
+        ? '0 0 6px rgba(168, 85, 247, 0.4)'
+        : '0 0 4px rgba(255, 255, 255, 0.3)',
+  })), []);
 
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
       {particles.map((particle) => (
         <motion.div
           key={particle.id}
-          className="absolute rounded-full bg-white/20"
+          className="absolute rounded-full"
           style={{
             left: `${particle.x}%`,
             top: `${particle.y}%`,
             width: particle.size,
             height: particle.size,
+            background: particle.color,
+            boxShadow: particle.glow,
           }}
           animate={{
-            y: [0, -30, 0],
-            opacity: [0.1, 0.4, 0.1],
+            y: [0, -35, 0],
+            x: [0, (particle.id % 2 === 0 ? 8 : -8), 0],
+            opacity: [0.15, 0.5, 0.15],
+            scale: [1, 1.2, 1],
           }}
           transition={{
             duration: particle.duration,
