@@ -29,11 +29,12 @@ export interface ChatMessage {
   quote?: { quote: string; teacher: string };
 }
 
-export interface AgentAction {
-  type: 'generate_meditation' | 'show_options' | 'play_audio' | 'show_quote';
-  label: string;
-  data?: any;
-}
+// Discriminated union for type-safe action data
+export type AgentAction =
+  | { type: 'generate_meditation'; label: string; data: { meditationType: MeditationType } }
+  | { type: 'show_options'; label: string; data?: undefined }
+  | { type: 'play_audio'; label: string; data?: undefined }
+  | { type: 'show_quote'; label: string; data?: undefined };
 
 export interface MeditationResult {
   script: string;
@@ -102,7 +103,7 @@ export function useMeditationAgent(): UseMeditationAgentReturn {
         // Use geminiService.chat() for natural conversation
         const response = await geminiService.chat(prompt);
         return response;
-      } catch (error: any) {
+      } catch (error) {
         console.error('Error generating content:', error);
         throw error;
       }
@@ -129,7 +130,7 @@ export function useMeditationAgent(): UseMeditationAgentReturn {
    * Generate a unique message ID
    */
   const generateMessageId = useCallback(() => {
-    return `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return `msg_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
   }, []);
 
   /**
@@ -241,9 +242,10 @@ export function useMeditationAgent(): UseMeditationAgentReturn {
         ));
       }
 
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error in sendMessage:', err);
-      setError(err.message || 'Failed to get response');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to get response';
+      setError(errorMessage);
 
       // Update loading message with error
       setMessages(prev => prev.map(msg =>
@@ -252,7 +254,7 @@ export function useMeditationAgent(): UseMeditationAgentReturn {
               ...msg,
               content: "I apologize, but I'm having trouble responding right now. Please try again.",
               isLoading: false,
-              error: err.message,
+              error: errorMessage,
             }
           : msg
       ));
@@ -305,9 +307,10 @@ export function useMeditationAgent(): UseMeditationAgentReturn {
 
       return meditation;
 
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error generating meditation:', err);
-      setError(err.message || 'Failed to generate meditation');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to generate meditation';
+      setError(errorMessage);
       return null;
     } finally {
       setIsGeneratingMeditation(false);
@@ -350,9 +353,10 @@ export function useMeditationAgent(): UseMeditationAgentReturn {
       };
       setMessages(prev => [...prev, audioMessage]);
 
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error synthesizing meditation:', err);
-      setError(err.message || 'Failed to synthesize audio');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to synthesize audio';
+      setError(errorMessage);
     } finally {
       setIsGeneratingMeditation(false);
     }
@@ -364,9 +368,8 @@ export function useMeditationAgent(): UseMeditationAgentReturn {
   const executeAction = useCallback(async (action: AgentAction) => {
     switch (action.type) {
       case 'generate_meditation':
-        if (action.data?.meditationType) {
-          await generateMeditation('', action.data.meditationType);
-        }
+        // With discriminated union, TypeScript knows action.data has meditationType
+        await generateMeditation('', action.data.meditationType);
         break;
 
       case 'show_options':

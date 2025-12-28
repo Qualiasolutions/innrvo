@@ -14,7 +14,6 @@ const AboutPage = lazy(() => import('./pages/AboutPage'));
 const TermsPage = lazy(() => import('./pages/TermsPage'));
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
 const PricingPage = lazy(() => import('./pages/PricingPage'));
-const MarketingPage = lazy(() => import('./pages/marketing'));
 
 // Loading spinner component - uses ChronosEngine for visual consistency
 const PageLoader = () => (
@@ -82,10 +81,6 @@ export const router = createBrowserRouter([
       {
         path: 'pricing',
         element: <PricingPage />,
-      },
-      {
-        path: 'marketing',
-        element: <MarketingPage />,
       },
     ],
   },

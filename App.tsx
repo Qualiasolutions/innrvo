@@ -5,7 +5,6 @@ import { toast } from 'sonner';
 import { View, VoiceProfile, ScriptTimingMap, CloningStatus, CreditInfo, VoiceMetadata } from './types';
 import { TEMPLATE_CATEGORIES, VOICE_PROFILES, ICONS, BACKGROUND_TRACKS, BackgroundTrack, AUDIO_TAG_CATEGORIES, KEYWORD_TAG_MAP, MUSIC_CATEGORY_CONFIG, TRACKS_BY_CATEGORY, getSuggestedTags, NATURE_SOUNDS, NatureSound } from './constants';
 import { useModals } from './src/contexts/ModalContext';
-import { useVoice } from './src/contexts/VoiceContext';
 import { useAuth } from './src/contexts/AuthContext';
 import { useScript } from './src/contexts/ScriptContext';
 import { useLibrary } from './src/contexts/LibraryContext';

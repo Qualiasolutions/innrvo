@@ -1,12 +1,13 @@
 import React, { createContext, useContext, useState, useRef, useCallback, useEffect, useMemo, ReactNode } from 'react';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { VoiceProfile, ScriptTimingMap, CloningStatus, CreditInfo } from '../../types';
 import { VOICE_PROFILES, BACKGROUND_TRACKS, BackgroundTrack } from '../../constants';
 import { supabase, getCurrentUser, getUserVoiceProfiles, VoiceProfile as DBVoiceProfile, getMeditationHistoryPaginated, MeditationHistory, getAudioTagPreferences } from '../../lib/supabase';
 
 interface AppContextType {
   // Auth
-  user: any;
-  setUser: (user: any) => void;
+  user: SupabaseUser | null;
+  setUser: (user: SupabaseUser | null) => void;
   checkUser: () => Promise<void>;
 
   // Voices
@@ -112,7 +113,7 @@ interface AppProviderProps {
 
 export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   // Auth state
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<SupabaseUser | null>(null);
 
   // Voice state
   const [availableVoices, setAvailableVoices] = useState<VoiceProfile[]>(VOICE_PROFILES);

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useMemo, ReactNode } from 'react';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { supabase, getCurrentUser, getUserVoiceProfiles, VoiceProfile, getAudioTagPreferences } from '../../lib/supabase';
 
 /**
@@ -8,8 +9,8 @@ import { supabase, getCurrentUser, getUserVoiceProfiles, VoiceProfile, getAudioT
  */
 interface AuthContextValue {
   // Auth state
-  user: any;
-  setUser: (user: any) => void;
+  user: SupabaseUser | null;
+  setUser: (user: SupabaseUser | null) => void;
   checkUser: () => Promise<void>;
   isLoading: boolean;
   isAuthenticated: boolean;
@@ -26,7 +27,7 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<SupabaseUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Voice profile state

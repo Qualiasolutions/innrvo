@@ -173,9 +173,10 @@ export async function generateMeditationScript(
         teacherInfluence: options?.teacherInfluence,
       },
     };
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error generating meditation script:', error);
-    return { success: false, error: error.message || 'Failed to generate meditation script' };
+    const message = error instanceof Error ? error.message : 'Failed to generate meditation script';
+    return { success: false, error: message };
   }
 }
 
@@ -199,9 +200,10 @@ export async function extendMeditationScript(
         estimatedDuration,
       },
     };
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error extending meditation script:', error);
-    return { success: false, error: error.message || 'Failed to extend meditation script' };
+    const message = error instanceof Error ? error.message : 'Failed to extend meditation script';
+    return { success: false, error: message };
   }
 }
 
@@ -250,9 +252,10 @@ export async function synthesizeAudio(
         creditsUsed: estimatedCost,
       },
     };
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error synthesizing audio:', error);
-    return { success: false, error: error.message || 'Failed to synthesize audio' };
+    const message = error instanceof Error ? error.message : 'Failed to synthesize audio';
+    return { success: false, error: message };
   }
 }
 
@@ -265,9 +268,10 @@ export async function getUserMeditationHistory(
   try {
     const history = await getMeditationHistory(limit);
     return { success: true, data: history };
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error fetching meditation history:', error);
-    return { success: false, error: error.message || 'Failed to fetch meditation history' };
+    const message = error instanceof Error ? error.message : 'Failed to fetch meditation history';
+    return { success: false, error: message };
   }
 }
 
@@ -298,9 +302,10 @@ export async function saveMeditation(
       return { success: true, data: result };
     }
     return { success: false, error: 'Failed to save meditation' };
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error saving meditation:', error);
-    return { success: false, error: error.message || 'Failed to save meditation' };
+    const message = error instanceof Error ? error.message : 'Failed to save meditation';
+    return { success: false, error: message };
   }
 }
 
@@ -356,9 +361,10 @@ export function suggestMeditation(
     }));
 
     return { success: true, data: result };
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error suggesting meditation:', error);
-    return { success: false, error: error.message || 'Failed to suggest meditation' };
+    const message = error instanceof Error ? error.message : 'Failed to suggest meditation';
+    return { success: false, error: message };
   }
 }
 
@@ -380,9 +386,10 @@ export function getWisdomQuote(
 
     const quote = getRandomQuote(teacherName);
     return { success: true, data: quote };
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error getting wisdom quote:', error);
-    return { success: false, error: error.message || 'Failed to get wisdom quote' };
+    const message = error instanceof Error ? error.message : 'Failed to get wisdom quote';
+    return { success: false, error: message };
   }
 }
 
@@ -393,9 +400,10 @@ export async function getAvailableVoices(): Promise<ToolResult<DBVoiceProfile[]>
   try {
     const voices = await getUserVoiceProfiles();
     return { success: true, data: voices };
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error fetching voices:', error);
-    return { success: false, error: error.message || 'Failed to fetch voices' };
+    const message = error instanceof Error ? error.message : 'Failed to fetch voices';
+    return { success: false, error: message };
   }
 }
 
@@ -417,9 +425,10 @@ export async function getCreditStatus(): Promise<ToolResult<{
         canGenerate: status.creditsRemaining > 100, // Minimum for a short meditation
       },
     };
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error checking credit status:', error);
-    return { success: false, error: error.message || 'Failed to check credit status' };
+    const message = error instanceof Error ? error.message : 'Failed to check credit status';
+    return { success: false, error: message };
   }
 }
 

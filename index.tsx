@@ -7,8 +7,8 @@ import { Toaster } from 'sonner';
 import './index.css';
 import { AppRouter } from './src/router';
 import { ModalProvider } from './src/contexts/ModalContext';
+import { AuthModalProvider } from './src/contexts/modals/AuthModalContext';
 import { AudioProvider } from './src/contexts/AudioContext';
-import { VoiceProvider } from './src/contexts/VoiceContext';
 import { AppProvider } from './src/contexts/AppContext';
 import { AuthProvider } from './src/contexts/AuthContext';
 import { ScriptProvider } from './src/contexts/ScriptContext';
@@ -77,36 +77,36 @@ root.render(
   <React.StrictMode>
     <ErrorBoundary>
       <AuthProvider>
+        <AuthModalProvider>
         <ModalProvider>
           <AudioProvider>
-            <VoiceProvider>
-              <ScriptProvider>
-                <LibraryProvider>
-                  <AudioTagsProvider>
-                    <AppProvider>
-                      <AppRouter />
-                      <Toaster
-                        position="top-center"
-                        richColors
-                        closeButton
-                        duration={4000}
-                        toastOptions={{
-                          style: {
-                            background: 'rgba(15, 23, 42, 0.95)',
-                            border: '1px solid rgba(56, 189, 248, 0.2)',
-                            backdropFilter: 'blur(12px)',
-                            color: '#e2e8f0',
-                          },
-                        }}
-                      />
-                      <Analytics />
-                    </AppProvider>
-                  </AudioTagsProvider>
-                </LibraryProvider>
-              </ScriptProvider>
-            </VoiceProvider>
+            <ScriptProvider>
+              <LibraryProvider>
+                <AudioTagsProvider>
+                  <AppProvider>
+                    <AppRouter />
+                    <Toaster
+                      position="top-center"
+                      richColors
+                      closeButton
+                      duration={4000}
+                      toastOptions={{
+                        style: {
+                          background: 'rgba(15, 23, 42, 0.95)',
+                          border: '1px solid rgba(56, 189, 248, 0.2)',
+                          backdropFilter: 'blur(12px)',
+                          color: '#e2e8f0',
+                        },
+                      }}
+                    />
+                    <Analytics />
+                  </AppProvider>
+                </AudioTagsProvider>
+              </LibraryProvider>
+            </ScriptProvider>
           </AudioProvider>
         </ModalProvider>
+        </AuthModalProvider>
       </AuthProvider>
     </ErrorBoundary>
   </React.StrictMode>

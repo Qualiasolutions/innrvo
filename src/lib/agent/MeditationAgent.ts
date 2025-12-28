@@ -115,11 +115,12 @@ export interface AgentResponse {
   disambiguationQuestion?: string;
 }
 
-export interface AgentAction {
-  type: 'generate_meditation' | 'show_options' | 'play_audio' | 'show_quote';
-  label: string;
-  data?: any;
-}
+// Discriminated union for type-safe action data
+export type AgentAction =
+  | { type: 'generate_meditation'; label: string; data: { meditationType: MeditationType } }
+  | { type: 'show_options'; label: string; data?: undefined }
+  | { type: 'play_audio'; label: string; data?: undefined }
+  | { type: 'show_quote'; label: string; data?: undefined };
 
 // ============================================================================
 // SYSTEM PROMPT

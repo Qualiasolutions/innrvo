@@ -1,45 +1,6 @@
-// Lazy import for GoogleGenAI - only load when needed (fallback for unauthenticated users)
-// This reduces initial bundle size by ~250KB
+// Gemini service - uses Edge Functions for secure API key handling
+// All API keys are stored server-side in Supabase Edge Functions
 // Edge functions are dynamically imported to enable code splitting
-
-// Feature flag: Use Edge Functions for all API calls (secure, API key server-side)
-const USE_EDGE_FUNCTIONS = true;
-
-// Lazy load GoogleGenAI only when needed (deprecated fallback for script generation)
-let GoogleGenAI: any = null;
-
-async function getAI() {
-  if (!GoogleGenAI) {
-    const genai = await import('@google/genai');
-    GoogleGenAI = genai.GoogleGenAI;
-  }
-  return new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
-}
-
-/**
- * Calculate word count and structure based on duration minutes
- * At meditation pace: ~2 words/second (with pauses for breathing)
- */
-function calculateWordStructure(durationMinutes: number): string {
-  const clampedMinutes = Math.max(1, Math.min(30, durationMinutes));
-  const targetWords = Math.round(clampedMinutes * 60 * 2);
-  const minWords = Math.round(targetWords * 0.9);
-  const maxWords = Math.round(targetWords * 1.1);
-
-  // Calculate proportional section lengths
-  const opening = Math.round(targetWords * 0.10);
-  const grounding = Math.round(targetWords * 0.15);
-  const core = Math.round(targetWords * 0.50);
-  const integration = Math.round(targetWords * 0.15);
-  const closing = Math.round(targetWords * 0.10);
-
-  return `Structure (${minWords}-${maxWords} words total for ${clampedMinutes} minute meditation):
-1. OPENING (${opening} words): Acknowledge exactly where they are emotionally. Make them feel SEEN.
-2. GROUNDING (${grounding} words): Breath awareness, body settling
-3. CORE EXPERIENCE (${core} words): The main visualization/practice
-4. INTEGRATION (${integration} words): Connecting the experience to their situation
-5. CLOSING (${closing} words): Gentle return with lasting calm/confidence`;
-}
 
 // Valid audio tags allowed in harmonized output
 const VALID_AUDIO_TAGS = new Set([
@@ -103,35 +64,12 @@ export const geminiService = {
    */
   async chat(prompt: string, options?: { maxTokens?: number; temperature?: number }): Promise<string> {
     try {
-      const { isEdgeFunctionAvailable, geminiChat } = await import('./src/lib/edgeFunctions');
-      if (USE_EDGE_FUNCTIONS && await isEdgeFunctionAvailable()) {
-        return geminiChat(prompt, options);
-      }
-
-      // Fallback to client-side SDK (not recommended - exposes API key)
-      if (!import.meta.env.VITE_GEMINI_API_KEY) {
-        throw new Error('Please sign in to use the meditation assistant.');
-      }
-
-      const ai = await getAI();
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.0-flash',
-        contents: prompt,
-        generationConfig: {
-          temperature: options?.temperature ?? 0.8,
-          maxOutputTokens: options?.maxTokens ?? 500,
-        },
-      });
-
-      const text = response.text;
-      if (!text || text.trim() === '') {
-        throw new Error('Empty response from API. Please try again.');
-      }
-
-      return text;
-    } catch (error: any) {
+      const { geminiChat } = await import('./src/lib/edgeFunctions');
+      return geminiChat(prompt, options);
+    } catch (error) {
       console.error('Error in chat:', error);
-      throw new Error(error?.message || 'Failed to get response. Please try again.');
+      const message = error instanceof Error ? error.message : 'Failed to get response. Please try again.';
+      throw new Error(message);
     }
   },
 
@@ -144,138 +82,13 @@ export const geminiService = {
    */
   async enhanceScript(thought: string, audioTags?: string[], durationMinutes?: number): Promise<string> {
     try {
-      // Use Edge Functions if available (secure, API key server-side)
-      const { isEdgeFunctionAvailable, geminiGenerateScript } = await import('./src/lib/edgeFunctions');
-      if (USE_EDGE_FUNCTIONS && await isEdgeFunctionAvailable()) {
-        return geminiGenerateScript(thought, audioTags, durationMinutes);
-      }
-
-      // Legacy fallback for unauthenticated users (dynamically loads 250KB SDK)
-      if (!import.meta.env.VITE_GEMINI_API_KEY) {
-        throw new Error('Please sign in to generate meditation scripts.');
-      }
-
-      const ai = await getAI();
-
-      let audioTagsInstruction = '';
-      if (audioTags && audioTags.length > 0) {
-        audioTagsInstruction = `
-AUDIO CUES TO INCORPORATE: ${audioTags.join(', ')}
-Weave these naturally into the script where they enhance the experience.`;
-      }
-
-      // Use duration or default to 5 minutes
-      const targetDuration = durationMinutes || 5;
-      const structureGuide = calculateWordStructure(targetDuration);
-
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.0-flash',
-        contents: `You are an expert meditation guide creating HIGHLY PERSONALIZED content. Your meditation must feel like it was written specifically for THIS person's exact situation.
-
-=== USER'S REQUEST ===
-"${thought}"
-=== END REQUEST ===
-
-TARGET DURATION: ${targetDuration} minutes
-
-## STEP 1: DEEP ANALYSIS (internal only)
-
-Identify EVERYTHING specific in the user's request:
-- SITUATION: What specific event/challenge are they facing? (e.g., job interview tomorrow, can't sleep, just had a fight)
-- EMOTION: What are they actually feeling? (anxious, stressed, sad, overwhelmed, scared)
-- SETTING: Did they request a specific place? (beach, forest, space, etc.)
-- TIME: When is this for? (tonight, morning, quick break, before an event)
-- GOAL: What outcome do they want? (calm, sleep, confidence, peace, clarity)
-- TECHNIQUE: Any specific methods mentioned? (breathing, body scan, visualization)
-
-## STEP 2: CONTENT TYPE SELECTION
-
-Based on your analysis, choose ONE:
-- SITUATION-SPECIFIC MEDITATION: For events like interviews, exams, presentations, dates
-- EMOTIONAL HEALING: For sadness, grief, heartbreak, self-doubt
-- ANXIETY/STRESS RELIEF: For overwhelm, panic, racing thoughts
-- SLEEP INDUCTION: For insomnia, racing mind at night, restlessness
-- GROUNDING/PRESENCE: For feeling scattered, disconnected, anxious
-- ENERGY/MOTIVATION: For feeling stuck, unmotivated, tired
-- SELF-LOVE/CONFIDENCE: For self-criticism, doubt, low esteem
-
-## STEP 3: PERSONALIZATION REQUIREMENTS
-
-YOUR MEDITATION MUST:
-1. Reference their SPECIFIC situation within the first 50 words
-   - If they have an interview → mention the interview directly
-   - If they can't sleep → acknowledge their restless mind
-   - If they're anxious about something → name that thing
-
-2. Address their EXACT emotional state
-   - Don't just do a "generic calm" meditation
-   - Speak to what they're actually feeling
-
-3. Use the setting THEY requested (if any)
-   - If they said beach, use beach imagery
-   - If they said forest, use forest imagery
-   - If no setting mentioned, choose one that fits their mood
-
-4. Match the TIME context
-   - Night/sleep: Slower, drowsier, trailing sentences...
-   - Morning: Gentle awakening energy
-   - Before an event: Building confidence and grounding
-
-## STEP 4: WRITE THE SCRIPT
-
-${structureGuide}
-
-Style requirements:
-- Use FIRST PERSON "I" throughout (e.g., "I feel calm", "I breathe deeply", "I am safe")
-- This is a self-affirmation meditation the listener speaks to themselves
-- Rich sensory details (5 senses)
-- Present tense
-- Include audio tags: [pause], [long pause], [deep breath], [exhale slowly]
-- Natural ellipses for pacing...
-- Fresh language (avoid "journey", "sacred", overused meditation clichés)
-- CRITICAL: The meditation MUST be ${targetDuration} minutes long when read at meditation pace
-
-${audioTagsInstruction}
-
-## OUTPUT
-
-Only the meditation script. No titles, headers, labels, or explanations. Start immediately with the experience.
-
-## CRITICAL ACCURACY CHECK
-
-Before writing, verify:
-✓ Does my script reference their specific situation?
-✓ Does it address their exact emotional state?
-✓ Am I using the setting they requested (or an appropriate one)?
-✓ Does the tone match their needs (sleep vs. energy vs. confidence)?
-✓ Would this feel personally written for THEM, not generic?
-✓ Is the script the correct length for ${targetDuration} minutes?
-
-If you cannot answer YES to all of these, revise your approach.`,
-      });
-
-      const text = response.text;
-      if (!text || text.trim() === '') {
-        throw new Error('Empty response from API. Please try again.');
-      }
-
-      return text;
-    } catch (error: any) {
+      const { geminiGenerateScript } = await import('./src/lib/edgeFunctions');
+      return geminiGenerateScript(thought, audioTags, durationMinutes);
+    } catch (error) {
       console.error('Error in enhanceScript:', error);
-      throw new Error(error?.message || 'Failed to generate meditation script. Please try again.');
+      const message = error instanceof Error ? error.message : 'Failed to generate meditation script. Please try again.';
+      throw new Error(message);
     }
-  },
-
-  /**
-   * Fast response for simple edits or prompts.
-   */
-  async quickEdit(instruction: string, text: string): Promise<string> {
-    const ai = await getAI();
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash',
-      contents: `Instruction: ${instruction}\n\nContent: ${text}`,
-    });
-    return response.text || text;
   },
 
   /**
@@ -304,58 +117,14 @@ If you cannot answer YES to all of these, revise your approach.`,
     }
 
     try {
-      // Use Edge Functions if available (secure, API key server-side)
-      const { isEdgeFunctionAvailable, geminiHarmonizeScript } = await import('./src/lib/edgeFunctions');
-      if (USE_EDGE_FUNCTIONS && await isEdgeFunctionAvailable()) {
-        return geminiHarmonizeScript(script);
-      }
-
-      // Legacy fallback for unauthenticated users
-      if (!import.meta.env.VITE_GEMINI_API_KEY) {
-        throw new Error('Please sign in to harmonize scripts.');
-      }
-
-      const ai = await getAI();
-
-      const prompt = `You are enhancing a meditation script by adding audio tags at natural pause points.
-
-MEDITATION SCRIPT:
-"${script}"
-
-AUDIO TAGS TO INSERT (use these EXACTLY as shown):
-- [pause] - Short 2-3 second pause, use after phrases or short sentences
-- [long pause] - Extended 4-5 second pause, use between major sections or after profound statements
-- [deep breath] - Breathing cue, use before or after breathing instructions
-- [exhale slowly] - Slow exhale cue, use when guiding relaxation
-- [silence] - Complete silence moment, use for reflection points
-
-HARMONIZATION RULES:
-1. Add [pause] after sentences that introduce new imagery or concepts
-2. Add [long pause] between major sections (opening, grounding, core, closing)
-3. Add [deep breath] before phrases like "breathe in", "take a breath", "inhale"
-4. Add [exhale slowly] after phrases like "breathe out", "release", "let go"
-5. Add [silence] at moments of deep reflection or before final closing
-6. Don't over-tag - aim for 1-2 tags per paragraph maximum
-7. Preserve the original text EXACTLY - only add tags between sentences/phrases
-8. Never add tags in the middle of a sentence
-
-OUTPUT: The complete harmonized script with audio tags inserted. No explanations, just the enhanced script.`;
-
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.0-flash',
-        contents: prompt,
-      });
-
-      const text = response.text;
-      if (!text || text.trim() === '') {
-        throw new Error('Empty response from API. Please try again.');
-      }
-
+      const { geminiHarmonizeScript } = await import('./src/lib/edgeFunctions');
+      const result = await geminiHarmonizeScript(script);
       // Validate and sanitize harmonized output to prevent XSS
-      return validateHarmonizedOutput(text);
-    } catch (error: any) {
+      return validateHarmonizedOutput(result);
+    } catch (error) {
       console.error('Error in harmonizeScript:', error);
-      throw new Error(error?.message || 'Failed to harmonize script. Please try again.');
+      const message = error instanceof Error ? error.message : 'Failed to harmonize script. Please try again.';
+      throw new Error(message);
     }
   },
 
@@ -366,52 +135,12 @@ OUTPUT: The complete harmonized script with audio tags inserted. No explanations
    */
   async extendScript(existingScript: string): Promise<string> {
     try {
-      // Use Edge Functions if available (secure, API key server-side)
-      const { isEdgeFunctionAvailable, geminiExtendScript } = await import('./src/lib/edgeFunctions');
-      if (USE_EDGE_FUNCTIONS && await isEdgeFunctionAvailable()) {
-        return geminiExtendScript(existingScript);
-      }
-
-      // Legacy fallback for unauthenticated users (dynamically loads 250KB SDK)
-      if (!import.meta.env.VITE_GEMINI_API_KEY) {
-        throw new Error('Please sign in to extend meditation scripts.');
-      }
-
-      const ai = await getAI();
-
-      const prompt = `You are expanding a guided meditation script into a longer, more immersive version.
-
-EXISTING SCRIPT:
-"${existingScript}"
-
-TASK: Expand this meditation into a longer version (250-350 words) while preserving its essence, tone, and flow.
-
-EXPANSION GUIDELINES:
-- Keep the original opening and adapt it naturally into the expanded version
-- Add deeper visualizations with richer sensory details
-- Include additional breathing exercises or body awareness moments
-- Expand the core meditation experience with more guided imagery
-- Add gentle transitions between sections
-- Maintain the same peaceful, professional tone throughout
-- Keep the closing sentiment but make it feel like a natural conclusion to the longer journey
-- Preserve any existing audio tags like [pause], [deep breath], etc. and add more where appropriate
-
-OUTPUT: The complete expanded meditation script only, no explanations or labels.`;
-
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.0-flash',
-        contents: prompt,
-      });
-
-      const text = response.text;
-      if (!text || text.trim() === '') {
-        throw new Error('Empty response from API. Please try again.');
-      }
-
-      return text;
-    } catch (error: any) {
+      const { geminiExtendScript } = await import('./src/lib/edgeFunctions');
+      return geminiExtendScript(existingScript);
+    } catch (error) {
       console.error('Error in extendScript:', error);
-      throw new Error(error?.message || 'Failed to extend meditation script. Please try again.');
+      const message = error instanceof Error ? error.message : 'Failed to extend meditation script. Please try again.';
+      throw new Error(message);
     }
   },
 

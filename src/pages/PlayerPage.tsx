@@ -68,7 +68,9 @@ const PlayerPage: React.FC = () => {
       if (audioSourceRef.current) {
         try {
           audioSourceRef.current.stop();
-        } catch (e) {}
+        } catch {
+          // AudioBufferSourceNode.stop() throws if already stopped - safe to ignore
+        }
       }
       pauseOffsetRef.current = currentTime;
       setIsPlaying(false);
@@ -117,7 +119,9 @@ const PlayerPage: React.FC = () => {
     if (audioSourceRef.current) {
       try {
         audioSourceRef.current.stop();
-      } catch (e) {}
+      } catch {
+        // AudioBufferSourceNode.stop() throws if already stopped - safe to ignore
+      }
     }
 
     pauseOffsetRef.current = clampedTime;
@@ -162,7 +166,9 @@ const PlayerPage: React.FC = () => {
     if (audioSourceRef.current) {
       try {
         audioSourceRef.current.stop();
-      } catch (e) {}
+      } catch {
+        // AudioBufferSourceNode.stop() throws if already stopped - safe to ignore
+      }
     }
     setIsPlaying(false);
 
