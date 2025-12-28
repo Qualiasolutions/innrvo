@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect, memo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from 'framer-motion';
 import { Play, Pause, Volume2, VolumeX } from 'lucide-react';
 
 interface AudioPreviewProps {
@@ -230,7 +230,7 @@ const AudioPreview: React.FC<AudioPreviewProps> = memo(({
     return (
       <div className={`flex items-center gap-2 ${className}`}>
         {/* Play/Pause button */}
-        <motion.button
+        <m.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={handlePlayPause}
@@ -248,7 +248,7 @@ const AudioPreview: React.FC<AudioPreviewProps> = memo(({
         >
           <AnimatePresence mode="wait">
             {isLoading ? (
-              <motion.div
+              <m.div
                 key="loading"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -256,16 +256,16 @@ const AudioPreview: React.FC<AudioPreviewProps> = memo(({
                 className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"
               />
             ) : isPlaying ? (
-              <motion.div key="pause" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
+              <m.div key="pause" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
                 <Pause className="w-4 h-4" fill="currentColor" />
-              </motion.div>
+              </m.div>
             ) : (
-              <motion.div key="play" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
+              <m.div key="play" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
                 <Play className="w-4 h-4 ml-0.5" fill="currentColor" />
-              </motion.div>
+              </m.div>
             )}
           </AnimatePresence>
-        </motion.button>
+        </m.button>
 
         {/* Mini progress bar */}
         <div className="flex-1 min-w-0">
@@ -274,7 +274,7 @@ const AudioPreview: React.FC<AudioPreviewProps> = memo(({
             onClick={handleSeek}
             className="h-1.5 bg-white/10 rounded-full overflow-hidden cursor-pointer group"
           >
-            <motion.div
+            <m.div
               className={`h-full bg-gradient-to-r ${colors.progress} rounded-full`}
               style={{ width: `${progress}%` }}
               layoutId="progress"
@@ -322,7 +322,7 @@ const AudioPreview: React.FC<AudioPreviewProps> = memo(({
       {/* Main controls row */}
       <div className="flex items-center gap-3 sm:gap-4">
         {/* Play/Pause button */}
-        <motion.button
+        <m.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={handlePlayPause}
@@ -340,7 +340,7 @@ const AudioPreview: React.FC<AudioPreviewProps> = memo(({
         >
           <AnimatePresence mode="wait">
             {isLoading ? (
-              <motion.div
+              <m.div
                 key="loading"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -348,16 +348,16 @@ const AudioPreview: React.FC<AudioPreviewProps> = memo(({
                 className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"
               />
             ) : isPlaying ? (
-              <motion.div key="pause" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
+              <m.div key="pause" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
                 <Pause className="w-5 h-5 sm:w-6 sm:h-6" fill="currentColor" />
-              </motion.div>
+              </m.div>
             ) : (
-              <motion.div key="play" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
+              <m.div key="play" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
                 <Play className="w-5 h-5 sm:w-6 sm:h-6 ml-0.5" fill="currentColor" />
-              </motion.div>
+              </m.div>
             )}
           </AnimatePresence>
-        </motion.button>
+        </m.button>
 
         {/* Progress section */}
         <div className="flex-1 min-w-0">
@@ -371,13 +371,13 @@ const AudioPreview: React.FC<AudioPreviewProps> = memo(({
             className="relative h-2 sm:h-2.5 bg-white/10 rounded-full overflow-hidden cursor-pointer group"
           >
             {/* Background glow effect */}
-            <motion.div
+            <m.div
               className={`absolute inset-0 bg-gradient-to-r ${colors.progress} opacity-20 blur-sm`}
               style={{ width: `${progress}%` }}
             />
 
             {/* Progress fill */}
-            <motion.div
+            <m.div
               className={`relative h-full bg-gradient-to-r ${colors.progress} rounded-full`}
               style={{ width: `${progress}%` }}
               transition={{ duration: 0.1 }}
@@ -386,7 +386,7 @@ const AudioPreview: React.FC<AudioPreviewProps> = memo(({
             {/* Hover indicator */}
             <AnimatePresence>
               {isHovering && !disabled && (
-                <motion.div
+                <m.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
@@ -397,7 +397,7 @@ const AudioPreview: React.FC<AudioPreviewProps> = memo(({
             </AnimatePresence>
 
             {/* Thumb indicator (visible on hover or when playing) */}
-            <motion.div
+            <m.div
               className={`
                 absolute top-1/2 -translate-y-1/2
                 w-3 h-3 sm:w-3.5 sm:h-3.5
@@ -425,14 +425,14 @@ const AudioPreview: React.FC<AudioPreviewProps> = memo(({
       {/* Waveform visualization (simplified bars) */}
       <AnimatePresence>
         {isPlaying && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             className="mt-3 flex items-end justify-center gap-0.5 h-6"
           >
             {[...Array(20)].map((_, i) => (
-              <motion.div
+              <m.div
                 key={i}
                 className={`w-1 rounded-full bg-gradient-to-t ${colors.progress}`}
                 animate={{
@@ -446,7 +446,7 @@ const AudioPreview: React.FC<AudioPreviewProps> = memo(({
                 }}
               />
             ))}
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
     </div>

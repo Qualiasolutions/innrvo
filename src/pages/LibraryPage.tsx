@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ChevronUp, Star, Trash2, RotateCcw } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { useModals } from '../contexts/ModalContext';
@@ -178,7 +178,7 @@ const MeditationAudioCard: React.FC<MeditationAudioCardProps> = memo(({
           {/* Expanded content */}
           <AnimatePresence>
             {isExpanded && (
-              <motion.div
+              <m.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
@@ -249,7 +249,7 @@ const MeditationAudioCard: React.FC<MeditationAudioCardProps> = memo(({
                     </button>
                   </div>
                 </div>
-              </motion.div>
+              </m.div>
             )}
           </AnimatePresence>
         </div>

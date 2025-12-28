@@ -23,7 +23,7 @@ npm test                 # Run tests in watch mode
 npm run test:run         # Run tests once
 npm run test:coverage    # Run with coverage report
 npm run test:ui          # Run tests with Vitest UI
-vitest run src/lib/credits.test.ts  # Run single test file
+vitest run tests/lib/credits.test.ts  # Run single test file
 
 # Supabase Edge Functions (requires supabase CLI)
 supabase functions serve                    # Run all functions locally
@@ -37,14 +37,17 @@ supabase db push                            # Push migrations to remote
 
 **Routing:** Uses React Router v7 with lazy-loaded pages (`src/router.tsx`). All pages are code-split via `React.lazy()`.
 
-**Routes:** `/` (home), `/play/:id?` (player), `/library` (My Audios), `/templates`, `/voice`, `/clone`, `/how-it-works`, `/about`, `/terms`, `/privacy`, `/pricing`, `/marketing`
+**Routes:** `/` (home), `/play/:id?` (player), `/library` (My Audios), `/templates`, `/voice`, `/clone`, `/how-it-works`, `/about`, `/terms`, `/privacy`, `/pricing`
 
 **State Management:**
-- React Context for cross-cutting concerns:
-  - `src/contexts/VoiceContext.tsx` - Voice selection state
-  - `src/contexts/ModalContext.tsx` - Modal visibility coordination (with sub-contexts in `src/contexts/modals/`)
-  - `src/contexts/AudioContext.tsx` - Audio playback state
-  - `src/contexts/AppContext.tsx` - App-wide state
+- React Context for cross-cutting concerns (see `src/contexts/index.ts` for exports):
+  - `AuthContext.tsx` - User authentication state
+  - `ScriptContext.tsx` - Meditation script state
+  - `LibraryContext.tsx` - Meditation history/library state
+  - `AudioTagsContext.tsx` - Audio tag state
+  - `AudioContext.tsx` - Audio playback state
+  - `ModalContext.tsx` - Modal visibility coordination (with sub-contexts in `src/contexts/modals/`)
+  - `AppContext.tsx` - App-wide state (voices, preferences, remaining cross-cutting concerns)
 
 **Key Components (two locations):**
 
@@ -79,23 +82,6 @@ The chat input has a subtle cyan/purple glow effect that intensifies when record
 - `src/lib/edgeFunctions.ts` - Edge function wrappers with retry logic
 - `src/lib/voiceService.ts` - TTS provider routing (Fish Audio primary, Chatterbox fallback, Web Speech API free tier)
 - `src/lib/credits.ts` - Credit system (currently disabled, returns unlimited credits)
-
-### Marketing Hub (`/marketing`)
-
-Internal marketing planning dashboard with 3-phase Go-To-Market workflow:
-- **Phase 1: Foundation** - Brand positioning, target personas, value propositions
-- **Phase 2: Validation** - MVP testing, early adopter feedback
-- **Phase 3: Scale** - Growth strategies, channel expansion
-
-Structure in `src/pages/marketing/`:
-- `phases/` - Phase1Foundation, Phase2Validation, Phase3Scale components
-- `sections/` - Overview, Resources, Notes
-- `components/` - Shared UI (ChecklistItem, EditableField, PersonaCard, ProgressIndicator)
-- `hooks/useMarketingData.ts` - localStorage persistence with auto-save
-- `utils/export.ts` - Markdown/JSON export
-- `constants/auth.ts` - Access code protection
-
-Data persisted to localStorage, exportable as markdown. Protected by access code gate.
 
 ### Backend (Supabase Edge Functions)
 
@@ -385,30 +371,18 @@ Default config: 3 retries, 500ms base delay, 5s max delay, with jitter.
 
 ## Architecture Decisions
 
-### AppContext (Not Decomposed)
+### Context Structure (Partially Decomposed)
 
-`src/contexts/AppContext.tsx` is a "god context" (~363 lines, 40+ state items) handling auth, voices, audio, scripts, playback, etc.
+The app uses a hybrid context approach:
+- **Domain-specific contexts** (`AuthContext`, `ScriptContext`, `LibraryContext`, `AudioTagsContext`) handle focused state
+- **AppContext** (~363 lines) remains a "god context" for cross-cutting concerns: voices, preferences, and app-wide state
 
-**Decision:** Kept as-is for now.
-
-**Rationale:**
+**Rationale for keeping AppContext large:**
 - No observable performance issues
-- Medium risk to decompose (touches 20+ files)
 - Meditation app doesn't have high-frequency state updates
 - Works fine in production
 
-**Future decomposition plan** (if needed):
-```
-src/contexts/
-├── AuthContext.tsx      # user, auth methods
-├── VoiceContext.tsx     # voice selection, cloning (exists)
-├── PlaybackContext.tsx  # isPlaying, currentTime, audio refs
-├── ScriptContext.tsx    # script state, audio tags
-├── LibraryContext.tsx   # meditation history, pagination
-└── AppContext.tsx       # minimal: theme, navigation only
-```
-
-**When to decompose:**
+**Future decomposition triggers:**
 - UI lag during playback
 - File grows past 500 lines
 - Multiple devs causing merge conflicts

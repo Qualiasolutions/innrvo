@@ -1,5 +1,6 @@
 
 import React, { useState, useRef, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
+import { LazyMotion, domAnimation } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { View, VoiceProfile, ScriptTimingMap, CloningStatus, CreditInfo, VoiceMetadata } from './types';
@@ -1757,7 +1758,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <>
+    <LazyMotion features={domAnimation} strict>
       <OfflineIndicator />
       {isLoading && <LoadingScreen onComplete={() => setIsLoading(false)} />}
 
@@ -3238,7 +3239,7 @@ const App: React.FC = () => {
         )}
 
       </div>
-    </>
+    </LazyMotion>
   );
 };
 

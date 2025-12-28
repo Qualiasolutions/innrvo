@@ -82,25 +82,7 @@
     -webkit-backdrop-filter: blur(12px);
   }
 
-  /* Clean hover effects - NO GLOW */
-  .glow-ambient,
-  .glow-border,
-  .glow-hover,
-  .glow-pulse,
-  .glow-shimmer,
-  .glow-breathe,
-  .glow-accent,
-  .glow-text,
-  .glow-text-subtle,
-  .glow-radial,
-  .glow-corners,
-  .glow-gradient-border,
-  .glow-input,
-  .glow-modal,
-  .glow-inner {
-    /* All glows disabled - clean look */
-  }
-
+  /* Clean hover effects */
   .glow-hover {
     transition: border-color 0.3s ease, background 0.3s ease;
     border: 1px solid rgba(255, 255, 255, 0.05);
@@ -163,6 +145,16 @@
       transition-duration: 0.01ms !important;
       scroll-behavior: auto !important;
     }
+  }
+
+  /* CSS containment for animation performance */
+  .animate-shimmer,
+  .animate-gradient,
+  .animate-pulse-subtle,
+  .icon-float,
+  .step-card,
+  [class*="animate-"] {
+    contain: layout paint;
   }
 
   /* Micro-interactions */

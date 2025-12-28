@@ -1,5 +1,5 @@
 import React, { useCallback, memo, useState, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from 'framer-motion';
 import { X, Play, Pause, RotateCcw, RotateCw, Volume2, Gauge } from 'lucide-react';
 import { ICONS } from '../../constants';
 
@@ -113,7 +113,7 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
   return (
     <div className="fixed inset-0 z-[100] w-full overflow-hidden bg-[#0f172a]">
       {/* Animated gradient background */}
-      <motion.div
+      <m.div
         className="absolute inset-0"
         animate={{
           background: [
@@ -133,7 +133,7 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
       <div className="relative z-10 flex min-h-[100dvh] flex-col items-center justify-between px-4 sm:px-6 pb-12 sm:pb-16 md:pb-20 pt-16 sm:pt-14 safe-top safe-bottom">
         {/* Header with close button */}
         <div className="w-full max-w-lg mt-2">
-          <motion.button
+          <m.button
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             whileHover={{ scale: 1.1 }}
@@ -143,7 +143,7 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
             aria-label="Close player"
           >
             <X className="h-5 w-5" />
-          </motion.button>
+          </m.button>
         </div>
 
         {/* Center content */}
@@ -152,7 +152,7 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
           <BreathingOrb isPlaying={isPlaying} />
 
           {/* Title and time */}
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
@@ -164,11 +164,11 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
             <p className="mt-2 font-mono text-sm text-white/50">
               {formatTime(currentTime)} / {formatTime(duration)}
             </p>
-          </motion.div>
+          </m.div>
         </div>
 
         {/* Controls */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
@@ -198,7 +198,7 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
 
           {/* Main playback controls */}
           <div className="flex items-center justify-center gap-6 sm:gap-8">
-            <motion.button
+            <m.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => onSkip(-15)}
@@ -207,9 +207,9 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
             >
               <RotateCcw className="h-6 w-6" />
               <span className="absolute -bottom-1 text-[10px] font-medium">15</span>
-            </motion.button>
+            </m.button>
 
-            <motion.button
+            <m.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={onPlayPause}
@@ -218,18 +218,18 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
             >
               <AnimatePresence mode="wait">
                 {isPlaying ? (
-                  <motion.div key="pause" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
+                  <m.div key="pause" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
                     <Pause className="h-7 w-7 fill-white" />
-                  </motion.div>
+                  </m.div>
                 ) : (
-                  <motion.div key="play" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
+                  <m.div key="play" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
                     <Play className="ml-1 h-7 w-7 fill-white" />
-                  </motion.div>
+                  </m.div>
                 )}
               </AnimatePresence>
-            </motion.button>
+            </m.button>
 
-            <motion.button
+            <m.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => onSkip(15)}
@@ -238,12 +238,12 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
             >
               <RotateCw className="h-6 w-6" />
               <span className="absolute -bottom-1 text-[10px] font-medium">15</span>
-            </motion.button>
+            </m.button>
           </div>
 
           {/* Voice speed, volume toggle, and nature sound button */}
           <div className="flex items-center justify-center gap-3 mt-4 flex-wrap">
-            <motion.button
+            <m.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => setShowControls(!showControls)}
@@ -257,11 +257,11 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
               <span>{playbackRate.toFixed(1)}x</span>
               <Volume2 className="h-4 w-4 ml-1" />
               <span>{Math.round(voiceVolume * 100)}%</span>
-            </motion.button>
+            </m.button>
 
             {/* Nature Sound Button */}
             {onOpenNatureSoundModal && (
-              <motion.button
+              <m.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={onOpenNatureSoundModal}
@@ -275,14 +275,14 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
                 <span className="max-w-[80px] truncate">
                   {natureSoundEnabled ? natureSoundName : 'Nature'}
                 </span>
-              </motion.button>
+              </m.button>
             )}
           </div>
 
           {/* Expanded controls panel - Glassmorphism */}
           <AnimatePresence>
             {showControls && (
-              <motion.div
+              <m.div
                 initial={{ opacity: 0, height: 0, scale: 0.95 }}
                 animate={{ opacity: 1, height: 'auto', scale: 1 }}
                 exit={{ opacity: 0, height: 0, scale: 0.95 }}
@@ -423,11 +423,11 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
                     </div>
                   )}
                 </div>
-              </motion.div>
+              </m.div>
             )}
           </AnimatePresence>
 
-        </motion.div>
+        </m.div>
       </div>
     </div>
   );
@@ -478,7 +478,7 @@ const BreathingOrb = memo(({ isPlaying }: { isPlaying: boolean }) => {
   return (
     <div className="relative flex items-center justify-center">
       {/* Layer 5: Ambient Glow Field */}
-      <motion.div
+      <m.div
         className="absolute w-[240px] h-[240px] sm:w-[280px] sm:h-[280px] md:w-[320px] md:h-[320px] lg:w-[350px] lg:h-[350px] rounded-full"
         style={{
           background: 'radial-gradient(circle, rgba(34, 211, 238, 0.18) 0%, rgba(168, 85, 247, 0.12) 35%, rgba(99, 102, 241, 0.06) 60%, transparent 80%)',
@@ -498,7 +498,7 @@ const BreathingOrb = memo(({ isPlaying }: { isPlaying: boolean }) => {
 
       {/* Layer 4: Aurora Rings - 4 expanding waves */}
       {ORB_CONFIG.auroraRings.map((ring, i) => (
-        <motion.div
+        <m.div
           key={`aurora-${i}`}
           className={`absolute ${ring.size} rounded-full`}
           style={{
@@ -523,7 +523,7 @@ const BreathingOrb = memo(({ isPlaying }: { isPlaying: boolean }) => {
       {/* Layer 3: Particle Orbit System */}
       <div className="absolute w-[180px] h-[180px] sm:w-[200px] sm:h-[200px] md:w-[220px] md:h-[220px]">
         {orbitParticles.map((particle) => (
-          <motion.div
+          <m.div
             key={particle.id}
             className="absolute left-1/2 top-1/2"
             style={{
@@ -566,7 +566,7 @@ const BreathingOrb = memo(({ isPlaying }: { isPlaying: boolean }) => {
       </div>
 
       {/* Layer 2: Main Pulsing Orb */}
-      <motion.div
+      <m.div
         className={`relative ${ORB_CONFIG.orbSize} rounded-full flex items-center justify-center`}
         style={{
           background: 'linear-gradient(135deg, rgba(34, 211, 238, 0.28) 0%, rgba(168, 85, 247, 0.22) 50%, rgba(99, 102, 241, 0.28) 100%)',
@@ -592,7 +592,7 @@ const BreathingOrb = memo(({ isPlaying }: { isPlaying: boolean }) => {
         }}
       >
         {/* Inner gradient layer */}
-        <motion.div
+        <m.div
           className="absolute inset-4 sm:inset-5 md:inset-6 rounded-full"
           style={{
             background: 'radial-gradient(circle, rgba(34, 211, 238, 0.35) 0%, rgba(168, 85, 247, 0.2) 50%, transparent 100%)',
@@ -617,10 +617,10 @@ const BreathingOrb = memo(({ isPlaying }: { isPlaying: boolean }) => {
             border: '1px solid rgba(255, 255, 255, 0.1)',
           }}
         />
-      </motion.div>
+      </m.div>
 
       {/* Layer 1: Inner Energy Core with Radiating Rays */}
-      <motion.div
+      <m.div
         className="absolute w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full z-10"
         style={{
           background: 'radial-gradient(circle, rgba(255, 255, 255, 0.95) 0%, rgba(34, 211, 238, 0.85) 35%, rgba(168, 85, 247, 0.5) 65%, transparent 100%)',
@@ -634,7 +634,7 @@ const BreathingOrb = memo(({ isPlaying }: { isPlaying: boolean }) => {
       >
         {/* Radiating rays */}
         {coreRays.map((angle) => (
-          <motion.div
+          <m.div
             key={`ray-${angle}`}
             className="absolute left-1/2 top-1/2 origin-bottom"
             style={{
@@ -658,10 +658,10 @@ const BreathingOrb = memo(({ isPlaying }: { isPlaying: boolean }) => {
             }}
           />
         ))}
-      </motion.div>
+      </m.div>
 
       {/* Center bright dot */}
-      <motion.div
+      <m.div
         className="absolute w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full z-20"
         style={{
           background: 'radial-gradient(circle, white 0%, rgba(34, 211, 238, 0.9) 100%)',
@@ -711,7 +711,7 @@ const FloatingParticles = memo(() => {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
       {particles.map((particle) => (
-        <motion.div
+        <m.div
           key={particle.id}
           className="absolute rounded-full"
           style={{

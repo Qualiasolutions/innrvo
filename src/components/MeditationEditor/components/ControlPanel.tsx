@@ -6,7 +6,7 @@
  */
 
 import React, { memo, useState, useCallback, useMemo, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from 'framer-motion';
 import AudioPreview from '../../../../components/ui/AudioPreview';
 import type { VoiceProfile } from '../../../../types';
 import type { BackgroundTrack } from '../../../../constants';
@@ -372,7 +372,7 @@ export const ControlPanel = memo<ControlPanelProps>(
 
                         <AnimatePresence mode="wait">
                           {voicePreviewUrl ? (
-                            <motion.div
+                            <m.div
                               key="preview"
                               initial={{ opacity: 0, y: 10 }}
                               animate={{ opacity: 1, y: 0 }}
@@ -384,9 +384,9 @@ export const ControlPanel = memo<ControlPanelProps>(
                                 accentColor="cyan"
                                 onEnded={onStopVoicePreview}
                               />
-                            </motion.div>
+                            </m.div>
                           ) : (
-                            <motion.button
+                            <m.button
                               key="generate"
                               initial={{ opacity: 0 }}
                               animate={{ opacity: 1 }}
@@ -412,7 +412,7 @@ export const ControlPanel = memo<ControlPanelProps>(
                                   <span>Preview "{selectedVoice.name}"</span>
                                 </>
                               )}
-                            </motion.button>
+                            </m.button>
                           )}
                         </AnimatePresence>
 
