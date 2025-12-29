@@ -65,7 +65,7 @@ interface CachedVoiceProfile {
 }
 
 const voiceProfileCache = new Map<string, CachedVoiceProfile>();
-const VOICE_CACHE_TTL = 300000; // 5 minutes
+const VOICE_CACHE_TTL = 3600000; // 1 hour (voice profiles rarely change)
 
 // Periodic cache cleanup (every 5 minutes, cleans expired entries)
 setInterval(() => {
@@ -146,10 +146,10 @@ async function runFishAudioTTS(
       text,
       chunk_length: 300,         // Larger chunks = fewer API calls = faster
       format: options?.format ?? 'mp3',
-      mp3_bitrate: 128,          // Standard quality (faster encoding than 192)
+      mp3_bitrate: 128,          // Good quality (Fish Audio only accepts 64, 128, 192)
       latency: 'balanced',       // Faster response (vs 'normal') - good enough for meditation
       normalize: true,           // Consistent volume
-      streaming: false,
+      streaming: false,          // Note: streaming: true would require client-side changes
     }),
   });
 
