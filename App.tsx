@@ -2490,7 +2490,7 @@ const App: React.FC = () => {
           {/* History */}
           <div className="flex-1 flex flex-col min-h-0 p-4">
             <p className="text-[10px] font-medium text-white/70 uppercase tracking-wider mb-3">History</p>
-            <div className="flex-1 overflow-y-auto divide-y divide-cyan-500/10">
+            <div className="flex-1 overflow-y-auto space-y-1">
               {user ? (
                 isLoadingHistory ? (
                   <div className="flex justify-center py-6">
@@ -2498,34 +2498,38 @@ const App: React.FC = () => {
                   </div>
                 ) : meditationHistory.length > 0 ? (
                   meditationHistory.slice(0, 10).map((item, index) => (
-                    <button
-                      key={item.id}
-                      onClick={() => {
-                        const scriptToRestore = item.enhanced_script || item.prompt;
-                        setScript(item.prompt);
-                        setEnhancedScript(scriptToRestore);
-                        setRestoredScript(scriptToRestore);
-                        if (item.voice_id && savedVoices.length > 0) {
-                          const matchingVoice = savedVoices.find(v => v.id === item.voice_id);
-                          if (matchingVoice) {
-                            setSelectedVoice({
-                              id: matchingVoice.id,
-                              name: matchingVoice.name,
-                              provider: 'chatterbox',
-                              voiceName: matchingVoice.name,
-                              description: 'Cloned voice',
-                              isCloned: true,
-                              providerVoiceId: matchingVoice.provider_voice_id,
-                            });
+                    <div key={item.id}>
+                      {index > 0 && (
+                        <div className="h-px bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent my-1" />
+                      )}
+                      <button
+                        onClick={() => {
+                          const scriptToRestore = item.enhanced_script || item.prompt;
+                          setScript(item.prompt);
+                          setEnhancedScript(scriptToRestore);
+                          setRestoredScript(scriptToRestore);
+                          if (item.voice_id && savedVoices.length > 0) {
+                            const matchingVoice = savedVoices.find(v => v.id === item.voice_id);
+                            if (matchingVoice) {
+                              setSelectedVoice({
+                                id: matchingVoice.id,
+                                name: matchingVoice.name,
+                                provider: 'chatterbox',
+                                voiceName: matchingVoice.name,
+                                description: 'Cloned voice',
+                                isCloned: true,
+                                providerVoiceId: matchingVoice.provider_voice_id,
+                              });
+                            }
                           }
-                        }
-                        setShowBurgerMenu(false);
-                      }}
-                      className={`w-full text-left p-2.5 rounded-lg hover:bg-cyan-500/5 transition-all group border-l-2 border-transparent hover:border-cyan-500/50 ${index === 0 ? '' : 'pt-3'}`}
-                    >
-                      <p className="text-sm text-white/90 group-hover:text-white whitespace-pre-wrap line-clamp-2">{item.enhanced_script || item.prompt}</p>
-                      <p className="text-[10px] text-cyan-400/50 group-hover:text-cyan-400/70 mt-1">{new Date(item.created_at).toLocaleDateString()}</p>
-                    </button>
+                          setShowBurgerMenu(false);
+                        }}
+                        className="w-full text-left p-2.5 rounded-lg hover:bg-cyan-500/10 transition-all group border-l-2 border-cyan-500/20 hover:border-cyan-400"
+                      >
+                        <p className="text-sm text-white/90 group-hover:text-white whitespace-pre-wrap line-clamp-2">{item.enhanced_script || item.prompt}</p>
+                        <p className="text-[10px] text-cyan-400/60 group-hover:text-cyan-400 mt-1">{new Date(item.created_at).toLocaleDateString()}</p>
+                      </button>
+                    </div>
                   ))
                 ) : (
                   <p className="text-sm text-white/60 text-center py-6">No history yet</p>
