@@ -244,18 +244,32 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
           {/* Expand controls arrow */}
           <div className="flex items-center justify-center mt-4">
             <m.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={{ scale: 1.15 }}
+              whileTap={{ scale: 0.9 }}
               onClick={() => setShowControls(!showControls)}
-              className="flex items-center justify-center w-10 h-10 rounded-full bg-white/5 text-white/50 hover:bg-white/10 hover:text-white/70 transition-all backdrop-blur-sm"
+              className="flex items-center justify-center p-2 transition-opacity hover:opacity-100 opacity-60"
               aria-label={showControls ? 'Hide sound controls' : 'Show sound controls'}
+              style={{
+                background: 'linear-gradient(135deg, #22d3ee 0%, #a855f7 50%, #22d3ee 100%)',
+                WebkitBackgroundClip: 'text',
+                backgroundClip: 'text',
+              }}
             >
               <m.div
                 animate={{ rotate: showControls ? 180 : 0 }}
                 transition={{ duration: 0.2 }}
               >
-                <ChevronUp className="h-5 w-5" />
+                <ChevronUp className="h-6 w-6" style={{ stroke: 'url(#player-arrow-gradient)' }} />
               </m.div>
+              <svg width="0" height="0" className="absolute">
+                <defs>
+                  <linearGradient id="player-arrow-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#22d3ee" />
+                    <stop offset="50%" stopColor="#a855f7" />
+                    <stop offset="100%" stopColor="#22d3ee" />
+                  </linearGradient>
+                </defs>
+              </svg>
             </m.button>
           </div>
 
