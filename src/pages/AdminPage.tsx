@@ -241,14 +241,14 @@ const AdminPage: React.FC = () => {
 
   return (
     <AppLayout showBackButton backTo="/">
-      <div className="container mx-auto px-4 py-8 pt-20 max-w-7xl">
+      <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-8 pt-16 sm:pt-20 max-w-7xl">
         {/* Header */}
-        <div className="mb-8">
-          <div className="inline-block px-4 py-1 rounded-full bg-purple-500/10 text-purple-400 text-[10px] font-bold uppercase tracking-[0.4em] mb-4">
+        <div className="mb-6 sm:mb-8">
+          <div className="inline-block px-3 sm:px-4 py-1 rounded-full bg-purple-500/10 text-purple-400 text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.3em] sm:tracking-[0.4em] mb-3 sm:mb-4">
             Admin Panel
           </div>
-          <h1 className="text-4xl font-bold text-white mb-2">System Management</h1>
-          <p className="text-slate-400">Manage users, content, and system settings</p>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-1 sm:mb-2">System Management</h1>
+          <p className="text-slate-400 text-sm sm:text-base">Manage users, content, and system settings</p>
         </div>
 
         {/* Error Banner */}
@@ -263,7 +263,7 @@ const AdminPage: React.FC = () => {
         )}
 
         {/* Tab Navigation */}
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+        <div className="flex gap-1.5 sm:gap-2 mb-4 sm:mb-6 overflow-x-auto pb-2 -mx-3 px-3 sm:mx-0 sm:px-0">
           {tabs.map(tab => {
             const Icon = tab.icon;
             return (
@@ -271,15 +271,15 @@ const AdminPage: React.FC = () => {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`
-                  flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all whitespace-nowrap
+                  flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2.5 sm:py-3 rounded-xl font-medium transition-all whitespace-nowrap text-sm sm:text-base
                   ${activeTab === tab.id
                     ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
                     : 'bg-white/[0.02] text-slate-400 hover:bg-white/[0.04] hover:text-white border border-white/[0.06]'
                   }
                 `}
               >
-                <Icon className="w-5 h-5" />
-                {tab.label}
+                <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="hidden xs:inline sm:inline">{tab.label}</span>
               </button>
             );
           })}
@@ -287,10 +287,10 @@ const AdminPage: React.FC = () => {
 
         {/* Tab Content */}
         {activeTab === 'analytics' && (
-          <GlassCard className="!p-8 !rounded-2xl">
-            <h2 className="text-2xl font-bold text-white mb-6">System Analytics</h2>
+          <GlassCard className="!p-4 sm:!p-6 md:!p-8 !rounded-xl sm:!rounded-2xl">
+            <h2 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6">System Analytics</h2>
             {analytics ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
                 <StatCard
                   label="Total Users"
                   value={analytics.totalUsers}
@@ -323,52 +323,91 @@ const AdminPage: React.FC = () => {
         )}
 
         {activeTab === 'users' && (
-          <GlassCard className="!p-8 !rounded-2xl">
-            <h2 className="text-2xl font-bold text-white mb-6">Users ({users.length})</h2>
+          <GlassCard className="!p-4 sm:!p-6 md:!p-8 !rounded-xl sm:!rounded-2xl">
+            <h2 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6">Users ({users.length})</h2>
             {users.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left">
-                  <thead className="border-b border-white/10">
-                    <tr className="text-slate-400 text-sm">
-                      <th className="pb-3 pr-4">Email</th>
-                      <th className="pb-3 pr-4">Role</th>
-                      <th className="pb-3 pr-4">Tier</th>
-                      <th className="pb-3 pr-4">Created</th>
-                      <th className="pb-3 w-16"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {users.map(u => (
-                      <tr key={u.id} className="border-b border-white/5 hover:bg-white/[0.02]">
-                        <td className="py-3 pr-4 text-white">{u.email}</td>
-                        <td className="py-3 pr-4">
-                          <span className={`px-2 py-1 rounded text-xs font-medium ${
-                            u.role === 'ADMIN'
-                              ? 'bg-purple-500/20 text-purple-400'
-                              : 'bg-slate-500/20 text-slate-400'
-                          }`}>
-                            {u.role}
-                          </span>
-                        </td>
-                        <td className="py-3 pr-4 text-slate-300">{u.tier}</td>
-                        <td className="py-3 pr-4 text-slate-400 text-sm">
-                          {new Date(u.created_at).toLocaleDateString()}
-                        </td>
-                        <td className="py-3 text-right">
-                          <button
-                            onClick={() => setDeleteConfirm({ type: 'user', id: u.id, name: u.email })}
-                            className="text-slate-500 hover:text-red-400 p-2 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                            disabled={u.role === 'ADMIN'}
-                            title={u.role === 'ADMIN' ? 'Cannot delete admin users' : 'Delete user'}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </td>
+              <>
+                {/* Desktop Table View */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full text-left">
+                    <thead className="border-b border-white/10">
+                      <tr className="text-slate-400 text-sm">
+                        <th className="pb-3 pr-4">Email</th>
+                        <th className="pb-3 pr-4">Role</th>
+                        <th className="pb-3 pr-4">Tier</th>
+                        <th className="pb-3 pr-4">Created</th>
+                        <th className="pb-3 w-16"></th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {users.map(u => (
+                        <tr key={u.id} className="border-b border-white/5 hover:bg-white/[0.02]">
+                          <td className="py-3 pr-4 text-white">{u.email}</td>
+                          <td className="py-3 pr-4">
+                            <span className={`px-2 py-1 rounded text-xs font-medium ${
+                              u.role === 'ADMIN'
+                                ? 'bg-purple-500/20 text-purple-400'
+                                : 'bg-slate-500/20 text-slate-400'
+                            }`}>
+                              {u.role}
+                            </span>
+                          </td>
+                          <td className="py-3 pr-4 text-slate-300">{u.tier}</td>
+                          <td className="py-3 pr-4 text-slate-400 text-sm">
+                            {new Date(u.created_at).toLocaleDateString()}
+                          </td>
+                          <td className="py-3 text-right">
+                            <button
+                              onClick={() => setDeleteConfirm({ type: 'user', id: u.id, name: u.email })}
+                              className="text-slate-500 hover:text-red-400 p-2 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                              disabled={u.role === 'ADMIN'}
+                              title={u.role === 'ADMIN' ? 'Cannot delete admin users' : 'Delete user'}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Mobile Card View */}
+                <div className="md:hidden space-y-3">
+                  {users.map(u => (
+                    <div
+                      key={u.id}
+                      className="p-3 bg-white/[0.02] rounded-xl border border-white/[0.06]"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-white text-sm font-medium truncate">{u.email}</p>
+                          <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${
+                              u.role === 'ADMIN'
+                                ? 'bg-purple-500/20 text-purple-400'
+                                : 'bg-slate-500/20 text-slate-400'
+                            }`}>
+                              {u.role}
+                            </span>
+                            <span className="text-slate-400 text-xs">{u.tier}</span>
+                            <span className="text-slate-500 text-xs">
+                              {new Date(u.created_at).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => setDeleteConfirm({ type: 'user', id: u.id, name: u.email })}
+                          className="text-slate-500 hover:text-red-400 p-1.5 transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex-shrink-0"
+                          disabled={u.role === 'ADMIN'}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
             ) : (
               <EmptyState message="No users found" />
             )}
@@ -376,27 +415,27 @@ const AdminPage: React.FC = () => {
         )}
 
         {activeTab === 'content' && (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {/* Meditations */}
-            <GlassCard className="!p-8 !rounded-2xl">
-              <h2 className="text-2xl font-bold text-white mb-6">
+            <GlassCard className="!p-4 sm:!p-6 md:!p-8 !rounded-xl sm:!rounded-2xl">
+              <h2 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6">
                 Recent Meditations ({meditations.length})
               </h2>
               {meditations.length > 0 ? (
-                <div className="space-y-3">
+                <div className="space-y-2 sm:space-y-3">
                   {meditations.map(m => (
                     <div
                       key={m.id}
-                      className="flex items-start justify-between p-4 bg-white/[0.02] rounded-xl border border-white/[0.06]"
+                      className="flex items-start justify-between p-3 sm:p-4 bg-white/[0.02] rounded-lg sm:rounded-xl border border-white/[0.06]"
                     >
-                      <div className="flex-1 min-w-0 pr-4">
-                        <p className="text-white text-sm line-clamp-2">{m.prompt}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <p className="text-slate-500 text-xs">
+                      <div className="flex-1 min-w-0 pr-2 sm:pr-4">
+                        <p className="text-white text-xs sm:text-sm line-clamp-2">{m.prompt}</p>
+                        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mt-1">
+                          <p className="text-slate-500 text-[10px] sm:text-xs">
                             {new Date(m.created_at).toLocaleString()}
                           </p>
                           {m.users?.email && (
-                            <span className="text-cyan-400/70 text-xs">
+                            <span className="text-cyan-400/70 text-[10px] sm:text-xs truncate max-w-[120px] sm:max-w-none">
                               by {m.users.email}
                             </span>
                           )}
@@ -408,9 +447,9 @@ const AdminPage: React.FC = () => {
                           id: m.id,
                           name: m.prompt.slice(0, 50) + (m.prompt.length > 50 ? '...' : '')
                         })}
-                        className="text-slate-500 hover:text-red-400 p-2 flex-shrink-0 transition-colors"
+                        className="text-slate-500 hover:text-red-400 p-1.5 sm:p-2 flex-shrink-0 transition-colors"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       </button>
                     </div>
                   ))}
@@ -421,22 +460,22 @@ const AdminPage: React.FC = () => {
             </GlassCard>
 
             {/* Voice Profiles */}
-            <GlassCard className="!p-8 !rounded-2xl">
-              <h2 className="text-2xl font-bold text-white mb-6">
+            <GlassCard className="!p-4 sm:!p-6 md:!p-8 !rounded-xl sm:!rounded-2xl">
+              <h2 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6">
                 Voice Profiles ({voices.length})
               </h2>
               {voices.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   {voices.map(v => (
                     <div
                       key={v.id}
-                      className="flex items-center justify-between p-4 bg-white/[0.02] rounded-xl border border-white/[0.06]"
+                      className="flex items-center justify-between p-3 sm:p-4 bg-white/[0.02] rounded-lg sm:rounded-xl border border-white/[0.06]"
                     >
-                      <div>
-                        <p className="text-white font-medium">{v.name}</p>
-                        <div className="flex items-center gap-2 text-sm">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-white font-medium text-sm sm:text-base truncate">{v.name}</p>
+                        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs sm:text-sm mt-0.5">
                           <span className="text-slate-400">{v.language}</span>
-                          <span className={`px-2 py-0.5 rounded text-xs ${
+                          <span className={`px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-xs ${
                             v.status === 'READY'
                               ? 'bg-emerald-500/20 text-emerald-400'
                               : 'bg-amber-500/20 text-amber-400'
@@ -445,14 +484,14 @@ const AdminPage: React.FC = () => {
                           </span>
                         </div>
                         {v.users?.email && (
-                          <p className="text-cyan-400/70 text-xs mt-1">by {v.users.email}</p>
+                          <p className="text-cyan-400/70 text-[10px] sm:text-xs mt-1 truncate">{v.users.email}</p>
                         )}
                       </div>
                       <button
                         onClick={() => setDeleteConfirm({ type: 'voice', id: v.id, name: v.name })}
-                        className="text-slate-500 hover:text-red-400 p-2 transition-colors"
+                        className="text-slate-500 hover:text-red-400 p-1.5 sm:p-2 flex-shrink-0 transition-colors"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       </button>
                     </div>
                   ))}
@@ -465,49 +504,49 @@ const AdminPage: React.FC = () => {
         )}
 
         {activeTab === 'tags' && (
-          <GlassCard className="!p-8 !rounded-2xl">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-white">Audio Tags ({audioTags.length})</h2>
+          <GlassCard className="!p-4 sm:!p-6 md:!p-8 !rounded-xl sm:!rounded-2xl">
+            <div className="flex items-center justify-between mb-4 sm:mb-6 gap-3">
+              <h2 className="text-xl sm:text-2xl font-bold text-white">Audio Tags ({audioTags.length})</h2>
               <button
                 onClick={() => setShowAddTag(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-cyan-500/20 text-cyan-400 rounded-lg hover:bg-cyan-500/30 transition-colors"
+                className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-cyan-500/20 text-cyan-400 rounded-lg hover:bg-cyan-500/30 transition-colors text-sm sm:text-base"
               >
                 <Plus className="w-4 h-4" />
-                Add Tag
+                <span className="hidden xs:inline">Add Tag</span>
               </button>
             </div>
 
             {/* Add Tag Form */}
             {showAddTag && (
-              <div className="mb-6 p-4 bg-white/[0.02] rounded-xl border border-white/[0.06]">
-                <h3 className="text-lg font-medium text-white mb-4">New Audio Tag</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-white/[0.02] rounded-lg sm:rounded-xl border border-white/[0.06]">
+                <h3 className="text-base sm:text-lg font-medium text-white mb-3 sm:mb-4">New Audio Tag</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-3 sm:mb-4">
                   <div>
-                    <label className="block text-slate-400 text-sm mb-1">Tag Key *</label>
+                    <label className="block text-slate-400 text-xs sm:text-sm mb-1">Tag Key *</label>
                     <input
                       type="text"
                       value={newTag.tag_key}
                       onChange={e => setNewTag(prev => ({ ...prev, tag_key: e.target.value }))}
                       placeholder="e.g., deep_sigh"
-                      className="w-full px-3 py-2 bg-white/[0.02] border border-white/[0.1] rounded-lg text-white placeholder-slate-500 focus:border-cyan-500/50 focus:outline-none"
+                      className="w-full px-3 py-2 bg-white/[0.02] border border-white/[0.1] rounded-lg text-white text-sm placeholder-slate-500 focus:border-cyan-500/50 focus:outline-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-slate-400 text-sm mb-1">Label *</label>
+                    <label className="block text-slate-400 text-xs sm:text-sm mb-1">Label *</label>
                     <input
                       type="text"
                       value={newTag.tag_label}
                       onChange={e => setNewTag(prev => ({ ...prev, tag_label: e.target.value }))}
                       placeholder="e.g., [deep sigh]"
-                      className="w-full px-3 py-2 bg-white/[0.02] border border-white/[0.1] rounded-lg text-white placeholder-slate-500 focus:border-cyan-500/50 focus:outline-none"
+                      className="w-full px-3 py-2 bg-white/[0.02] border border-white/[0.1] rounded-lg text-white text-sm placeholder-slate-500 focus:border-cyan-500/50 focus:outline-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-slate-400 text-sm mb-1">Category</label>
+                    <label className="block text-slate-400 text-xs sm:text-sm mb-1">Category</label>
                     <select
                       value={newTag.category}
                       onChange={e => setNewTag(prev => ({ ...prev, category: e.target.value }))}
-                      className="w-full px-3 py-2 bg-white/[0.02] border border-white/[0.1] rounded-lg text-white focus:border-cyan-500/50 focus:outline-none"
+                      className="w-full px-3 py-2 bg-white/[0.02] border border-white/[0.1] rounded-lg text-white text-sm focus:border-cyan-500/50 focus:outline-none"
                     >
                       <option value="pauses">Pauses</option>
                       <option value="breathing">Breathing</option>
@@ -516,35 +555,35 @@ const AdminPage: React.FC = () => {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-slate-400 text-sm mb-1">Sort Order</label>
+                    <label className="block text-slate-400 text-xs sm:text-sm mb-1">Sort Order</label>
                     <input
                       type="number"
                       value={newTag.sort_order}
                       onChange={e => setNewTag(prev => ({ ...prev, sort_order: parseInt(e.target.value) || 0 }))}
-                      className="w-full px-3 py-2 bg-white/[0.02] border border-white/[0.1] rounded-lg text-white focus:border-cyan-500/50 focus:outline-none"
+                      className="w-full px-3 py-2 bg-white/[0.02] border border-white/[0.1] rounded-lg text-white text-sm focus:border-cyan-500/50 focus:outline-none"
                     />
                   </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-slate-400 text-sm mb-1">Description</label>
+                  <div className="sm:col-span-2">
+                    <label className="block text-slate-400 text-xs sm:text-sm mb-1">Description</label>
                     <input
                       type="text"
                       value={newTag.tag_description}
                       onChange={e => setNewTag(prev => ({ ...prev, tag_description: e.target.value }))}
                       placeholder="A brief description of the tag"
-                      className="w-full px-3 py-2 bg-white/[0.02] border border-white/[0.1] rounded-lg text-white placeholder-slate-500 focus:border-cyan-500/50 focus:outline-none"
+                      className="w-full px-3 py-2 bg-white/[0.02] border border-white/[0.1] rounded-lg text-white text-sm placeholder-slate-500 focus:border-cyan-500/50 focus:outline-none"
                     />
                   </div>
                 </div>
                 <div className="flex gap-2">
                   <button
                     onClick={handleAddTag}
-                    className="px-4 py-2 bg-cyan-500/20 text-cyan-400 rounded-lg hover:bg-cyan-500/30 transition-colors"
+                    className="px-3 sm:px-4 py-2 bg-cyan-500/20 text-cyan-400 rounded-lg hover:bg-cyan-500/30 transition-colors text-sm"
                   >
                     Create Tag
                   </button>
                   <button
                     onClick={() => setShowAddTag(false)}
-                    className="px-4 py-2 bg-white/[0.06] text-slate-300 rounded-lg hover:bg-white/[0.08] transition-colors"
+                    className="px-3 sm:px-4 py-2 bg-white/[0.06] text-slate-300 rounded-lg hover:bg-white/[0.08] transition-colors text-sm"
                   >
                     Cancel
                   </button>
@@ -558,49 +597,49 @@ const AdminPage: React.FC = () => {
               if (categoryTags.length === 0) return null;
 
               return (
-                <div key={category} className="mb-6 last:mb-0">
-                  <h3 className="text-lg font-semibold text-slate-300 mb-3 capitalize">{category}</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div key={category} className="mb-4 sm:mb-6 last:mb-0">
+                  <h3 className="text-base sm:text-lg font-semibold text-slate-300 mb-2 sm:mb-3 capitalize">{category}</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
                     {categoryTags.map(tag => (
                       <div
                         key={tag.id}
-                        className={`flex items-center justify-between p-4 rounded-xl border transition-colors ${
+                        className={`flex items-center justify-between p-3 sm:p-4 rounded-lg sm:rounded-xl border transition-colors ${
                           tag.is_active
                             ? 'bg-white/[0.02] border-white/[0.06]'
                             : 'bg-white/[0.01] border-white/[0.03] opacity-60'
                         }`}
                       >
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <p className="text-white font-medium">{tag.tag_label}</p>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                            <p className="text-white font-medium text-sm sm:text-base">{tag.tag_label}</p>
                             {!tag.is_active && (
-                              <span className="px-1.5 py-0.5 rounded text-[10px] bg-slate-500/20 text-slate-400">
+                              <span className="px-1.5 py-0.5 rounded text-[9px] sm:text-[10px] bg-slate-500/20 text-slate-400">
                                 Inactive
                               </span>
                             )}
                           </div>
                           {tag.tag_description && (
-                            <p className="text-slate-400 text-sm">{tag.tag_description}</p>
+                            <p className="text-slate-400 text-xs sm:text-sm line-clamp-1">{tag.tag_description}</p>
                           )}
-                          <p className="text-slate-600 text-xs mt-1">Key: {tag.tag_key}</p>
+                          <p className="text-slate-600 text-[10px] sm:text-xs mt-0.5 sm:mt-1">Key: {tag.tag_key}</p>
                         </div>
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
                           <button
                             onClick={() => handleToggleTagActive(tag)}
-                            className={`p-2 rounded-lg transition-colors ${
+                            className={`p-1.5 sm:p-2 rounded-lg transition-colors ${
                               tag.is_active
                                 ? 'text-emerald-400 hover:bg-emerald-500/20'
                                 : 'text-slate-500 hover:bg-white/5'
                             }`}
                             title={tag.is_active ? 'Deactivate' : 'Activate'}
                           >
-                            <Check className="w-4 h-4" />
+                            <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                           </button>
                           <button
                             onClick={() => setDeleteConfirm({ type: 'tag', id: tag.id, name: tag.tag_label })}
-                            className="text-slate-500 hover:text-red-400 p-2 transition-colors"
+                            className="text-slate-500 hover:text-red-400 p-1.5 sm:p-2 transition-colors"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                           </button>
                         </div>
                       </div>
@@ -616,29 +655,29 @@ const AdminPage: React.FC = () => {
 
         {/* Delete Confirmation Modal */}
         {deleteConfirm && (
-          <div className="fixed inset-0 z-[200] bg-black/80 flex items-center justify-center p-4">
-            <GlassCard className="max-w-md w-full !p-6">
-              <h3 className="text-xl font-bold text-white mb-4">Confirm Delete</h3>
-              <p className="text-slate-300 mb-6">
+          <div className="fixed inset-0 z-[200] bg-black/80 flex items-center justify-center p-3 sm:p-4">
+            <GlassCard className="max-w-md w-full !p-4 sm:!p-6">
+              <h3 className="text-lg sm:text-xl font-bold text-white mb-3 sm:mb-4">Confirm Delete</h3>
+              <p className="text-slate-300 text-sm sm:text-base mb-4 sm:mb-6">
                 Are you sure you want to delete{' '}
-                <span className="text-white font-medium">"{deleteConfirm.name}"</span>?
+                <span className="text-white font-medium break-all">"{deleteConfirm.name}"</span>?
                 {deleteConfirm.type === 'user' && (
-                  <span className="block mt-2 text-amber-400 text-sm">
+                  <span className="block mt-2 text-amber-400 text-xs sm:text-sm">
                     This will also delete all their meditations and voice profiles.
                   </span>
                 )}
               </p>
-              <div className="flex gap-3">
+              <div className="flex gap-2 sm:gap-3">
                 <button
                   onClick={() => setDeleteConfirm(null)}
-                  className="flex-1 px-4 py-2 bg-white/[0.06] text-white rounded-lg hover:bg-white/[0.08] transition-colors"
+                  className="flex-1 px-3 sm:px-4 py-2 bg-white/[0.06] text-white rounded-lg hover:bg-white/[0.08] transition-colors text-sm sm:text-base"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleDelete}
                   disabled={isDeleting}
-                  className="flex-1 px-4 py-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 px-3 sm:px-4 py-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
                 >
                   {isDeleting ? 'Deleting...' : 'Delete'}
                 </button>
@@ -668,12 +707,12 @@ const StatCard: React.FC<StatCardProps> = ({ label, value, subtext, color = 'cya
   };
 
   return (
-    <div className="p-6 bg-white/[0.02] rounded-xl border border-white/[0.06]">
-      <p className="text-slate-400 text-sm mb-1">{label}</p>
-      <p className={`text-3xl font-bold ${colorClasses[color]}`}>
+    <div className="p-3 sm:p-4 md:p-6 bg-white/[0.02] rounded-lg sm:rounded-xl border border-white/[0.06]">
+      <p className="text-slate-400 text-xs sm:text-sm mb-0.5 sm:mb-1">{label}</p>
+      <p className={`text-xl sm:text-2xl md:text-3xl font-bold ${colorClasses[color]}`}>
         {value.toLocaleString()}
       </p>
-      {subtext && <p className="text-emerald-400 text-sm mt-1">{subtext}</p>}
+      {subtext && <p className="text-emerald-400 text-[10px] sm:text-xs md:text-sm mt-0.5 sm:mt-1">{subtext}</p>}
     </div>
   );
 };
