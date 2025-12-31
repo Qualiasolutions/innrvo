@@ -37,7 +37,7 @@ supabase db push                            # Push migrations to remote
 
 **Routing:** Uses React Router v7 with lazy-loaded pages (`src/router.tsx`). All pages are code-split via `React.lazy()`.
 
-**Routes:** `/` (home), `/play/:id?` (player), `/library` (My Audios), `/templates`, `/voice`, `/clone`, `/how-it-works`, `/about`, `/terms`, `/privacy`, `/pricing`, `/admin` (role-protected), `*` (404)
+**Routes:** `/` (home), `/play/:id?` (player), `/library` (My Audios), `/templates`, `/voice`, `/clone`, `/how-it-works`, `/about`, `/terms`, `/privacy`, `/pricing`, `/admin` (role-protected), `/auth/reset-password` (password reset callback), `*` (404)
 
 **State Management:**
 - React Context for cross-cutting concerns (see `src/contexts/index.ts` for exports):
@@ -485,10 +485,25 @@ Default config: 3 retries, 500ms base delay, 5s max delay, with jitter.
 
 ### Security Policies
 
-**Authentication (`components/AuthModal.tsx`):**
+**Authentication (`components/AuthModal.tsx`, `src/pages/ResetPasswordPage.tsx`):**
 - Password minimum: 8 characters (enforced client-side and displayed in UI)
 - Password strength indicator: Weak/Fair/Good/Strong based on length, case mix, digits, special chars
 - Email validation: Regex pattern before form submission
+- Forgot password flow: Email reset via Supabase Auth with redirect to `/auth/reset-password`
+
+**Password Reset Flow:**
+```
+AuthModal (forgot mode) → resetPasswordForEmail() → Email sent
+                                                        ↓
+User clicks email link → /auth/reset-password → updatePassword() → Success
+```
+
+**Supabase Auth Functions (`lib/supabase.ts`):**
+- `signIn(email, password)` - Email/password authentication
+- `signUp(email, password, firstName, lastName)` - New user registration
+- `signOut()` - Clear session
+- `resetPasswordForEmail(email)` - Send password reset email (redirects to `/auth/reset-password`)
+- `updatePassword(newPassword)` - Update password for authenticated user
 
 **Storage RLS (`supabase/migrations/021_storage_bucket_rls.sql`):**
 - `meditation-audio` and `voice-samples` buckets have row-level security
@@ -567,7 +582,7 @@ See `docs/OPTIMIZATION_ROADMAP.md` for full details. Key optimizations applied:
 - **Files:** `SimpleVoiceClone.tsx:96`, `audioConverter.ts:25`
 
 ### TTS Generation Performance
-- **Bitrate optimization:** 128kbps → 96kbps (25% smaller files, imperceptible quality loss for voice)
+- **Bitrate:** 128kbps (Fish Audio only accepts 64, 128, 192)
 - **Cache TTL extension:** 5 min → 1 hour (reduces DB queries by 70-80%)
 - **Files:** `fish-audio-tts/index.ts`, `generate-speech/index.ts`
 
@@ -588,7 +603,6 @@ See `docs/OPTIMIZATION_ROADMAP.md` for full details. Key optimizations applied:
 | Metric | Before | After | Improvement |
 |--------|--------|-------|-------------|
 | Voice cloning | ~60s | ~53s | 10% faster |
-| TTS file size | 128kbps | 96kbps | 25% smaller |
 | Script quality variance | High | Low | 40% more consistent |
 | Admin dashboard | 30-50ms | 2-5ms | 90% faster |
 | Voice profile lookup | 0.5-1ms | 0.3-0.7ms | 30% faster |
