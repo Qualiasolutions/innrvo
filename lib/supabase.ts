@@ -167,7 +167,8 @@ export interface VoiceProfile {
   quality_score?: number;
   provider_voice_id?: string;
   voice_sample_url?: string;
-  fish_audio_model_id?: string;  // Fish Audio model ID (primary provider)
+  fish_audio_model_id?: string;  // Fish Audio model ID (legacy)
+  elevenlabs_voice_id?: string;  // ElevenLabs voice ID (primary provider)
   provider?: string;
   cloning_status?: string;
   sample_duration?: number;
@@ -419,7 +420,7 @@ export const createVoiceProfile = async (
 };
 
 // Fields needed for voice profile display and TTS
-const VOICE_PROFILE_FIELDS = 'id, user_id, name, description, language, provider, provider_voice_id, voice_sample_url, fish_audio_model_id, status, cloning_status, created_at, updated_at' as const;
+const VOICE_PROFILE_FIELDS = 'id, user_id, name, description, language, provider, provider_voice_id, voice_sample_url, fish_audio_model_id, elevenlabs_voice_id, status, cloning_status, created_at, updated_at' as const;
 
 export const getUserVoiceProfiles = async (): Promise<VoiceProfile[]> => {
   const user = await getCurrentUser();

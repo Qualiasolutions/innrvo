@@ -426,12 +426,21 @@ const App: React.FC = () => {
   // Sync savedVoices from AuthContext to availableVoices format
   useEffect(() => {
     // Convert saved voice profiles to available voices format
+    // Include ElevenLabs voices (primary), Fish Audio, and Chatterbox (legacy)
     const clonedVoiceProfiles = savedVoices
-      .filter(v => v.fish_audio_model_id || v.voice_sample_url || v.provider_voice_id)
+      .filter(v => v.elevenlabs_voice_id || v.fish_audio_model_id || v.voice_sample_url || v.provider_voice_id)
       .map(v => {
         // Determine the correct provider based on available IDs
-        // Priority: fish-audio > chatterbox
-        const provider = v.fish_audio_model_id ? 'fish-audio' as const : 'chatterbox' as const;
+        // Priority: elevenlabs > fish-audio > chatterbox
+        let provider: 'elevenlabs' | 'fish-audio' | 'chatterbox';
+        if (v.elevenlabs_voice_id) {
+          provider = 'elevenlabs';
+        } else if (v.fish_audio_model_id) {
+          provider = 'fish-audio';
+        } else {
+          provider = 'chatterbox';
+        }
+
         return {
           id: v.id,
           name: v.name,
@@ -439,6 +448,7 @@ const App: React.FC = () => {
           voiceName: v.name,
           description: v.description || 'Your personalized voice clone',
           isCloned: true,
+          elevenLabsVoiceId: v.elevenlabs_voice_id,  // ElevenLabs voice ID (primary)
           providerVoiceId: v.provider_voice_id,
           fishAudioModelId: v.fish_audio_model_id,
           voiceSampleUrl: v.voice_sample_url,
