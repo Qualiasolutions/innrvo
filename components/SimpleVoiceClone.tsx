@@ -1,12 +1,9 @@
-import React, { useState, useRef, useCallback, useEffect, useMemo, memo } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
 import {
   CloningStatus,
   CreditInfo,
   VoiceMetadata,
-  DEFAULT_VOICE_METADATA,
-  VOICE_LANGUAGES,
-  getAccentsForLanguage
 } from '../types';
 import { AIVoiceInput } from './ui/ai-voice-input';
 
@@ -24,22 +21,12 @@ const MAX_RECORDING_SECONDS = 90;
 
 type Step = 'record' | 'describe' | 'processing';
 
-// Move constant arrays outside component to prevent recreation
-const VOICE_QUALITIES = ['calm', 'warm', 'soothing', 'gentle', 'deep', 'soft'] as const;
-const GENDERS = ['female', 'male'] as const;
+// Tips for recording
 const TIPS = [
   'Speak slowly at a calm pace',
   'Stay consistent with your tone',
   'Use a quiet environment',
 ] as const;
-
-// Memoized select dropdown style (prevents object recreation)
-const SELECT_STYLE = {
-  backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%236b7280\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'/%3E%3C/svg%3E")',
-  backgroundRepeat: 'no-repeat',
-  backgroundPosition: 'right 0.5rem center',
-  backgroundSize: '1rem',
-} as const;
 
 // Helper function to format duration
 const formatDuration = (seconds: number): string => {
@@ -61,21 +48,6 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
   const [localError, setLocalError] = useState<string | null>(null);
   const [recordingDuration, setRecordingDuration] = useState(0);
 
-  // Voice characteristics
-  const [gender, setGender] = useState<VoiceMetadata['gender']>(DEFAULT_VOICE_METADATA.gender);
-  const [ageRange, setAgeRange] = useState<VoiceMetadata['ageRange']>(DEFAULT_VOICE_METADATA.ageRange);
-  const [language, setLanguage] = useState(DEFAULT_VOICE_METADATA.language);
-  const [accent, setAccent] = useState(DEFAULT_VOICE_METADATA.accent);
-  const [descriptive, setDescriptive] = useState(DEFAULT_VOICE_METADATA.descriptive || 'calm');
-
-  // Memoize accent list to prevent recalculation
-  const availableAccents = useMemo(() => getAccentsForLanguage(language), [language]);
-
-  useEffect(() => {
-    if (!availableAccents.find(a => a.value === accent)) {
-      setAccent(availableAccents[0]?.value || 'native');
-    }
-  }, [language, availableAccents, accent]);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -230,14 +202,14 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
 
     const voiceName = profileName.trim() || `My Voice ${new Date().toLocaleDateString()}`;
 
+    // Simplified metadata - let ElevenLabs auto-detect voice characteristics
     const metadata: VoiceMetadata = {
-      language,
-      accent,
-      gender,
-      ageRange,
+      language: 'en',
+      accent: 'native',
+      gender: 'other',  // ElevenLabs will auto-detect
+      ageRange: 'middle-aged',  // Default, not used
       hasBackgroundNoise: false,
       useCase: 'meditation',
-      descriptive,
     };
 
     setStep('processing');
@@ -509,102 +481,9 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
                 placeholder="My Meditation Voice"
                 className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-slate-600 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 transition-all"
               />
-            </div>
-
-            {/* Voice Characteristics - Compact Grid */}
-            <div className="space-y-4">
-              <p className="text-sm font-medium text-slate-300">Voice Characteristics</p>
-
-              <div className="grid grid-cols-2 gap-3">
-                {/* Gender */}
-                <div className="space-y-1.5">
-                  <label className="text-xs text-slate-500">Gender</label>
-                  <div className="flex gap-1.5">
-                    {(['female', 'male'] as const).map((g) => (
-                      <button
-                        key={g}
-                        onClick={() => setGender(g)}
-                        className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${
-                          gender === g
-                            ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
-                            : 'bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10'
-                        }`}
-                      >
-                        {g === 'female' ? 'Female' : 'Male'}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Age */}
-                <div className="space-y-1.5">
-                  <label className="text-xs text-slate-500">Age Range</label>
-                  <select
-                    value={ageRange}
-                    onChange={(e) => setAgeRange(e.target.value as VoiceMetadata['ageRange'])}
-                    className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-cyan-500/50 transition-all appearance-none cursor-pointer"
-                    style={SELECT_STYLE}
-                  >
-                    <option value="young" className="bg-slate-900">Young</option>
-                    <option value="middle-aged" className="bg-slate-900">Middle</option>
-                    <option value="mature" className="bg-slate-900">Mature</option>
-                  </select>
-                </div>
-
-                {/* Language */}
-                <div className="space-y-1.5">
-                  <label className="text-xs text-slate-500">Language</label>
-                  <select
-                    value={language}
-                    onChange={(e) => setLanguage(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-cyan-500/50 transition-all appearance-none cursor-pointer"
-                    style={SELECT_STYLE}
-                  >
-                    {VOICE_LANGUAGES.map((lang) => (
-                      <option key={lang.code} value={lang.code} className="bg-slate-900">
-                        {lang.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Accent */}
-                <div className="space-y-1.5">
-                  <label className="text-xs text-slate-500">Accent</label>
-                  <select
-                    value={accent}
-                    onChange={(e) => setAccent(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-cyan-500/50 transition-all appearance-none cursor-pointer"
-                    style={SELECT_STYLE}
-                  >
-                    {availableAccents.map((acc) => (
-                      <option key={acc.value} value={acc.value} className="bg-slate-900">
-                        {acc.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Voice Quality Pills */}
-              <div className="space-y-2">
-                <label className="text-xs text-slate-500">Voice Quality</label>
-                <div className="flex flex-wrap gap-2">
-                  {VOICE_QUALITIES.map((q) => (
-                    <button
-                      key={q}
-                      onClick={() => setDescriptive(q)}
-                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                        descriptive === q
-                          ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
-                          : 'bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10'
-                      }`}
-                    >
-                      {q.charAt(0).toUpperCase() + q.slice(1)}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <p className="text-xs text-slate-500">
+                Voice characteristics will be auto-detected from your recording
+              </p>
             </div>
 
             {/* Recording info */}

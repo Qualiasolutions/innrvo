@@ -254,45 +254,10 @@ serve(async (req) => {
       audioSize: bytes.length,
     });
 
-    // Build enhanced description from metadata for better voice cloning
-    let enhancedDescription = description || 'Voice clone created with INrVO';
-    if (metadata) {
-      const parts: string[] = [];
-
-      // Voice quality descriptor (calm, warm, soothing, etc.)
-      if (metadata.descriptive) {
-        parts.push(metadata.descriptive);
-      }
-
-      // Gender
-      if (metadata.gender) parts.push(metadata.gender);
-
-      // Age range
-      if (metadata.ageRange) {
-        const ageLabels: Record<string, string> = {
-          'young': 'young adult',
-          'middle-aged': 'middle-aged',
-          'mature': 'mature adult',
-        };
-        parts.push(ageLabels[metadata.ageRange] || metadata.ageRange);
-      }
-
-      // Accent
-      if (metadata.accent && metadata.accent !== 'native') {
-        parts.push(`${metadata.accent} accent`);
-      }
-
-      if (parts.length > 0) {
-        // e.g. "calm female middle-aged american accent voice. Voice clone created with INrVO"
-        enhancedDescription = `${parts.join(' ')} voice. ${enhancedDescription}`;
-      }
-
-      // Use case context
-      if (metadata.useCase) {
-        enhancedDescription += ` Optimized for ${metadata.useCase}.`;
-      }
-    }
-    log.info('Using enhanced description', { enhancedDescription, metadata });
+    // Use simple description - let ElevenLabs auto-detect voice characteristics
+    // Metadata is stored in DB for reference but NOT passed to ElevenLabs to avoid distortion
+    const simpleDescription = description || 'Voice clone created with INrVO for meditation';
+    log.info('Using simple description (auto-detect mode)', { simpleDescription });
 
     // Create promises for parallel execution
     const uploadPromise = supabase.storage
@@ -302,7 +267,7 @@ serve(async (req) => {
     const elevenLabsPromise = createElevenLabsVoiceClone(
       audioBlob,
       voiceName,
-      enhancedDescription,
+      simpleDescription,
       removeBackgroundNoise ?? true,  // Default to noise removal for cleaner clones
       ELEVENLABS_API_KEY!,
       log
