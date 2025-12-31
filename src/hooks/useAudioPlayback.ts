@@ -42,6 +42,7 @@ interface UseAudioPlaybackReturn {
   stop: () => void;
 
   // Background music actions
+  preloadBackgroundMusic: (track?: BackgroundTrack) => void;
   startBackgroundMusic: (track?: BackgroundTrack) => Promise<void>;
   stopBackgroundMusic: () => void;
   updateBackgroundVolume: (volume: number) => void;
@@ -93,6 +94,9 @@ export function useAudioPlayback(
   const animationFrameRef = useRef<number | null>(null);
   const backgroundAudioRef = useRef<HTMLAudioElement | null>(null);
   const playbackRateRef = useRef(defaultPlaybackRate);
+
+  // Preloaded background music cache (trackId -> {audio, ready})
+  const preloadedMusicRef = useRef<Map<string, { audio: HTMLAudioElement; ready: boolean }>>(new Map());
 
   // Format time helper
   const formatTime = useCallback((seconds: number): string => {
@@ -369,7 +373,45 @@ export function useAudioPlayback(
     }
   }, []);
 
-  // Start background music
+  // Preload background music (call this when TTS generation starts)
+  // This loads the audio file in parallel with TTS to eliminate wait time
+  const preloadBackgroundMusic = useCallback((track?: BackgroundTrack) => {
+    const trackToPreload = track || selectedBackgroundTrack;
+
+    if (trackToPreload.id === 'none' || !trackToPreload.audioUrl) {
+      return;
+    }
+
+    // Already preloading or preloaded
+    if (preloadedMusicRef.current.has(trackToPreload.id)) {
+      return;
+    }
+
+    // Create audio element and start loading
+    const audio = new Audio();
+    audio.loop = true;
+    audio.preload = 'auto';
+    audio.volume = backgroundVolume;
+
+    const cacheEntry = { audio, ready: false };
+    preloadedMusicRef.current.set(trackToPreload.id, cacheEntry);
+
+    // Mark as ready when loaded
+    audio.addEventListener('canplaythrough', () => {
+      cacheEntry.ready = true;
+    }, { once: true });
+
+    // Handle errors silently (startBackgroundMusic will fallback to fresh load)
+    audio.addEventListener('error', () => {
+      preloadedMusicRef.current.delete(trackToPreload.id);
+    }, { once: true });
+
+    // Start loading
+    audio.src = trackToPreload.audioUrl;
+    audio.load();
+  }, [selectedBackgroundTrack, backgroundVolume]);
+
+  // Start background music (uses preloaded audio if available)
   const startBackgroundMusic = useCallback(async (track?: BackgroundTrack) => {
     const trackToPlay = track || selectedBackgroundTrack;
 
@@ -386,23 +428,43 @@ export function useAudioPlayback(
         await audioContextRef.current.resume();
       }
 
-      const audio = new Audio();
-      audio.loop = true;
-      audio.volume = backgroundVolume;
+      // Check if we have a preloaded audio element
+      const preloaded = preloadedMusicRef.current.get(trackToPlay.id);
 
-      // Preload audio (iOS requires this)
-      audio.preload = 'auto';
+      let audio: HTMLAudioElement;
 
-      // Set source
-      audio.src = trackToPlay.audioUrl;
+      if (preloaded?.ready) {
+        // Use preloaded audio - instant start
+        audio = preloaded.audio;
+        audio.volume = backgroundVolume; // Update volume in case it changed
+        audio.currentTime = 0; // Reset to start
+        preloadedMusicRef.current.delete(trackToPlay.id); // Remove from cache once used
+      } else if (preloaded && !preloaded.ready) {
+        // Preloading in progress - wait for it
+        audio = preloaded.audio;
+        audio.volume = backgroundVolume;
+        await new Promise<void>((resolve, reject) => {
+          audio.addEventListener('canplaythrough', () => resolve(), { once: true });
+          audio.addEventListener('error', (e) => reject(e), { once: true });
+        });
+        preloadedMusicRef.current.delete(trackToPlay.id);
+      } else {
+        // No preload - create fresh (fallback behavior)
+        audio = new Audio();
+        audio.loop = true;
+        audio.volume = backgroundVolume;
+        audio.preload = 'auto';
+        audio.src = trackToPlay.audioUrl;
+
+        // Wait for audio to be loaded enough to play (iOS requirement)
+        await new Promise<void>((resolve, reject) => {
+          audio.addEventListener('canplaythrough', () => resolve(), { once: true });
+          audio.addEventListener('error', (e) => reject(e), { once: true });
+          audio.load(); // Explicitly load on iOS
+        });
+      }
+
       backgroundAudioRef.current = audio;
-
-      // Wait for audio to be loaded enough to play (iOS requirement)
-      await new Promise<void>((resolve, reject) => {
-        audio.addEventListener('canplaythrough', () => resolve(), { once: true });
-        audio.addEventListener('error', (e) => reject(e), { once: true });
-        audio.load(); // Explicitly load on iOS
-      });
 
       // Attempt playback
       await audio.play();
@@ -501,6 +563,7 @@ export function useAudioPlayback(
     stop,
 
     // Background music actions
+    preloadBackgroundMusic,
     startBackgroundMusic,
     stopBackgroundMusic,
     updateBackgroundVolume,

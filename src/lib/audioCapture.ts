@@ -161,8 +161,30 @@ export class AudioCapture {
     } catch (error) {
       if (DEBUG) console.error('[AudioCapture] Error starting capture:', error);
       this.setState('error');
-      this.callbacks.onError?.(error instanceof Error ? error : new Error(String(error)));
-      throw error;
+
+      // Provide user-friendly error messages
+      let userMessage = 'Failed to access microphone';
+      if (error instanceof Error) {
+        if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+          userMessage = 'Microphone permission denied. Please allow microphone access in your browser settings.';
+        } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+          userMessage = 'No microphone found. Please connect a microphone and try again.';
+        } else if (error.name === 'NotSupportedError') {
+          userMessage = 'Your browser does not support microphone access. Please use Chrome, Firefox, or Safari.';
+        } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+          userMessage = 'Microphone is being used by another application. Please close other apps using the mic.';
+        } else if (error.name === 'OverconstrainedError') {
+          userMessage = 'Could not configure microphone with requested settings.';
+        } else if (error.name === 'SecurityError') {
+          userMessage = 'Microphone access blocked. This feature requires HTTPS or localhost.';
+        } else {
+          userMessage = `Microphone error: ${error.message}`;
+        }
+      }
+
+      const enhancedError = new Error(userMessage);
+      this.callbacks.onError?.(enhancedError);
+      throw enhancedError;
     }
   }
 

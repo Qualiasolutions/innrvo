@@ -1,5 +1,5 @@
-import { lazy, Suspense } from 'react';
-import { createBrowserRouter, RouterProvider, Outlet, ScrollRestoration } from 'react-router-dom';
+import { lazy, Suspense, useEffect } from 'react';
+import { createBrowserRouter, RouterProvider, Outlet, ScrollRestoration, useLocation } from 'react-router-dom';
 import { ChronosLoader } from '@/components/ui/chronos-engine';
 
 // Lazy load all pages for code splitting
@@ -16,7 +16,65 @@ const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
 const PricingPage = lazy(() => import('./pages/PricingPage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
+const EmailVerifiedPage = lazy(() => import('./pages/EmailVerifiedPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
+
+// ============================================================================
+// Route Prefetching for instant navigation
+// ============================================================================
+
+// Map of routes to their import functions for prefetching
+const routeImports: Record<string, () => Promise<unknown>> = {
+  '/': () => import('./pages/HomePage'),
+  '/play': () => import('./pages/PlayerPage'),
+  '/library': () => import('./pages/LibraryPage'),
+  '/templates': () => import('./pages/TemplatesPage'),
+  '/voice': () => import('./pages/VoicePage'),
+  '/clone': () => import('./pages/ClonePage'),
+  '/how-it-works': () => import('./pages/HowItWorksPage'),
+  '/about': () => import('./pages/AboutPage'),
+  '/pricing': () => import('./pages/PricingPage'),
+};
+
+// Prefetch a route's chunk
+const prefetchRoute = (path: string) => {
+  const importFn = routeImports[path];
+  if (importFn) {
+    // Use requestIdleCallback for non-blocking prefetch
+    if ('requestIdleCallback' in window) {
+      requestIdleCallback(() => importFn().catch(() => {}));
+    } else {
+      setTimeout(() => importFn().catch(() => {}), 100);
+    }
+  }
+};
+
+// Routes to prefetch from each page (adjacency map)
+const prefetchMap: Record<string, string[]> = {
+  '/': ['/library', '/templates', '/voice', '/play'],
+  '/library': ['/', '/play', '/templates'],
+  '/templates': ['/', '/library'],
+  '/voice': ['/', '/clone', '/library'],
+  '/clone': ['/voice', '/library'],
+  '/pricing': ['/', '/library'],
+};
+
+// Hook to prefetch adjacent routes when a page loads
+const usePrefetchAdjacent = () => {
+  const location = useLocation();
+
+  useEffect(() => {
+    const currentPath = location.pathname;
+    const adjacentRoutes = prefetchMap[currentPath] || [];
+
+    // Prefetch adjacent routes after a short delay
+    const timer = setTimeout(() => {
+      adjacentRoutes.forEach(prefetchRoute);
+    }, 1000); // Wait 1s after page load
+
+    return () => clearTimeout(timer);
+  }, [location.pathname]);
+};
 
 // Loading spinner component - uses ChronosEngine for visual consistency
 const PageLoader = () => (
@@ -25,15 +83,20 @@ const PageLoader = () => (
   </div>
 );
 
-// Root layout with scroll restoration
-const RootLayout = () => (
-  <>
-    <ScrollRestoration />
-    <Suspense fallback={<PageLoader />}>
-      <Outlet />
-    </Suspense>
-  </>
-);
+// Root layout with scroll restoration and route prefetching
+const RootLayout = () => {
+  // Prefetch adjacent routes for instant navigation
+  usePrefetchAdjacent();
+
+  return (
+    <>
+      <ScrollRestoration />
+      <Suspense fallback={<PageLoader />}>
+        <Outlet />
+      </Suspense>
+    </>
+  );
+};
 
 // Router configuration
 export const router = createBrowserRouter([
@@ -92,6 +155,10 @@ export const router = createBrowserRouter([
       {
         path: 'auth/reset-password',
         element: <ResetPasswordPage />,
+      },
+      {
+        path: 'auth/verified',
+        element: <EmailVerifiedPage />,
       },
       {
         path: '*',

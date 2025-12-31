@@ -232,10 +232,16 @@ export const signUp = async (email: string, password: string, firstName?: string
   const fullName = [firstName, lastName].filter(Boolean).join(' ') || undefined;
 
   try {
+    // Get the current origin for redirect URL
+    const redirectUrl = typeof window !== 'undefined'
+      ? `${window.location.origin}/auth/verified`
+      : 'https://inrvo.com/auth/verified';
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
+        emailRedirectTo: redirectUrl,
         data: {
           full_name: fullName,
           first_name: firstName,

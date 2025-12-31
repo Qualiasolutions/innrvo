@@ -204,7 +204,22 @@ export class GeminiLiveClient {
     } catch (error) {
       this.state = 'error';
       if (DEBUG) console.error('[GeminiLive] Connection error:', error);
-      throw error;
+
+      // Provide user-friendly error messages
+      let userMessage = 'Failed to connect to voice service';
+      if (error instanceof Error) {
+        if (error.message.includes('timeout')) {
+          userMessage = 'Connection timed out. Please check your internet connection and try again.';
+        } else if (error.message.includes('SecurityError') || error.message.includes('insecure')) {
+          userMessage = 'Connection blocked for security reasons. Voice chat requires HTTPS.';
+        } else if (error.message.includes('WebSocket')) {
+          userMessage = 'Could not establish voice connection. The service may be temporarily unavailable.';
+        } else {
+          userMessage = `Voice connection error: ${error.message}`;
+        }
+      }
+
+      throw new Error(userMessage);
     }
   }
 

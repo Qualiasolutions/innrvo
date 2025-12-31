@@ -23,7 +23,16 @@ const renderNatureIcon = (iconName: string | undefined, className: string = "w-4
 };
 
 // Module-level constants to avoid recreating on each render
-const PARTICLE_COUNT = 20; // Enhanced for better ambient effect
+// Mobile detection for performance optimization
+const IS_MOBILE = typeof window !== 'undefined' && (
+  window.matchMedia?.('(max-width: 768px)').matches ||
+  /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+);
+
+// Reduced particles on mobile for 60fps performance (20 -> 8)
+const PARTICLE_COUNT = IS_MOBILE ? 8 : 20;
+const ORBIT_PARTICLE_COUNT = IS_MOBILE ? 8 : 14;
+const SHOOTING_STAR_COUNT_MOBILE = IS_MOBILE ? 4 : 8;
 
 interface MeditationPlayerProps {
   // Playback control
@@ -439,34 +448,31 @@ V0MeditationPlayer.displayName = 'V0MeditationPlayer';
 const ORB_CONFIG = {
   // Responsive orb sizes
   orbSize: 'w-[160px] h-[160px] sm:w-[180px] sm:h-[180px] md:w-[200px] md:h-[200px] lg:w-[220px] lg:h-[220px]',
-  auroraRings: [
-    { size: 'w-[220px] h-[220px] sm:w-[250px] sm:h-[250px] md:w-[280px] md:h-[280px] lg:w-[300px] lg:h-[300px]' },
-    { size: 'w-[260px] h-[260px] sm:w-[300px] sm:h-[300px] md:w-[340px] md:h-[340px] lg:w-[360px] lg:h-[360px]' },
-    { size: 'w-[300px] h-[300px] sm:w-[350px] sm:h-[350px] md:w-[400px] md:h-[400px] lg:w-[420px] lg:h-[420px]' },
-    { size: 'w-[340px] h-[340px] sm:w-[400px] sm:h-[400px] md:w-[460px] md:h-[460px] lg:w-[480px] lg:h-[480px]' },
-  ],
 };
+
+// Shooting star count for ambient effect (uses mobile-optimized count)
+const SHOOTING_STAR_COUNT = SHOOTING_STAR_COUNT_MOBILE;
 
 /**
  * BreathingOrb - Awe-inspiring 5-layer breathing visualization
  *
  * Layers (outer to inner):
  * 5. Ambient Glow Field - soft surrounding blur
- * 4. Aurora Rings - expanding color waves
+ * 4. Shooting Stars - diagonal streaks across the orb area
  * 3. Particle Orbit - circling energy particles
  * 2. Main Orb - primary breathing element
  * 1. Inner Core - bright center with radiating rays
  */
 const BreathingOrb = memo(({ isPlaying }: { isPlaying: boolean }) => {
-  // Generate orbit particles
+  // Generate orbit particles (reduced on mobile for performance)
   const orbitParticles = useMemo(() =>
-    [...Array(14)].map((_, i) => ({
+    [...Array(ORBIT_PARTICLE_COUNT)].map((_, i) => ({
       id: i,
-      angle: (i / 14) * 360,
+      angle: (i / ORBIT_PARTICLE_COUNT) * 360,
       orbitRadius: 85 + (i % 2) * 15, // Alternating orbit distances
       size: 2 + Math.random() * 2,
       duration: 25 + Math.random() * 15,
-      delay: (i / 14) * -40,
+      delay: (i / ORBIT_PARTICLE_COUNT) * -40,
       colorOffset: i * 25, // For gradient color variation
     })),
     []
@@ -474,6 +480,22 @@ const BreathingOrb = memo(({ isPlaying }: { isPlaying: boolean }) => {
 
   // Generate ray angles for inner core
   const coreRays = useMemo(() => [...Array(12)].map((_, i) => i * 30), []);
+
+  // Generate shooting stars
+  const shootingStars = useMemo(() =>
+    [...Array(SHOOTING_STAR_COUNT)].map((_, i) => ({
+      id: i,
+      startX: -20 + Math.random() * 40, // Start position offset from center
+      startY: -150 - Math.random() * 100, // Start above the orb
+      angle: 25 + Math.random() * 20, // Diagonal angle (25-45 degrees)
+      length: 60 + Math.random() * 80, // Trail length
+      duration: 1.5 + Math.random() * 2, // Animation duration
+      delay: i * 0.8 + Math.random() * 3, // Staggered delays
+      size: 1.5 + Math.random() * 1.5, // Star head size
+      isCyan: i % 2 === 0, // Alternate colors
+    })),
+    []
+  );
 
   return (
     <div className="relative flex items-center justify-center">
@@ -496,29 +518,43 @@ const BreathingOrb = memo(({ isPlaying }: { isPlaying: boolean }) => {
         }}
       />
 
-      {/* Layer 4: Aurora Rings - 4 expanding waves */}
-      {ORB_CONFIG.auroraRings.map((ring, i) => (
-        <m.div
-          key={`aurora-${i}`}
-          className={`absolute ${ring.size} rounded-full`}
-          style={{
-            border: `1px solid rgba(34, 211, 238, ${0.2 - i * 0.03})`,
-            background: `radial-gradient(circle, transparent 50%, rgba(${i % 2 === 0 ? '34, 211, 238' : '168, 85, 247'}, ${0.04 - i * 0.008}) 100%)`,
-          }}
-          animate={isPlaying ? {
-            scale: [1, 1.06 + i * 0.015, 1.06 + i * 0.015, 1],
-            opacity: [0.5 - i * 0.08, 0.85 - i * 0.1, 0.85 - i * 0.1, 0.5 - i * 0.08],
-            rotate: [0, (i % 2 === 0 ? 8 : -8), (i % 2 === 0 ? 8 : -8), 0],
-          } : { scale: 1, opacity: 0.2 - i * 0.04, rotate: 0 }}
-          transition={{
-            duration: 19,
-            times: [0, 0.21, 0.58, 1],
-            delay: i * 0.2,
-            repeat: Infinity,
-            ease: 'easeInOut',
-          }}
-        />
-      ))}
+      {/* Layer 4: Shooting Stars - diagonal streaks */}
+      <div className="absolute w-[400px] h-[400px] sm:w-[500px] sm:h-[500px] overflow-hidden pointer-events-none">
+        {shootingStars.map((star) => (
+          <m.div
+            key={`star-${star.id}`}
+            className="absolute left-1/2 top-1/2"
+            style={{
+              width: star.length,
+              height: star.size,
+              marginLeft: star.startX,
+              marginTop: star.startY,
+              background: star.isCyan
+                ? 'linear-gradient(90deg, transparent 0%, rgba(34, 211, 238, 0.1) 20%, rgba(34, 211, 238, 0.8) 80%, rgba(255, 255, 255, 1) 100%)'
+                : 'linear-gradient(90deg, transparent 0%, rgba(168, 85, 247, 0.1) 20%, rgba(168, 85, 247, 0.8) 80%, rgba(255, 255, 255, 1) 100%)',
+              borderRadius: '2px',
+              transform: `rotate(${star.angle}deg)`,
+              boxShadow: star.isCyan
+                ? '0 0 8px rgba(34, 211, 238, 0.6), 0 0 16px rgba(34, 211, 238, 0.3)'
+                : '0 0 8px rgba(168, 85, 247, 0.6), 0 0 16px rgba(168, 85, 247, 0.3)',
+            }}
+            initial={{ x: 0, y: 0, opacity: 0 }}
+            animate={isPlaying ? {
+              x: [0, 300],
+              y: [0, 180],
+              opacity: [0, 1, 1, 0],
+            } : { x: 0, y: 0, opacity: 0 }}
+            transition={{
+              duration: star.duration,
+              delay: star.delay,
+              repeat: Infinity,
+              repeatDelay: 4 + Math.random() * 6,
+              ease: 'easeOut',
+              times: [0, 0.1, 0.8, 1],
+            }}
+          />
+        ))}
+      </div>
 
       {/* Layer 3: Particle Orbit System */}
       <div className="absolute w-[180px] h-[180px] sm:w-[200px] sm:h-[200px] md:w-[220px] md:h-[220px]">

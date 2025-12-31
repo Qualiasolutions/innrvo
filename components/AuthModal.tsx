@@ -37,6 +37,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess }) => 
   const [error, setError] = useState<string | null>(null);
   const [touched, setTouched] = useState({ email: false, password: false });
   const [emailSent, setEmailSent] = useState(false);
+  const [signupComplete, setSignupComplete] = useState(false);
 
   // Validation states
   const isEmailValid = EMAIL_REGEX.test(email);
@@ -67,8 +68,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess }) => 
         setEmailSent(true);
       } else if (mode === 'signup') {
         await signUp(email, password, firstName, lastName);
-        onSuccess();
-        resetForm();
+        setSignupComplete(true);
       } else {
         await signIn(email, password);
         onSuccess();
@@ -89,6 +89,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess }) => 
     setError(null);
     setTouched({ email: false, password: false });
     setEmailSent(false);
+    setSignupComplete(false);
   };
 
   if (!isOpen) return null;
@@ -117,12 +118,12 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess }) => 
           {/* Header */}
           <div className="text-center mb-6">
             <div className={`w-12 h-12 mx-auto mb-4 rounded-full flex items-center justify-center ${
-              emailSent
+              emailSent || signupComplete
                 ? 'bg-gradient-to-br from-emerald-500 to-teal-600'
                 : 'bg-gradient-to-br from-cyan-500 to-purple-600'
             }`}>
-              {emailSent ? (
-                <CheckCircle className="h-6 w-6 text-white" />
+              {emailSent || signupComplete ? (
+                <Mail className="h-6 w-6 text-white" />
               ) : mode === 'forgot' ? (
                 <Mail className="h-6 w-6 text-white" />
               ) : (
@@ -130,27 +131,52 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess }) => 
               )}
             </div>
             <h2 className="text-xl font-semibold text-white mb-1">
-              {emailSent
-                ? 'Check your email'
-                : mode === 'signin'
-                  ? 'Welcome back'
-                  : mode === 'signup'
-                    ? 'Create account'
-                    : 'Reset password'}
+              {signupComplete
+                ? 'Thanks for signing up!'
+                : emailSent
+                  ? 'Check your email'
+                  : mode === 'signin'
+                    ? 'Welcome back'
+                    : mode === 'signup'
+                      ? 'Create account'
+                      : 'Reset password'}
             </h2>
             <p className="text-sm text-white/50">
-              {emailSent
-                ? `We've sent a reset link to ${email}`
-                : mode === 'signin'
-                  ? 'Sign in to access your voices'
-                  : mode === 'signup'
-                    ? 'Save your personalized voices'
-                    : 'Enter your email to receive a reset link'}
+              {signupComplete
+                ? `We've sent a verification link to ${email}`
+                : emailSent
+                  ? `We've sent a reset link to ${email}`
+                  : mode === 'signin'
+                    ? 'Sign in to access your voices'
+                    : mode === 'signup'
+                      ? 'Save your personalized voices'
+                      : 'Enter your email to receive a reset link'}
             </p>
           </div>
 
-          {/* Email Sent Success View */}
-          {emailSent ? (
+          {/* Signup Complete View */}
+          {signupComplete ? (
+            <>
+              <div className="mb-6 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                <p className="text-sm text-emerald-400 mb-2">
+                  Please check your email and click the verification link to activate your account.
+                </p>
+                <p className="text-xs text-white/40">
+                  Didn't receive the email? Check your spam folder.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setSignupComplete(false);
+                  setMode('signin');
+                  resetForm();
+                }}
+                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-medium text-sm hover:from-cyan-400 hover:to-purple-500 active:scale-[0.98] transition-all shadow-lg shadow-cyan-500/20"
+              >
+                Back to Sign In
+              </button>
+            </>
+          ) : emailSent ? (
             <>
               <p className="text-sm text-white/60 text-center mb-4">
                 Didn't receive the email? Check your spam folder or try again.
@@ -346,8 +372,8 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess }) => 
             </>
           )}
 
-          {/* Divider and Guest mode - hide when email sent */}
-          {!emailSent && (
+          {/* Divider and Guest mode - hide when email sent or signup complete */}
+          {!emailSent && !signupComplete && (
             <>
               <div className="my-5 flex items-center gap-3">
                 <div className="flex-1 h-px bg-white/10" />

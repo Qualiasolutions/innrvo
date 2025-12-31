@@ -37,7 +37,7 @@ supabase db push                            # Push migrations to remote
 
 **Routing:** Uses React Router v7 with lazy-loaded pages (`src/router.tsx`). All pages are code-split via `React.lazy()`.
 
-**Routes:** `/` (home), `/play/:id?` (player), `/library` (My Audios), `/templates`, `/voice`, `/clone`, `/how-it-works`, `/about`, `/terms`, `/privacy`, `/pricing`, `/admin` (role-protected), `/auth/reset-password` (password reset callback), `*` (404)
+**Routes:** `/` (home), `/play/:id?` (player), `/library` (My Audios), `/templates`, `/voice`, `/clone`, `/how-it-works`, `/about`, `/terms`, `/privacy`, `/pricing`, `/admin` (role-protected), `/auth/reset-password` (password reset), `/auth/verified` (email verification callback), `*` (404)
 
 **State Management:**
 - React Context for cross-cutting concerns (see `src/contexts/index.ts` for exports):
@@ -533,25 +533,50 @@ Default config: 3 retries, 500ms base delay, 5s max delay, with jitter.
 
 ### Security Policies
 
-**Authentication (`components/AuthModal.tsx`, `src/pages/ResetPasswordPage.tsx`):**
+**Authentication (`components/AuthModal.tsx`, `src/pages/ResetPasswordPage.tsx`, `src/pages/EmailVerifiedPage.tsx`):**
 - Password minimum: 8 characters (enforced client-side and displayed in UI)
 - Password strength indicator: Weak/Fair/Good/Strong based on length, case mix, digits, special chars
 - Email validation: Regex pattern before form submission
-- Forgot password flow: Email reset via Supabase Auth with redirect to `/auth/reset-password`
+- Email verification required for new signups
+- Custom SMTP via Resend (`info@inrvo.com`) for better deliverability
+
+**Signup Flow:**
+```
+AuthModal (signup mode) → signUp() → Show "Check your email" confirmation
+                                                    ↓
+User clicks verification link → /auth/verified → Session established → Welcome page
+                                                    ↓
+                                        Auto-redirect to home (5s)
+```
 
 **Password Reset Flow:**
 ```
 AuthModal (forgot mode) → resetPasswordForEmail() → Email sent
                                                         ↓
 User clicks email link → /auth/reset-password → updatePassword() → Success
+                                                        ↓
+                                            Auto-redirect to home (3s)
 ```
+
+**Auth Pages:**
+- `src/pages/EmailVerifiedPage.tsx` - Email verification callback with personalized welcome
+- `src/pages/ResetPasswordPage.tsx` - Password reset form with strength indicator
 
 **Supabase Auth Functions (`lib/supabase.ts`):**
 - `signIn(email, password)` - Email/password authentication
-- `signUp(email, password, firstName, lastName)` - New user registration
+- `signUp(email, password, firstName, lastName)` - New user registration with email verification
 - `signOut()` - Clear session
 - `resetPasswordForEmail(email)` - Send password reset email (redirects to `/auth/reset-password`)
 - `updatePassword(newPassword)` - Update password for authenticated user
+
+**Supabase Dashboard Configuration:**
+- **URL Configuration** → Redirect URLs must include:
+  - `https://inrvo.com/auth/verified` (email verification)
+  - `https://inrvo.com/auth/reset-password` (password reset)
+- **SMTP Settings** (Auth → SMTP Settings):
+  - Host: `smtp.resend.com`, Port: 465
+  - Sender: `info@inrvo.com`
+  - Domain must be verified in Resend dashboard
 
 **Storage RLS (`supabase/migrations/021_storage_bucket_rls.sql`):**
 - `meditation-audio` and `voice-samples` buckets have row-level security
@@ -674,6 +699,7 @@ Sprint-based performance optimizations across client, server, and database layer
 | `atomic_meditation_save` | `save_meditation_with_audio()` RPC function | 50% faster saves (2 queries → 1) |
 | `atomic_meditation_save` | `idx_meditation_history_with_audio` partial index | 30% faster "My Audios" queries |
 | `tts_response_cache_fixed` | `tts_response_cache` table + functions | 10-20% cache hit rate, saves 35-76s/hit |
+| `consolidate_rls_policies` | Merge duplicate RLS policies using OR logic | 55 policy warnings resolved, faster query planning |
 
 **TTS Cache Functions:**
 ```sql
