@@ -2578,15 +2578,6 @@ const App: React.FC = () => {
               </svg>
               Templates
             </button>
-            <button
-              onClick={() => { setShowBurgerMenu(false); restartOnboarding(); }}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors text-sm"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
-              </svg>
-              Restart Tour
-            </button>
           </div>
 
           {/* Divider */}
@@ -2594,9 +2585,8 @@ const App: React.FC = () => {
 
           {/* Chat History */}
           <div className="flex-1 flex flex-col min-h-0 p-4">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-[10px] font-medium text-white/70 uppercase tracking-wider">Chats</p>
-              {user && chatHistory.length > 0 && (
+            {user && chatHistory.length > 0 && (
+              <div className="flex justify-end mb-2">
                 <button
                   onClick={async () => {
                     await startNewConversation();
@@ -2611,8 +2601,8 @@ const App: React.FC = () => {
                   </svg>
                   New
                 </button>
-              )}
-            </div>
+              </div>
+            )}
             <div className="flex-1 overflow-y-auto space-y-1">
               {user ? (
                 isLoadingChatHistory ? (
@@ -2639,16 +2629,11 @@ const App: React.FC = () => {
                           <span className="flex-1 text-[13px] text-white/80 group-hover:text-white truncate">
                             {item.preview}
                           </span>
-                          <div className="flex items-center gap-1.5 flex-shrink-0">
-                            {item.mood && (
-                              <span className="text-[9px] px-1 py-0.5 rounded bg-purple-500/20 text-purple-300/80 hidden sm:inline">
-                                {item.mood}
-                              </span>
-                            )}
-                            <span className="text-[10px] text-white/30 tabular-nums">
-                              {new Date(item.createdAt).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' })}
+                          {item.mood && (
+                            <span className="text-[9px] px-1 py-0.5 rounded bg-purple-500/20 text-purple-300/80 flex-shrink-0">
+                              {item.mood}
                             </span>
-                          </div>
+                          )}
                         </div>
                       </button>
                     </div>

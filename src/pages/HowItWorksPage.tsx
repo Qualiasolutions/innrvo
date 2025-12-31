@@ -2,14 +2,28 @@ import React from 'react';
 import AppLayout from '../layouts/AppLayout';
 import GlassCard from '../../components/GlassCard';
 import { ICONS } from '../../constants';
+import { useOnboarding } from '../contexts/OnboardingContext';
 
 const HowItWorksPage: React.FC = () => {
+  const { restartOnboarding } = useOnboarding();
+
   return (
     <AppLayout showBackButton backTo="/" className="flex flex-col p-6 overflow-y-auto">
       <div className="flex-1 flex flex-col items-center justify-center pt-16 md:pt-0 max-w-4xl mx-auto w-full">
-        {/* Badge */}
-        <div className="inline-block px-4 py-1.5 rounded-full bg-gradient-to-r from-cyan-500/10 to-purple-500/10 border border-cyan-500/20 text-cyan-400 text-[10px] font-semibold uppercase tracking-[0.35em] mb-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
-          Guide
+        {/* Badge with Restart Tour */}
+        <div className="flex items-center gap-3 mb-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+          <div className="inline-block px-4 py-1.5 rounded-full bg-gradient-to-r from-cyan-500/10 to-purple-500/10 border border-cyan-500/20 text-cyan-400 text-[10px] font-semibold uppercase tracking-[0.35em]">
+            Guide
+          </div>
+          <button
+            onClick={restartOnboarding}
+            className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 border border-white/10 text-white/60 hover:text-cyan-400 hover:border-cyan-500/30 hover:bg-cyan-500/10 transition-all"
+            title="Restart Tour"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </button>
         </div>
 
         {/* Title */}
