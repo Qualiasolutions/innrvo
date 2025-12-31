@@ -169,11 +169,18 @@ export function useVoiceGeneration(
       }
 
       // Generate speech with the edited script
-      const { audioBuffer, base64 } = await voiceService.generateSpeech(
+      const result = await voiceService.generateSpeech(
         editableScript,
         selectedVoice,
         audioContextRef.current
       );
+
+      // Check if voice needs re-cloning (legacy Fish Audio/Chatterbox voice)
+      if (result.needsReclone) {
+        throw new Error('This voice needs to be re-cloned with ElevenLabs. Please go to Voice Settings and re-clone your voice.');
+      }
+
+      const { audioBuffer, base64 } = result;
 
       if (!base64 || base64.trim() === '') {
         throw new Error('Failed to generate audio. Please try again.');

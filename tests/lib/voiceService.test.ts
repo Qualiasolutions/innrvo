@@ -14,7 +14,7 @@ vi.mock('../../src/lib/edgeFunctions', () => ({
 }));
 
 // Import after mocking
-import { voiceService } from '../../src/lib/voiceService';
+import { voiceService, needsReclone } from '../../src/lib/voiceService';
 import { isWebSpeechAvailable } from '../../src/lib/webSpeechService';
 
 // Helper to create mock voice profiles
@@ -22,9 +22,10 @@ function createVoiceProfile(overrides: Partial<VoiceProfile> = {}): VoiceProfile
   return {
     id: 'test-voice-id',
     name: 'Test Voice',
-    provider: 'fish-audio',
+    voiceName: 'Test Voice',
+    description: 'Test voice description',
+    provider: 'elevenlabs',
     isCloned: false,
-    createdAt: new Date().toISOString(),
     ...overrides,
   } as VoiceProfile;
 }
@@ -40,65 +41,115 @@ describe('voiceService', () => {
       expect(voiceService.detectProvider(voice)).toBe('browser');
     });
 
-    it('should detect fish-audio provider', () => {
-      const voice = createVoiceProfile({ provider: 'fish-audio' });
-      expect(voiceService.detectProvider(voice)).toBe('fish-audio');
+    it('should detect elevenlabs preset voices by id prefix', () => {
+      const voice = createVoiceProfile({ id: 'elevenlabs-rachel' });
+      expect(voiceService.detectProvider(voice)).toBe('elevenlabs');
     });
 
-    it('should route legacy ElevenLabs voices to fish-audio', () => {
-      const voice = createVoiceProfile({ provider: 'ElevenLabs' as any });
-      expect(voiceService.detectProvider(voice)).toBe('fish-audio');
-    });
-
-    it('should route chatterbox voices with providerVoiceId to fish-audio', () => {
+    it('should detect elevenlabs voices with elevenLabsVoiceId', () => {
       const voice = createVoiceProfile({
-        provider: 'chatterbox',
-        providerVoiceId: 'some-voice-id',
+        id: 'custom-voice-id',
+        elevenLabsVoiceId: 'xi-voice-123',
       });
-      expect(voiceService.detectProvider(voice)).toBe('fish-audio');
+      expect(voiceService.detectProvider(voice)).toBe('elevenlabs');
     });
 
-    it('should route chatterbox cloned voices to fish-audio', () => {
+    it('should fallback to browser for legacy fish-audio voices', () => {
       const voice = createVoiceProfile({
-        provider: 'chatterbox',
+        provider: 'fish-audio' as any,
+        elevenLabsVoiceId: undefined,
+      });
+      expect(voiceService.detectProvider(voice)).toBe('browser');
+    });
+
+    it('should fallback to browser for legacy chatterbox voices', () => {
+      const voice = createVoiceProfile({
+        provider: 'chatterbox' as any,
+        elevenLabsVoiceId: undefined,
+      });
+      expect(voiceService.detectProvider(voice)).toBe('browser');
+    });
+
+    it('should detect elevenlabs for cloned voices with elevenLabsVoiceId', () => {
+      const voice = createVoiceProfile({
         isCloned: true,
+        elevenLabsVoiceId: 'xi-cloned-voice-123',
       });
-      expect(voiceService.detectProvider(voice)).toBe('fish-audio');
-    });
-
-    it('should route any cloned voice with providerVoiceId to fish-audio', () => {
-      const voice = createVoiceProfile({
-        provider: undefined,
-        providerVoiceId: 'some-id',
-      });
-      expect(voiceService.detectProvider(voice)).toBe('fish-audio');
-    });
-
-    it('should route any isCloned voice to fish-audio', () => {
-      const voice = createVoiceProfile({
-        provider: undefined,
-        isCloned: true,
-      });
-      expect(voiceService.detectProvider(voice)).toBe('fish-audio');
+      expect(voiceService.detectProvider(voice)).toBe('elevenlabs');
     });
 
     it('should fallback to browser for voices without proper setup', () => {
       const voice = createVoiceProfile({
         id: 'some-voice',
         provider: undefined,
-        providerVoiceId: undefined,
+        elevenLabsVoiceId: undefined,
         isCloned: false,
       });
       expect(voiceService.detectProvider(voice)).toBe('browser');
     });
   });
 
+  describe('needsReclone', () => {
+    it('should return true for fish-audio voices without elevenLabsVoiceId', () => {
+      const voice = createVoiceProfile({
+        provider: 'fish-audio' as any,
+        elevenLabsVoiceId: undefined,
+      });
+      expect(needsReclone(voice)).toBe(true);
+    });
+
+    it('should return true for chatterbox voices without elevenLabsVoiceId', () => {
+      const voice = createVoiceProfile({
+        provider: 'chatterbox' as any,
+        elevenLabsVoiceId: undefined,
+      });
+      expect(needsReclone(voice)).toBe(true);
+    });
+
+    it('should return true for voices with NEEDS_RECLONE status', () => {
+      const voice = createVoiceProfile({
+        cloningStatus: 'NEEDS_RECLONE',
+      });
+      expect(needsReclone(voice)).toBe(true);
+    });
+
+    it('should return true for cloned voices without elevenLabsVoiceId', () => {
+      const voice = createVoiceProfile({
+        isCloned: true,
+        elevenLabsVoiceId: undefined,
+      });
+      expect(needsReclone(voice)).toBe(true);
+    });
+
+    it('should return false for fish-audio voices with elevenLabsVoiceId', () => {
+      const voice = createVoiceProfile({
+        provider: 'fish-audio' as any,
+        elevenLabsVoiceId: 'xi-migrated-voice',
+      });
+      expect(needsReclone(voice)).toBe(false);
+    });
+
+    it('should return false for elevenlabs voices', () => {
+      const voice = createVoiceProfile({
+        provider: 'elevenlabs',
+        elevenLabsVoiceId: 'xi-voice-123',
+      });
+      expect(needsReclone(voice)).toBe(false);
+    });
+
+    it('should return false for browser voices', () => {
+      const voice = createVoiceProfile({
+        id: 'browser-english-us',
+        provider: 'browser',
+      });
+      expect(needsReclone(voice)).toBe(false);
+    });
+  });
+
   describe('isVoiceReady', () => {
     it('should check Web Speech availability for browser voices', async () => {
-      // Browser voices depend on isWebSpeechAvailable
       const voice = createVoiceProfile({ id: 'browser-english-us' });
       const ready = await voiceService.isVoiceReady(voice);
-      // Result depends on actual mock return value
       expect(typeof ready).toBe('boolean');
     });
 
@@ -109,29 +160,28 @@ describe('voiceService', () => {
       expect(ready).toBe(false);
     });
 
-    it('should return true for fish-audio voices with providerVoiceId', async () => {
+    it('should return true for elevenlabs voices with elevenLabsVoiceId', async () => {
       const voice = createVoiceProfile({
-        provider: 'fish-audio',
-        providerVoiceId: 'fish-voice-123',
+        provider: 'elevenlabs',
+        elevenLabsVoiceId: 'xi-voice-123',
       });
       const ready = await voiceService.isVoiceReady(voice);
       expect(ready).toBe(true);
     });
 
-    it('should return true for cloned voices', async () => {
+    it('should return false for elevenlabs voices without elevenLabsVoiceId', async () => {
       const voice = createVoiceProfile({
-        provider: 'fish-audio',
-        isCloned: true,
+        provider: 'elevenlabs',
+        elevenLabsVoiceId: undefined,
       });
       const ready = await voiceService.isVoiceReady(voice);
-      expect(ready).toBe(true);
+      expect(ready).toBe(false);
     });
 
-    it('should return false for fish-audio voices without setup', async () => {
+    it('should return false for voices that need recloning', async () => {
       const voice = createVoiceProfile({
-        provider: 'fish-audio',
-        providerVoiceId: undefined,
-        isCloned: false,
+        provider: 'fish-audio' as any,
+        cloningStatus: 'NEEDS_RECLONE',
       });
       const ready = await voiceService.isVoiceReady(voice);
       expect(ready).toBe(false);
@@ -147,13 +197,13 @@ describe('voiceService', () => {
     it('should calculate TTS cost based on character count', () => {
       const text = 'a'.repeat(1000);
       const cost = voiceService.getEstimatedCost(text, false);
-      expect(cost).toBe(280); // 280 per 1K chars
+      expect(cost).toBe(300); // 300 per 1K chars for ElevenLabs
     });
 
     it('should round up for partial thousands', () => {
       const text = 'a'.repeat(1001);
       const cost = voiceService.getEstimatedCost(text, false);
-      expect(cost).toBe(281); // Rounds up
+      expect(cost).toBe(301); // Rounds up
     });
 
     it('should return 0 for empty text', () => {
@@ -164,7 +214,7 @@ describe('voiceService', () => {
     it('should calculate cost for typical meditation (2000 chars)', () => {
       const text = 'a'.repeat(2000);
       const cost = voiceService.getEstimatedCost(text, false);
-      expect(cost).toBe(560);
+      expect(cost).toBe(600);
     });
   });
 
@@ -190,84 +240,63 @@ describe('voiceService', () => {
 });
 
 // Test the internal text processing functions
-// These are tested indirectly through generateSpeech, but we can verify behavior
+// ElevenLabs uses ellipses for pauses, not Fish Audio effects
 describe('Text Processing (via generateSpeech)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should convert audio tags to Fish Audio effects', async () => {
+  it('should convert pause tags to ellipses for ElevenLabs', async () => {
     const { generateSpeech } = await import('../../src/lib/edgeFunctions');
-    const voice = createVoiceProfile({ provider: 'fish-audio', providerVoiceId: 'test' });
+    const voice = createVoiceProfile({
+      provider: 'elevenlabs',
+      elevenLabsVoiceId: 'xi-voice-123',
+    });
 
-    await voiceService.generateSpeech('[pause] Hello [deep breath] world', voice);
+    await voiceService.generateSpeech('[pause] Hello [long pause] world', voice);
 
     // Check that generateSpeech was called with converted tags
     expect(generateSpeech).toHaveBeenCalled();
     const callArg = vi.mocked(generateSpeech).mock.calls[0][1];
-    expect(callArg).toContain('(break)'); // [pause] -> (break)
-    expect(callArg).toContain('(breath)'); // [deep breath] -> (breath)
+    expect(callArg).toContain('...'); // [pause] -> ...
     expect(callArg).not.toContain('[pause]');
+    expect(callArg).not.toContain('[long pause]');
+  });
+
+  it('should convert deep breath tags to descriptive text', async () => {
+    const { generateSpeech } = await import('../../src/lib/edgeFunctions');
+    const voice = createVoiceProfile({
+      provider: 'elevenlabs',
+      elevenLabsVoiceId: 'xi-voice-123',
+    });
+
+    await voiceService.generateSpeech('[deep breath] Relax.', voice);
+
+    const callArg = vi.mocked(generateSpeech).mock.calls[0][1];
+    expect(callArg).toContain('take a deep breath');
     expect(callArg).not.toContain('[deep breath]');
   });
 
-  it('should add meditation pacing to text', async () => {
+  it('should convert exhale tags to descriptive text', async () => {
     const { generateSpeech } = await import('../../src/lib/edgeFunctions');
-    const voice = createVoiceProfile({ provider: 'fish-audio', providerVoiceId: 'test' });
+    const voice = createVoiceProfile({
+      provider: 'elevenlabs',
+      elevenLabsVoiceId: 'xi-voice-123',
+    });
 
-    await voiceService.generateSpeech('Hello. World.', voice);
-
-    // Check that long-break was added between sentences
-    const callArg = vi.mocked(generateSpeech).mock.calls[0][1];
-    expect(callArg).toContain('(long-break)');
-  });
-
-  it('should add breath effects for breathing instructions', async () => {
-    const { generateSpeech } = await import('../../src/lib/edgeFunctions');
-    const voice = createVoiceProfile({ provider: 'fish-audio', providerVoiceId: 'test' });
-
-    await voiceService.generateSpeech('Now breathe in deeply.', voice);
+    await voiceService.generateSpeech('[exhale slowly] Now rest.', voice);
 
     const callArg = vi.mocked(generateSpeech).mock.calls[0][1];
-    expect(callArg).toContain('(breath)');
-  });
-
-  it('should add sigh effects for exhale instructions', async () => {
-    const { generateSpeech } = await import('../../src/lib/edgeFunctions');
-    const voice = createVoiceProfile({ provider: 'fish-audio', providerVoiceId: 'test' });
-
-    await voiceService.generateSpeech('Now exhale slowly.', voice);
-
-    const callArg = vi.mocked(generateSpeech).mock.calls[0][1];
-    expect(callArg).toContain('(sigh)');
-  });
-
-  it('should add pauses around meditation keywords', async () => {
-    const { generateSpeech } = await import('../../src/lib/edgeFunctions');
-    const voice = createVoiceProfile({ provider: 'fish-audio', providerVoiceId: 'test' });
-
-    await voiceService.generateSpeech('Feel peace and calm.', voice);
-
-    const callArg = vi.mocked(generateSpeech).mock.calls[0][1];
-    // Keywords like "peace" and "calm" should have breaks around them
-    expect(callArg).toMatch(/\(break\)\s*peace\s*\(break\)/i);
-    expect(callArg).toMatch(/\(break\)\s*calm\s*\(break\)/i);
-  });
-
-  it('should convert ellipses to pauses', async () => {
-    const { generateSpeech } = await import('../../src/lib/edgeFunctions');
-    const voice = createVoiceProfile({ provider: 'fish-audio', providerVoiceId: 'test' });
-
-    await voiceService.generateSpeech('Let go... relax...', voice);
-
-    const callArg = vi.mocked(generateSpeech).mock.calls[0][1];
-    expect(callArg).toContain('(long-break)');
-    expect(callArg).not.toContain('...');
+    expect(callArg).toContain('exhale slowly');
+    expect(callArg).not.toContain('[exhale slowly]');
   });
 
   it('should strip unknown audio tags', async () => {
     const { generateSpeech } = await import('../../src/lib/edgeFunctions');
-    const voice = createVoiceProfile({ provider: 'fish-audio', providerVoiceId: 'test' });
+    const voice = createVoiceProfile({
+      provider: 'elevenlabs',
+      elevenLabsVoiceId: 'xi-voice-123',
+    });
 
     await voiceService.generateSpeech('[unknown tag] Hello [another one]', voice);
 
@@ -275,5 +304,18 @@ describe('Text Processing (via generateSpeech)', () => {
     expect(callArg).not.toContain('[unknown tag]');
     expect(callArg).not.toContain('[another one]');
     expect(callArg).toContain('Hello');
+  });
+
+  it('should return needsReclone flag for legacy voices', async () => {
+    const voice = createVoiceProfile({
+      provider: 'fish-audio' as any,
+      elevenLabsVoiceId: undefined,
+    });
+
+    const result = await voiceService.generateSpeech('Hello world', voice);
+
+    expect(result.needsReclone).toBe(true);
+    expect(result.audioBuffer).toBeNull();
+    expect(result.base64).toBe('');
   });
 });

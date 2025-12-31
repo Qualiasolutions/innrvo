@@ -4,26 +4,31 @@ import { getCorsHeaders, createCompressedResponse } from "../_shared/compression
 import { getRequestId, createLogger, getTracingHeaders } from "../_shared/tracing.ts";
 import { checkRateLimit, createRateLimitResponse, RATE_LIMITS } from "../_shared/rateLimit.ts";
 import { arrayBufferToBase64 } from "../_shared/encoding.ts";
-import { addSecurityHeaders, AUDIO_RESPONSE_HEADERS } from "../_shared/securityHeaders.ts";
+import { addSecurityHeaders } from "../_shared/securityHeaders.ts";
+import { withCircuitBreaker, CIRCUIT_CONFIGS, CircuitBreakerError } from "../_shared/circuitBreaker.ts";
 
 /**
- * Generate Speech - TTS endpoint using Fish Audio
+ * Generate Speech - Unified TTS endpoint using ElevenLabs
  *
- * Fish Audio is the primary (and only) TTS provider.
- * ElevenLabs support retained for legacy cloned voices only.
+ * ElevenLabs is the primary (and only) TTS provider.
+ * Web Speech API fallback is handled client-side.
  *
  * Performance optimizations:
  * - Native base64 encoding (60-70% faster)
  * - Voice profile caching (saves 50-150ms per request)
  * - Environment variables cached at module level
+ * - Circuit breaker for resilience
  */
 
 interface GenerateSpeechRequest {
   text: string;
-  voiceId: string;
+  voiceId?: string;             // Voice profile ID (UUID)
+  elevenLabsVoiceId?: string;   // Direct ElevenLabs voice ID (for preset voices)
   voiceSettings?: {
     stability?: number;
-    similarity_boost?: number;
+    similarityBoost?: number;
+    style?: number;
+    useSpeakerBoost?: boolean;
   };
 }
 
@@ -32,22 +37,23 @@ interface GenerateSpeechResponse {
   audioBase64?: string;
   format?: string;
   error?: string;
+  requestId?: string;
 }
 
 // ============================================================================
 // Module-level caches (persist across warm starts)
 // ============================================================================
 
-// Cache environment variables at module level (saves 1-2ms per request)
-const FISH_AUDIO_API_KEY = Deno.env.get('FISH_AUDIO_API_KEY');
+// Cache environment variable at module level (saves 1-2ms per request)
 const ELEVENLABS_API_KEY = Deno.env.get('ELEVENLABS_API_KEY');
 
 // Voice profile cache (saves 50-150ms database lookup per request)
 interface CachedVoiceProfile {
   data: {
-    fish_audio_model_id: string | null;
     elevenlabs_voice_id: string | null;
+    voice_sample_url: string | null;
     provider: string | null;
+    cloning_status: string | null;
   };
   expiry: number;
 }
@@ -78,121 +84,93 @@ function getSupabaseClient() {
 }
 
 // ============================================================================
-// Fish Audio TTS (Primary Provider)
-// https://docs.fish.audio/developer-guide/getting-started/quickstart
+// ElevenLabs TTS (Primary Provider)
 // ============================================================================
 
-// TTS request timeout (120 seconds - Fish Audio needs 35-76s for long meditations)
+// TTS request timeout (120 seconds for long meditations)
 const TTS_TIMEOUT_MS = 120000;
 
-async function runFishAudioTTS(
-  text: string,
-  modelId: string,
-  apiKey: string,
-  log: ReturnType<typeof createLogger>
-): Promise<{ base64: string; format: string }> {
-  log.info('Generating speech with Fish Audio', { modelId, textLength: text.length });
-
-  // Add timeout protection to prevent hanging requests
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), TTS_TIMEOUT_MS);
-
-  try {
-    const response = await fetch('https://api.fish.audio/v1/tts', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        'model': 'speech-1.6',     // V1.6 supports paralanguage effects: (break), (breath), (sigh)
-      },
-      body: JSON.stringify({
-        text,
-        reference_id: modelId,
-        format: 'mp3',
-        mp3_bitrate: 128,          // Good quality (Fish Audio only accepts 64, 128, 192)
-        chunk_length: 300,         // Larger chunks = fewer API calls = faster
-        latency: 'balanced',       // Faster response (vs 'normal') - good enough for meditation
-        normalize: true,           // Consistent volume
-        streaming: false,          // Note: streaming: true would require client-side changes
-      }),
-      signal: controller.signal,
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      log.error('Fish Audio API error', { status: response.status, error: errorText });
-
-      if (response.status === 402) {
-        throw new Error('Fish Audio: Insufficient credits. Please top up your account.');
-      }
-      if (response.status === 401) {
-        throw new Error('Fish Audio: Invalid API key.');
-      }
-      if (response.status === 404) {
-        throw new Error('Fish Audio: Voice model not found. Please re-clone your voice.');
-      }
-      throw new Error(`Fish Audio error: ${response.status} - ${errorText}`);
-    }
-
-    const audioBuffer = await response.arrayBuffer();
-
-    // Use native base64 encoding (60-70% faster than manual chunked approach)
-    const base64 = arrayBufferToBase64(audioBuffer);
-
-    log.info('Fish Audio TTS successful', { audioSize: audioBuffer.byteLength });
-    return { base64, format: 'audio/mpeg' };
-  } catch (error) {
-    if (error.name === 'AbortError') {
-      throw new Error('Fish Audio request timed out. Please try again.');
-    }
-    throw error;
-  } finally {
-    clearTimeout(timeoutId);
-  }
+/**
+ * Prepare meditation text for ElevenLabs
+ * Converts audio tags to natural pauses using ellipses
+ */
+function prepareMeditationText(text: string): string {
+  return text
+    // Convert meditation tags to natural pauses
+    .replace(/\[pause\]/gi, '...')
+    .replace(/\[long pause\]/gi, '......')
+    .replace(/\[deep breath\]/gi, '... take a deep breath ...')
+    .replace(/\[exhale slowly\]/gi, '... and exhale slowly ...')
+    .replace(/\[silence\]/gi, '........')
+    // Clean up any remaining brackets
+    .replace(/\[[^\]]*\]/g, '...')
+    // Normalize multiple periods
+    .replace(/\.{7,}/g, '......')
+    .trim();
 }
-
-// ============================================================================
-// ElevenLabs TTS (Legacy Support Only)
-// ============================================================================
 
 async function runElevenLabsTTS(
   text: string,
-  voiceId: string,
-  options: { stability?: number; similarity_boost?: number },
+  elevenLabsVoiceId: string,
+  options: GenerateSpeechRequest['voiceSettings'],
   apiKey: string,
   log: ReturnType<typeof createLogger>
 ): Promise<{ base64: string; format: string }> {
-  log.info('Generating speech with ElevenLabs (legacy)', { voiceId, textLength: text.length });
+  log.info('Generating speech with ElevenLabs', {
+    voiceId: elevenLabsVoiceId,
+    textLength: text.length,
+  });
+
+  // Prepare text for meditation
+  const preparedText = prepareMeditationText(text);
 
   // Add timeout protection to prevent hanging requests
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), TTS_TIMEOUT_MS);
 
   try {
-    const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
-      method: 'POST',
-      headers: {
-        'Accept': 'audio/mpeg',
-        'Content-Type': 'application/json',
-        'xi-api-key': apiKey,
-      },
-      body: JSON.stringify({
-        text,
-        model_id: 'eleven_turbo_v2_5',
-        voice_settings: {
-          stability: options.stability ?? 0.5,
-          similarity_boost: options.similarity_boost ?? 0.75,
-          style: 0.0,
-          use_speaker_boost: true,
+    const response = await fetch(
+      `https://api.elevenlabs.io/v1/text-to-speech/${elevenLabsVoiceId}?output_format=mp3_44100_128`,
+      {
+        method: 'POST',
+        headers: {
+          'xi-api-key': apiKey,
+          'Content-Type': 'application/json',
         },
-      }),
-      signal: controller.signal,
-    });
+        body: JSON.stringify({
+          text: preparedText,
+          model_id: 'eleven_multilingual_v2',
+          voice_settings: {
+            stability: options?.stability ?? 0.6,
+            similarity_boost: options?.similarityBoost ?? 0.75,
+            style: options?.style ?? 0.3,
+            use_speaker_boost: options?.useSpeakerBoost ?? true,
+          },
+        }),
+        signal: controller.signal,
+      }
+    );
 
     if (!response.ok) {
       const errorText = await response.text();
       log.error('ElevenLabs API error', { status: response.status, error: errorText });
-      throw new Error(`ElevenLabs error: ${response.status} - ${errorText}`);
+
+      if (response.status === 401) {
+        throw new Error('ElevenLabs authentication failed. Please check your API key.');
+      }
+      if (response.status === 429) {
+        throw new Error('ElevenLabs rate limit exceeded. Please try again later.');
+      }
+      if (response.status === 400) {
+        // Parse error for more specific message
+        try {
+          const errorJson = JSON.parse(errorText);
+          throw new Error(`ElevenLabs error: ${errorJson.detail?.message || errorText}`);
+        } catch {
+          throw new Error(`ElevenLabs API error: ${errorText}`);
+        }
+      }
+      throw new Error(`ElevenLabs API error: ${response.status} - ${errorText}`);
     }
 
     const audioBuffer = await response.arrayBuffer();
@@ -203,7 +181,7 @@ async function runElevenLabsTTS(
     log.info('ElevenLabs TTS successful', { audioSize: audioBuffer.byteLength });
     return { base64, format: 'audio/mpeg' };
   } catch (error) {
-    if (error.name === 'AbortError') {
+    if (error instanceof Error && error.name === 'AbortError') {
       throw new Error('ElevenLabs request timed out. Please try again.');
     }
     throw error;
@@ -230,6 +208,15 @@ serve(async (req) => {
   const log = createLogger({ requestId, operation: 'generate-speech' });
 
   try {
+    // Check if API key is configured
+    if (!ELEVENLABS_API_KEY) {
+      log.error('ELEVENLABS_API_KEY not configured');
+      return new Response(
+        JSON.stringify({ error: 'TTS service not configured', requestId }),
+        { status: 500, headers: { ...allHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Auth check
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
@@ -257,7 +244,7 @@ serve(async (req) => {
     }
 
     // Parse request
-    const { text, voiceId, voiceSettings }: GenerateSpeechRequest = await req.json();
+    const { text, voiceId, elevenLabsVoiceId, voiceSettings }: GenerateSpeechRequest = await req.json();
 
     if (!text) {
       return new Response(
@@ -266,120 +253,114 @@ serve(async (req) => {
       );
     }
 
-    // Check for cached API keys
-    if (!FISH_AUDIO_API_KEY) {
-      log.error('FISH_AUDIO_API_KEY not configured');
-      return new Response(
-        JSON.stringify({ error: 'TTS service not configured', requestId }),
-        { status: 500, headers: { ...allHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    // Determine the ElevenLabs voice ID to use
+    let targetVoiceId = elevenLabsVoiceId;
 
-    // Get voice profile
-    if (!voiceId) {
-      return new Response(
-        JSON.stringify({ error: 'Missing voiceId parameter', requestId }),
-        { status: 400, headers: { ...allHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    // If no direct ElevenLabs ID provided, look up from voice profile
+    if (!targetVoiceId && voiceId) {
+      // Check voice profile cache first (saves 50-150ms database lookup)
+      const cacheKey = `${user.id}:${voiceId}`;
+      let voiceProfile: CachedVoiceProfile['data'] | null = null;
 
-    // Check voice profile cache first (saves 50-150ms database lookup)
-    const cacheKey = `${user.id}:${voiceId}`;
-    let voiceProfile: CachedVoiceProfile['data'] | null = null;
+      const cached = voiceProfileCache.get(cacheKey);
+      if (cached && Date.now() < cached.expiry) {
+        voiceProfile = cached.data;
+        log.info('Voice profile cache hit', { voiceId });
+      } else {
+        // Cleanup old cache entries periodically
+        cleanupVoiceCache();
 
-    const cached = voiceProfileCache.get(cacheKey);
-    if (cached && Date.now() < cached.expiry) {
-      voiceProfile = cached.data;
-      log.info('Voice profile cache hit', { voiceId });
-    } else {
-      // Cleanup old cache entries periodically
-      cleanupVoiceCache();
+        // Fetch from database
+        const { data, error: profileError } = await supabase
+          .from('voice_profiles')
+          .select('elevenlabs_voice_id, voice_sample_url, provider, cloning_status')
+          .eq('id', voiceId)
+          .eq('user_id', user.id)
+          .single();
 
-      // Fetch from database
-      const { data, error: profileError } = await supabase
-        .from('voice_profiles')
-        .select('fish_audio_model_id, elevenlabs_voice_id, provider')
-        .eq('id', voiceId)
-        .eq('user_id', user.id)
-        .single();
+        if (profileError || !data) {
+          log.error('Voice profile not found', { voiceId, error: profileError?.message });
+          return new Response(
+            JSON.stringify({ error: 'Voice not found. Please select a different voice.', requestId }),
+            { status: 404, headers: { ...allHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
 
-      if (profileError || !data) {
-        log.error('Voice profile not found', { voiceId, error: profileError?.message });
+        voiceProfile = data;
+
+        // Cache the profile
+        voiceProfileCache.set(cacheKey, {
+          data: voiceProfile,
+          expiry: Date.now() + VOICE_CACHE_TTL,
+        });
+        log.info('Voice profile cached', { voiceId, ttl: VOICE_CACHE_TTL });
+      }
+
+      log.info('Found voice profile', {
+        voiceId,
+        provider: voiceProfile.provider,
+        hasElevenLabsId: !!voiceProfile.elevenlabs_voice_id,
+        cloningStatus: voiceProfile.cloning_status,
+      });
+
+      // Check if voice needs re-cloning (legacy Fish Audio/Chatterbox voice)
+      if (voiceProfile.cloning_status === 'NEEDS_RECLONE' || !voiceProfile.elevenlabs_voice_id) {
         return new Response(
-          JSON.stringify({ error: 'Voice not found. Please select a different voice.', requestId }),
-          { status: 404, headers: { ...allHeaders, 'Content-Type': 'application/json' } }
+          JSON.stringify({
+            error: 'This voice needs to be re-cloned with ElevenLabs. Please go to Voice Settings and re-clone your voice.',
+            needsReclone: true,
+            requestId,
+          }),
+          { status: 400, headers: { ...allHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
-      voiceProfile = data;
-
-      // Cache the profile
-      voiceProfileCache.set(cacheKey, {
-        data: voiceProfile,
-        expiry: Date.now() + VOICE_CACHE_TTL,
-      });
-      log.info('Voice profile cached', { voiceId, ttl: VOICE_CACHE_TTL });
+      targetVoiceId = voiceProfile.elevenlabs_voice_id;
     }
 
-    log.info('Found voice profile', {
-      voiceId,
-      provider: voiceProfile.provider,
-      hasFishAudioId: !!voiceProfile.fish_audio_model_id,
-      hasElevenLabsId: !!voiceProfile.elevenlabs_voice_id,
-    });
-
-    let audioBase64: string;
-    let audioFormat: string;
-
-    // Use Fish Audio (primary)
-    if (voiceProfile.fish_audio_model_id) {
-      const result = await runFishAudioTTS(
-        text,
-        voiceProfile.fish_audio_model_id,
-        FISH_AUDIO_API_KEY,
-        log
-      );
-      audioBase64 = result.base64;
-      audioFormat = result.format;
-    }
-    // Legacy: ElevenLabs
-    else if (voiceProfile.elevenlabs_voice_id && ELEVENLABS_API_KEY) {
-      const result = await runElevenLabsTTS(
-        text,
-        voiceProfile.elevenlabs_voice_id,
-        voiceSettings || {},
-        ELEVENLABS_API_KEY,
-        log
-      );
-      audioBase64 = result.base64;
-      audioFormat = result.format;
-    }
-    // No valid voice ID
-    else {
+    if (!targetVoiceId) {
       return new Response(
-        JSON.stringify({
-          error: 'Voice not properly configured. Please re-clone your voice.',
-          requestId
-        }),
+        JSON.stringify({ error: 'No voice ID provided', requestId }),
         { status: 400, headers: { ...allHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    log.info('TTS generation successful', { audioSize: audioBase64.length });
+    // Generate speech with circuit breaker protection
+    const result = await withCircuitBreaker(
+      'elevenlabs',
+      CIRCUIT_CONFIGS['elevenlabs'],
+      () => runElevenLabsTTS(text, targetVoiceId!, voiceSettings, ELEVENLABS_API_KEY!, log)
+    );
+
+    log.info('TTS generation successful', { audioSize: result.base64.length });
 
     // Skip compression for audio responses (MP3 is already compressed)
-    // This saves 5-15ms per request
     return await createCompressedResponse(
-      { success: true, audioBase64, format: audioFormat, requestId },
+      {
+        success: true,
+        audioBase64: result.base64,
+        format: result.format,
+        requestId,
+      } as GenerateSpeechResponse,
       allHeaders,
       { minSize: 0, skipCompression: true }
     );
 
-  } catch (error) {
-    log.error('Error generating speech', error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    log.error('Error generating speech', error instanceof Error ? error : new Error(String(error)));
+
+    const isCircuitOpen = error instanceof CircuitBreakerError;
+
     return new Response(
-      JSON.stringify({ success: false, error: error.message, requestId }),
-      { status: 500, headers: { ...allHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({
+        success: false,
+        error: errorMessage,
+        isCircuitOpen,
+        retryAfterMs: isCircuitOpen ? (error as CircuitBreakerError).retryAfterMs : undefined,
+        requestId,
+      }),
+      { status: isCircuitOpen ? 503 : 500, headers: { ...allHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });

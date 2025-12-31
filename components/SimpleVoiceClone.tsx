@@ -45,8 +45,8 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
   // Derive state from cloningStatus
   const isProcessing = cloningStatus.state === 'validating' ||
                        cloningStatus.state === 'processing_audio' ||
-                       cloningStatus.state === 'uploading_to_fish_audio' ||
-                       cloningStatus.state === 'uploading_to_chatterbox' ||
+                       cloningStatus.state === 'uploading' ||
+                       cloningStatus.state === 'uploading_to_elevenlabs' ||
                        cloningStatus.state === 'saving_to_database';
 
   const error = cloningStatus.state === 'error' ? cloningStatus.message : localError;
@@ -54,7 +54,7 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
 
   // Show toast notifications for cloning status changes
   useEffect(() => {
-    if (cloningStatus.state === 'uploading_to_fish_audio' || cloningStatus.state === 'uploading_to_chatterbox') {
+    if (cloningStatus.state === 'uploading' || cloningStatus.state === 'uploading_to_elevenlabs') {
       toast.loading('Creating your voice clone...', {
         id: 'voice-clone',
         description: 'This may take up to 30 seconds',
@@ -93,7 +93,7 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
           echoCancellation: false,     // Preserve natural voice characteristics
           noiseSuppression: false,     // Keep voice qualities for better cloning
           autoGainControl: false,      // Preserve natural volume dynamics
-          sampleRate: 44100,           // Matches Fish Audio expected rate (eliminates server resampling)
+          sampleRate: 44100,           // Matches ElevenLabs expected rate (eliminates server resampling)
           channelCount: 1,             // Mono for voice clarity
         }
       });
@@ -211,8 +211,8 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
         return 'Analyzing your voice...';
       case 'processing_audio':
         return 'Preparing your recording...';
-      case 'uploading_to_fish_audio':
-      case 'uploading_to_chatterbox':
+      case 'uploading':
+      case 'uploading_to_elevenlabs':
         return cloningStatus.progress
           ? `Capturing your inner voice... ${cloningStatus.progress}%`
           : 'Capturing your inner voice...';

@@ -24,22 +24,27 @@ export interface ScriptTemplate {
 }
 
 // Voice providers
-// - 'fish-audio': Primary provider (best quality, real-time API)
-// - 'chatterbox': Fallback provider (via Replicate)
+// - 'elevenlabs': Primary provider (best quality, industry-leading voice cloning)
 // - 'browser': Free browser TTS fallback
-// Legacy providers ('ElevenLabs', 'Gemini') are treated as chatterbox fallback
-export type VoiceProvider = 'browser' | 'chatterbox' | 'fish-audio';
+// Legacy providers ('fish-audio', 'chatterbox') are marked for re-cloning
+export type VoiceProvider = 'browser' | 'elevenlabs';
+
+// Legacy providers that need migration to ElevenLabs
+export type LegacyVoiceProvider = 'fish-audio' | 'chatterbox';
 
 export interface VoiceProfile {
   id: string;
   name: string;
-  provider?: VoiceProvider;
+  provider?: VoiceProvider | LegacyVoiceProvider;
   voiceName: string;
   description: string;
   isCloned?: boolean;
-  providerVoiceId?: string;        // Legacy provider voice ID (Chatterbox via Replicate)
-  fishAudioModelId?: string;       // Fish Audio model ID (primary provider)
-  voiceSampleUrl?: string;         // URL to voice sample in Supabase Storage (fallback for Chatterbox)
+  elevenLabsVoiceId?: string;      // ElevenLabs voice ID (primary provider)
+  voiceSampleUrl?: string;         // URL to voice sample in Supabase Storage (backup)
+  cloningStatus?: string;          // 'READY', 'NEEDS_RECLONE', 'PROCESSING', etc.
+  // Legacy fields (deprecated - for migration support only)
+  providerVoiceId?: string;        // Legacy Chatterbox voice ID
+  fishAudioModelId?: string;       // Legacy Fish Audio model ID
 }
 
 export interface BackgroundMusic {
@@ -98,8 +103,7 @@ export type CloningStatus =
   | { state: 'validating' }
   | { state: 'processing_audio' }                                         // Converting WebM to WAV
   | { state: 'uploading'; progress?: number; provider?: VoiceProvider }  // Generic upload state
-  | { state: 'uploading_to_fish_audio'; progress?: number }               // Fish Audio (primary)
-  | { state: 'uploading_to_chatterbox'; progress?: number }               // Chatterbox via Replicate (fallback)
+  | { state: 'uploading_to_elevenlabs'; progress?: number }               // ElevenLabs (primary)
   | { state: 'saving_to_database' }
   | { state: 'success'; voiceId: string; voiceName: string }
   | { state: 'error'; message: string; canRetry: boolean };

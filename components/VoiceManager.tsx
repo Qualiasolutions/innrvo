@@ -208,8 +208,15 @@ const VoiceManager: React.FC<VoiceManagerProps> = ({
                     ) : (
                       <h4 className="text-lg font-bold text-white flex items-center gap-2">
                         {voice.name}
-                        {voice.status === 'READY' && (
+                        {voice.status === 'READY' && voice.cloning_status !== 'NEEDS_RECLONE' && (
                           <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                        )}
+                        {/* Legacy voice indicator - needs re-clone */}
+                        {(voice.cloning_status === 'NEEDS_RECLONE' ||
+                          (!voice.elevenlabs_voice_id && (voice.provider === 'fish-audio' || voice.provider === 'chatterbox'))) && (
+                          <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 text-[9px] font-bold uppercase tracking-widest">
+                            Re-clone needed
+                          </span>
                         )}
                       </h4>
                     )}

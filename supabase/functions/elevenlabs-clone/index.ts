@@ -8,30 +8,32 @@ import { sanitizeFileName } from "../_shared/sanitization.ts";
 import { addSecurityHeaders } from "../_shared/securityHeaders.ts";
 
 /**
- * Fish Audio Voice Cloning Edge Function
+ * ElevenLabs Voice Cloning Edge Function
  *
- * Creates a voice model from audio sample using Fish Audio API.
- * Also stores audio in Supabase Storage for Chatterbox fallback.
+ * Creates a voice clone using ElevenLabs Instant Voice Cloning (IVC).
+ * Also stores audio in Supabase Storage for backup/reference.
  *
- * Fish Audio is the primary provider (best quality, real-time API).
- * Chatterbox/Replicate is the fallback (if Fish Audio fails).
+ * ElevenLabs IVC (Instant Voice Cloning):
+ * - Fast cloning from a single audio sample
+ * - Good quality for meditation use cases
+ * - Supports noise removal for cleaner clones
  *
  * Performance optimizations:
  * - Native base64 decoding (50% faster)
- * - Parallel storage upload + Fish Audio model creation (saves 200-500ms)
+ * - Parallel storage upload + ElevenLabs model creation
  * - Environment variables cached at module level
  */
 
-const FISH_AUDIO_API_URL = 'https://api.fish.audio';
+const ELEVENLABS_API_URL = 'https://api.elevenlabs.io/v1';
 
 // Cache environment variable at module level
-const FISH_AUDIO_API_KEY = Deno.env.get('FISH_AUDIO_API_KEY');
+const ELEVENLABS_API_KEY = Deno.env.get('ELEVENLABS_API_KEY');
 
-interface FishAudioCloneRequest {
+interface ElevenLabsCloneRequest {
   audioBase64: string;
   voiceName: string;
   description?: string;
-  highQuality?: boolean;  // Use high-quality training (slower but better)
+  removeBackgroundNoise?: boolean;
   metadata?: {
     language?: string;
     accent?: string;
@@ -40,12 +42,13 @@ interface FishAudioCloneRequest {
   };
 }
 
-interface FishAudioCloneResponse {
+interface ElevenLabsCloneResponse {
   success: boolean;
   voiceProfileId?: string;
-  fishAudioModelId?: string;
+  elevenLabsVoiceId?: string;
   voiceSampleUrl?: string;
   error?: string;
+  requestId?: string;
 }
 
 // Lazy-load Supabase client
@@ -61,46 +64,46 @@ function getSupabaseClient() {
   return supabaseClient;
 }
 
-// Voice cloning request timeout (60 seconds - longer than TTS due to model creation)
-const CLONE_TIMEOUT_MS = 60000;
+// Voice cloning request timeout (90 seconds - longer due to processing)
+const CLONE_TIMEOUT_MS = 90000;
 
 /**
- * Create a voice model on Fish Audio
- * Returns the model ID to use for TTS
+ * Create a voice clone on ElevenLabs using Instant Voice Cloning (IVC)
+ * Returns the voice_id to use for TTS
  */
-async function createFishAudioModel(
+async function createElevenLabsVoiceClone(
   audioBlob: Blob,
-  title: string,
+  voiceName: string,
   description: string,
+  removeBackgroundNoise: boolean,
   apiKey: string,
-  highQuality: boolean,
   log: ReturnType<typeof createLogger>
 ): Promise<string> {
-  const trainMode = highQuality ? 'fast_high_quality' : 'fast';
-  log.info('Creating Fish Audio voice model', {
-    title,
+  log.info('Creating ElevenLabs voice clone', {
+    name: voiceName,
     audioSize: audioBlob.size,
-    trainMode
+    removeBackgroundNoise,
   });
 
   // Create form data for multipart upload
   const formData = new FormData();
-  formData.append('type', 'tts');
-  formData.append('title', title);
-  formData.append('train_mode', trainMode);  // fast_high_quality for better results
-  formData.append('visibility', 'private');  // User's private voice
-  formData.append('description', description);
-  formData.append('voices', audioBlob, 'voice_sample.wav');
+  formData.append('name', voiceName);
+  formData.append('files', audioBlob, 'voice_sample.wav');
+  formData.append('remove_background_noise', String(removeBackgroundNoise));
+
+  if (description) {
+    formData.append('description', description);
+  }
 
   // Add timeout protection to prevent hanging requests
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), CLONE_TIMEOUT_MS);
 
   try {
-    const response = await fetch(`${FISH_AUDIO_API_URL}/model`, {
+    const response = await fetch(`${ELEVENLABS_API_URL}/voices/add`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
+        'xi-api-key': apiKey,
       },
       body: formData,
       signal: controller.signal,
@@ -108,21 +111,42 @@ async function createFishAudioModel(
 
     if (!response.ok) {
       const errorText = await response.text();
-      log.error('Fish Audio model creation failed', { status: response.status, error: errorText });
+      log.error('ElevenLabs voice creation failed', { status: response.status, error: errorText });
 
-      if (response.status === 402) {
-        throw new Error('Fish Audio quota exceeded for voice cloning. Please try again later or upgrade your plan.');
-      }
       if (response.status === 401) {
-        throw new Error('Fish Audio authentication failed. Please contact support.');
+        throw new Error('ElevenLabs authentication failed. Please check your API key.');
       }
-      throw new Error(`Fish Audio API error: ${response.status} - ${errorText}`);
+      if (response.status === 429) {
+        throw new Error('ElevenLabs rate limit exceeded. Please try again later.');
+      }
+      if (response.status === 400) {
+        // Parse for specific error message
+        try {
+          const errorJson = JSON.parse(errorText);
+          const detail = errorJson.detail;
+          if (typeof detail === 'string') {
+            throw new Error(`Voice cloning failed: ${detail}`);
+          } else if (detail?.message) {
+            throw new Error(`Voice cloning failed: ${detail.message}`);
+          }
+        } catch (parseError) {
+          // If parsing fails, use the raw error text
+          if (!(parseError instanceof SyntaxError)) {
+            throw parseError;
+          }
+        }
+        throw new Error(`ElevenLabs API error: ${errorText}`);
+      }
+      throw new Error(`ElevenLabs API error: ${response.status} - ${errorText}`);
     }
 
     const result = await response.json();
-    log.info('Fish Audio model created', { modelId: result._id, state: result.state });
+    log.info('ElevenLabs voice clone created', {
+      voiceId: result.voice_id,
+      requiresVerification: result.requires_verification,
+    });
 
-    return result._id;  // This is the model ID to use for TTS
+    return result.voice_id;
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
       throw new Error('Voice cloning request timed out. Please try again.');
@@ -144,9 +168,18 @@ serve(async (req) => {
     return new Response('ok', { headers: allHeaders });
   }
 
-  const log = createLogger({ requestId, operation: 'fish-audio-clone' });
+  const log = createLogger({ requestId, operation: 'elevenlabs-clone' });
 
   try {
+    // Check if API key is configured
+    if (!ELEVENLABS_API_KEY) {
+      log.error('ElevenLabs API key not configured');
+      return new Response(
+        JSON.stringify({ error: 'ElevenLabs API key not configured', requestId }),
+        { status: 500, headers: { ...allHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Auth validation
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
@@ -175,7 +208,13 @@ serve(async (req) => {
       return createRateLimitResponse(rateLimitResult, allHeaders);
     }
 
-    const { audioBase64, voiceName, description, metadata, highQuality }: FishAudioCloneRequest = await req.json();
+    const {
+      audioBase64,
+      voiceName,
+      description,
+      removeBackgroundNoise,
+      metadata,
+    }: ElevenLabsCloneRequest = await req.json();
 
     if (!audioBase64 || !voiceName) {
       return new Response(
@@ -204,13 +243,12 @@ serve(async (req) => {
     const fileName = `${user.id}/${timestamp}_${safeName}.wav`;
 
     // ========================================================================
-    // PARALLEL OPERATIONS: Upload storage + Create Fish Audio model
+    // PARALLEL OPERATIONS: Upload storage + Create ElevenLabs voice clone
     // This saves 200-500ms by running these independent operations concurrently
     // ========================================================================
 
     log.info('Starting parallel operations', {
-      hasFishAudioKey: !!FISH_AUDIO_API_KEY,
-      audioSize: bytes.length
+      audioSize: bytes.length,
     });
 
     // Create promises for parallel execution
@@ -218,31 +256,26 @@ serve(async (req) => {
       .from('voice-samples')
       .upload(fileName, bytes, { contentType: 'audio/wav', upsert: false });
 
-    const fishAudioPromise = FISH_AUDIO_API_KEY
-      ? createFishAudioModel(
-          audioBlob,
-          voiceName,
-          description || 'Voice clone created with INrVO',
-          FISH_AUDIO_API_KEY,
-          highQuality ?? true,  // Default to high quality for better naturalness
-          log
-        ).catch((error) => {
-          log.warn('Fish Audio model creation failed, using Chatterbox only', { error: error.message });
-          return null; // Return null on failure, don't reject
-        })
-      : Promise.resolve(null);
+    const elevenLabsPromise = createElevenLabsVoiceClone(
+      audioBlob,
+      voiceName,
+      description || 'Voice clone created with INrVO',
+      removeBackgroundNoise ?? true,  // Default to noise removal for cleaner clones
+      ELEVENLABS_API_KEY!,
+      log
+    );
 
     // Run both operations in parallel
-    const [uploadResult, fishAudioModelId] = await Promise.all([
+    const [uploadResult, elevenLabsVoiceId] = await Promise.all([
       uploadPromise,
-      fishAudioPromise
+      elevenLabsPromise,
     ]);
 
     // Process upload result
     let voiceSampleUrl: string | null = null;
     if (uploadResult.error) {
       log.error('Storage upload failed', { error: uploadResult.error.message });
-      // Continue - Fish Audio might still work
+      // Continue - ElevenLabs voice was created successfully
     } else {
       const { data: publicUrlData } = supabase.storage
         .from('voice-samples')
@@ -251,64 +284,73 @@ serve(async (req) => {
       log.info('Audio uploaded to storage', { url: voiceSampleUrl });
     }
 
-    // Log Fish Audio result
-    if (fishAudioModelId) {
-      log.info('Fish Audio model created successfully', { modelId: fishAudioModelId });
-    } else if (!FISH_AUDIO_API_KEY) {
-      log.info('Fish Audio API key not configured, using Chatterbox only');
-    }
-
     // Create voice profile in database
-    // Type assertion needed because edge functions don't have schema types
     const { data: voiceProfile, error: profileError } = await (supabase
-      .from('voice_profiles') as any)
+      .from('voice_profiles') as ReturnType<typeof supabase.from>)
       .insert({
         user_id: user.id,
         name: voiceName,
         description: description || 'Voice clone created with INrVO',
-        provider: fishAudioModelId ? 'fish-audio' : 'chatterbox',
-        fish_audio_model_id: fishAudioModelId,
+        provider: 'elevenlabs',
+        elevenlabs_voice_id: elevenLabsVoiceId,
         voice_sample_url: voiceSampleUrl,
         provider_voice_id: null,
+        fish_audio_model_id: null,  // Clear any legacy Fish Audio ID
         cloning_status: 'READY',
         status: 'READY',
         metadata: metadata || {},
       })
       .select('id')
-      .single() as { data: { id: string } | null; error: any };
+      .single();
 
     if (profileError || !voiceProfile) {
       log.error('Failed to create voice profile', { error: profileError?.message });
+
+      // Attempt to delete the ElevenLabs voice to avoid orphaned clones
+      try {
+        await fetch(`${ELEVENLABS_API_URL}/voices/${elevenLabsVoiceId}`, {
+          method: 'DELETE',
+          headers: { 'xi-api-key': ELEVENLABS_API_KEY! },
+        });
+        log.info('Cleaned up orphaned ElevenLabs voice', { voiceId: elevenLabsVoiceId });
+      } catch (cleanupError) {
+        log.warn('Failed to cleanup orphaned ElevenLabs voice', { voiceId: elevenLabsVoiceId });
+      }
+
       return new Response(
-        JSON.stringify({ error: `Failed to create voice profile: ${profileError?.message || 'Unknown error'}`, requestId }),
+        JSON.stringify({
+          error: `Failed to create voice profile: ${profileError?.message || 'Unknown error'}`,
+          requestId,
+        }),
         { status: 500, headers: { ...allHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     log.info('Voice profile created', {
       profileId: voiceProfile.id,
-      hasFishAudio: !!fishAudioModelId,
-      hasChatterbox: !!voiceSampleUrl,
+      elevenLabsVoiceId,
+      hasStorage: !!voiceSampleUrl,
     });
 
     return new Response(
       JSON.stringify({
         success: true,
         voiceProfileId: voiceProfile.id,
-        fishAudioModelId,
+        elevenLabsVoiceId,
         voiceSampleUrl,
         requestId,
-      } as FishAudioCloneResponse),
+      } as ElevenLabsCloneResponse),
       { status: 200, headers: { ...allHeaders, 'Content-Type': 'application/json' } }
     );
 
-  } catch (error: any) {
-    log.error('Error processing voice clone', error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    log.error('Error processing voice clone', error instanceof Error ? error : new Error(String(error)));
 
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message || 'Unknown error occurred',
+        error: errorMessage,
         requestId,
       }),
       { status: 500, headers: { ...allHeaders, 'Content-Type': 'application/json' } }

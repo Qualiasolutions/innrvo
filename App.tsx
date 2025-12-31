@@ -177,6 +177,7 @@ const App: React.FC = () => {
 
   // Background music refs
   const backgroundAudioRef = useRef<HTMLAudioElement | null>(null);
+  const preloadedMusicRef = useRef<Map<string, { audio: HTMLAudioElement; ready: boolean }>>(new Map());
   const [backgroundVolume, setBackgroundVolume] = useState(0.3); // 30% default
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
   const [musicError, setMusicError] = useState<string | null>(null);
@@ -721,7 +722,7 @@ const App: React.FC = () => {
   }, [user]);
 
   // Handle recording complete from SimpleVoiceClone
-  // Uses Chatterbox via Replicate for voice cloning
+  // Uses ElevenLabs Instant Voice Cloning (primary provider)
   const handleCloneRecordingComplete = useCallback(async (blob: Blob, name: string, metadata?: VoiceMetadata) => {
     if (!user) {
       setCloningStatus({ state: 'error', message: 'Please sign in to clone your voice', canRetry: false });
@@ -733,23 +734,24 @@ const App: React.FC = () => {
     try {
       setCloningStatus({ state: 'processing_audio' });
 
-      // Convert to WAV for Chatterbox (required format)
+      // Convert to WAV for ElevenLabs (required format)
       const wavBlob = await convertToWAV(blob);
 
-      setCloningStatus({ state: 'uploading_to_fish_audio' });
+      setCloningStatus({ state: 'uploading_to_elevenlabs' });
 
-      // Clone with Fish Audio (primary, with Chatterbox backup storage)
+      // Clone with ElevenLabs
       // Dynamic import to avoid duplicate import warning and reduce initial bundle size
-      let cloneResult: { voiceProfileId: string; fishAudioModelId: string | null; voiceSampleUrl: string | null };
+      let cloneResult: { voiceProfileId: string; elevenLabsVoiceId: string; voiceSampleUrl: string | null };
       try {
-        const { fishAudioCloneVoice } = await import('./src/lib/edgeFunctions');
-        cloneResult = await fishAudioCloneVoice(
+        const { elevenLabsCloneVoice } = await import('./src/lib/edgeFunctions');
+        cloneResult = await elevenLabsCloneVoice(
           wavBlob,
           name,
           'Meditation voice clone created with INrVO',
-          metadata
+          metadata,
+          true // removeBackgroundNoise
         );
-        console.log('Voice cloned successfully! Profile ID:', cloneResult.voiceProfileId, 'Fish Audio Model:', cloneResult.fishAudioModelId);
+        console.log('Voice cloned successfully! Profile ID:', cloneResult.voiceProfileId, 'ElevenLabs Voice:', cloneResult.elevenLabsVoiceId);
       } catch (cloneError: unknown) {
         console.error('Voice cloning failed:', cloneError);
         setCloningStatus({
@@ -799,11 +801,12 @@ const App: React.FC = () => {
       const newVoice: VoiceProfile = {
         id: savedVoice.id,
         name: savedVoice.name,
-        provider: 'chatterbox',
+        provider: 'elevenlabs',
         voiceName: savedVoice.name,
         description: savedVoice.description || 'Your personalized cloned voice',
         isCloned: true,
-        providerVoiceId: cloneResult.voiceSampleUrl,
+        elevenLabsVoiceId: cloneResult.elevenLabsVoiceId,
+        voiceSampleUrl: cloneResult.voiceSampleUrl || undefined,
       };
 
       // Update available voices
@@ -888,7 +891,41 @@ const App: React.FC = () => {
     }
   };
 
-  // Start background music
+  // Preload background music (call when TTS generation starts for parallel loading)
+  const preloadBackgroundMusic = useCallback((track: BackgroundTrack) => {
+    if (track.id === 'none' || !track.audioUrl) {
+      return;
+    }
+
+    // Already preloading or preloaded
+    if (preloadedMusicRef.current.has(track.id)) {
+      return;
+    }
+
+    console.log('[Music] Preloading track:', track.name);
+    const audio = new Audio();
+    audio.preload = 'auto';
+    audio.loop = true;
+    audio.volume = backgroundVolume;
+
+    const cacheEntry = { audio, ready: false };
+    preloadedMusicRef.current.set(track.id, cacheEntry);
+
+    audio.oncanplaythrough = () => {
+      console.log('[Music] Track preloaded and ready:', track.name);
+      cacheEntry.ready = true;
+    };
+
+    audio.onerror = () => {
+      console.error('[Music] Preload failed for:', track.name);
+      preloadedMusicRef.current.delete(track.id);
+    };
+
+    audio.src = track.audioUrl;
+    audio.load();
+  }, [backgroundVolume]);
+
+  // Start background music (uses preloaded audio if available for instant start)
   const startBackgroundMusic = async (track: BackgroundTrack) => {
     // Stop any existing background music
     stopBackgroundMusic();
@@ -901,21 +938,42 @@ const App: React.FC = () => {
     }
 
     try {
-      console.log('[Music] Loading track:', track.name, track.audioUrl);
-      const audio = new Audio();
-      // Note: crossOrigin not needed for playback-only, and causes CORS issues with some hosts
-      audio.preload = 'auto';
-      audio.loop = true;
-      audio.volume = backgroundVolume;
+      // Check for preloaded audio first
+      const preloaded = preloadedMusicRef.current.get(track.id);
+      let audio: HTMLAudioElement;
 
-      // Set up event handlers before setting src
+      if (preloaded?.ready) {
+        // Use preloaded audio - instant start!
+        console.log('[Music] Using preloaded track:', track.name);
+        audio = preloaded.audio;
+        audio.volume = backgroundVolume; // Update volume in case it changed
+        audio.currentTime = 0; // Reset to start
+        preloadedMusicRef.current.delete(track.id);
+      } else if (preloaded && !preloaded.ready) {
+        // Preloading in progress - wait for it
+        console.log('[Music] Waiting for preload to complete:', track.name);
+        audio = preloaded.audio;
+        audio.volume = backgroundVolume;
+        await new Promise<void>((resolve, reject) => {
+          audio.oncanplaythrough = () => resolve();
+          audio.onerror = () => reject(new Error('Preload failed'));
+        });
+        preloadedMusicRef.current.delete(track.id);
+      } else {
+        // No preload - create fresh (fallback behavior)
+        console.log('[Music] Loading track fresh:', track.name, track.audioUrl);
+        audio = new Audio();
+        audio.preload = 'auto';
+        audio.loop = true;
+        audio.volume = backgroundVolume;
+        audio.src = track.audioUrl;
+      }
+
+      // Set up event handlers
       audio.onerror = (e) => {
         console.error('[Music] Audio error:', e, audio.error);
         setIsMusicPlaying(false);
         setMusicError(`Failed to load: ${track.name}`);
-      };
-      audio.oncanplaythrough = () => {
-        console.log('[Music] Audio ready to play:', track.name);
       };
       audio.onplay = () => {
         console.log('[Music] Audio started playing:', track.name);
@@ -931,23 +989,9 @@ const App: React.FC = () => {
         setIsMusicPlaying(false);
       };
 
-      // Add load timeout
-      const loadTimeout = setTimeout(() => {
-        if (!audio.readyState || audio.readyState < 3) {
-          console.error('[Music] Load timeout for:', track.name);
-          setMusicError(`Timeout loading: ${track.name}`);
-          setIsMusicPlaying(false);
-        }
-      }, 15000);
-
-      audio.onloadeddata = () => {
-        clearTimeout(loadTimeout);
-      };
-
-      audio.src = track.audioUrl;
       backgroundAudioRef.current = audio;
 
-      // Wait for audio to be ready, then play
+      // Play (may need to wait if not preloaded)
       await audio.play();
       console.log('[Music] Play called successfully');
     } catch (error: unknown) {
@@ -958,9 +1002,9 @@ const App: React.FC = () => {
         console.warn('[Music] Autoplay blocked - will retry on user interaction');
         setMusicError('Tap to enable music');
       } else {
-        // Try without crossOrigin as fallback
+        // Fallback attempt
         try {
-          console.log('[Music] Retrying without crossOrigin...');
+          console.log('[Music] Retrying with fresh audio element...');
           const audio = new Audio(track.audioUrl);
           audio.loop = true;
           audio.volume = backgroundVolume;
@@ -1576,6 +1620,9 @@ const App: React.FC = () => {
     setGenerationStage('voice');
     setMicError(null);
 
+    // Preload background music in parallel with TTS generation (saves ~1-3s)
+    preloadBackgroundMusic(selectedBackgroundTrack);
+
     // Show loading toast for audio generation
     const audioToastId = toast.loading('Generating audio...', {
       description: 'Creating natural voice narration',
@@ -1742,6 +1789,10 @@ const App: React.FC = () => {
     if (!script) return;
     setIsGenerating(true);
     setMicError(null);
+
+    // Preload background music in parallel with TTS generation (saves ~1-3s)
+    preloadBackgroundMusic(selectedBackgroundTrack);
+
     try {
       if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
         audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -1953,6 +2004,9 @@ const App: React.FC = () => {
                         setIsGenerating(true);
                         setGenerationStage('voice');
                         setMicError(null);
+
+                        // Preload background music in parallel with TTS generation (saves ~1-3s)
+                        preloadBackgroundMusic(selectedBackgroundTrack);
 
                         try {
                           // Initialize audio context (check state to handle closed contexts)

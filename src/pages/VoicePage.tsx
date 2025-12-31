@@ -26,7 +26,13 @@ const VoicePage: React.FC = () => {
           isOpen={true}
           onClose={() => navigate('/')}
           onSelectVoice={(voice) => {
-            const provider = voice.fish_audio_model_id ? 'fish-audio' as const : 'chatterbox' as const;
+            // Determine provider: ElevenLabs (new), browser, or legacy (needs re-clone)
+            const provider = voice.elevenlabs_voice_id
+              ? 'elevenlabs' as const
+              : (voice.provider === 'fish-audio' || voice.provider === 'chatterbox')
+                ? voice.provider  // Legacy provider - will prompt re-clone
+                : 'browser' as const;
+
             setSelectedVoice({
               id: voice.id,
               name: voice.name,
@@ -34,9 +40,9 @@ const VoicePage: React.FC = () => {
               voiceName: voice.name,
               description: voice.description || 'Your personalized voice clone',
               isCloned: true,
-              providerVoiceId: voice.provider_voice_id,
-              fishAudioModelId: voice.fish_audio_model_id,
+              elevenLabsVoiceId: voice.elevenlabs_voice_id,
               voiceSampleUrl: voice.voice_sample_url,
+              cloningStatus: voice.cloning_status,
             });
             navigate('/');
           }}

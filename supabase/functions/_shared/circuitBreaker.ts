@@ -25,6 +25,11 @@ export const CIRCUIT_CONFIGS: Record<string, CircuitConfig> = {
     resetTimeoutMs: 45000,     // 45 seconds (faster recovery than Replicate)
     halfOpenRequests: 1,
   },
+  elevenlabs: {
+    failureThreshold: 3,
+    resetTimeoutMs: 45000,     // 45 seconds
+    halfOpenRequests: 1,
+  },
 };
 
 export class CircuitBreakerError extends Error {

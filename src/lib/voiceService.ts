@@ -4,84 +4,54 @@ import { webSpeechService, isWebSpeechAvailable } from './webSpeechService';
 // Debug logging - only enabled in development
 const DEBUG = import.meta.env?.DEV ?? false;
 
-// Voice service supports multiple providers:
-// - 'fish-audio': Fish Audio API (primary - best quality, real-time)
-// - 'chatterbox': Chatterbox via Replicate (fallback)
+// Voice service supports ElevenLabs (primary) and Web Speech API (fallback):
+// - 'elevenlabs': ElevenLabs API (primary - best quality voice cloning)
 // - 'browser': Free Web Speech API (built-in browser TTS)
 
 /**
- * Convert audio tags to Fish Audio paralanguage effects
- * Instead of stripping tags, we convert them to TTS-supported effects
- *
- * Fish Audio V1.6 supported effects:
- * - (break) - Short pause
- * - (long-break) - Extended pause
- * - (breath) - Breathing sound
- * - (sigh) - Sighing sound
+ * Prepare meditation text for ElevenLabs
+ * Converts audio tags to natural pauses using ellipses
+ * ElevenLabs handles pauses naturally through punctuation
  */
-function convertAudioTagsToEffects(text: string): string {
-  let processed = text;
-
-  // Convert known audio tags to Fish Audio paralanguage effects
-  processed = processed.replace(/\[pause\]/gi, '(break)');
-  processed = processed.replace(/\[long pause\]/gi, '(long-break)');
-  processed = processed.replace(/\[deep breath\]/gi, '(breath)');
-  processed = processed.replace(/\[exhale slowly\]/gi, '(sigh)');
-  processed = processed.replace(/\[sigh\]/gi, '(sigh)');
-  processed = processed.replace(/\[breath\]/gi, '(breath)');
-
-  // Strip any remaining unknown tags (they would be spoken literally)
-  processed = processed.replace(/\[[^\]]+\]/g, '');
-
-  return processed.replace(/\s+/g, ' ').trim();
+function prepareMeditationText(text: string): string {
+  return text
+    // Convert meditation tags to natural pauses
+    .replace(/\[pause\]/gi, '...')
+    .replace(/\[long pause\]/gi, '......')
+    .replace(/\[deep breath\]/gi, '... take a deep breath ...')
+    .replace(/\[exhale slowly\]/gi, '... and exhale slowly ...')
+    .replace(/\[sigh\]/gi, '...')
+    .replace(/\[breath\]/gi, '...')
+    .replace(/\[silence\]/gi, '........')
+    // Clean up any remaining brackets (unknown tags)
+    .replace(/\[[^\]]*\]/g, '...')
+    // Normalize multiple periods
+    .replace(/\.{7,}/g, '......')
+    .trim();
 }
 
 /**
- * Pre-process text for meditation-style natural speech
- * Uses Fish Audio V1.6 paralanguage effects for natural pauses and breathing
- *
- * Supported Fish Audio effects:
- * - (break) - Short pause
- * - (long-break) - Extended pause
- * - (breath) - Breathing sound
- * - (sigh) - Sighing sound
+ * Check if a voice profile needs to be re-cloned for ElevenLabs migration
  */
-function prepareMeditationText(text: string): string {
-  let processed = text;
-
-  // 1. Add pauses after sentences for meditation pacing
-  processed = processed.replace(/\.(\s+)(?=[A-Z])/g, '. (long-break) $1');  // Extended pause between sentences
-  processed = processed.replace(/\!(\s+)(?=[A-Z])/g, '! (break) $1');       // Short pause for exclamations
-  processed = processed.replace(/\?(\s+)(?=[A-Z])/g, '? (break) $1');       // Short pause for questions
-
-  // 2. Add subtle pauses after commas for natural phrasing
-  processed = processed.replace(/,(\s+)/g, ', (break) $1');
-
-  // 3. Add breath sounds for breathing instructions
-  processed = processed.replace(/\b(breathe in|inhale)\b/gi, '$1 (breath) (long-break) ');
-  processed = processed.replace(/\b(breathe out|exhale)\b/gi, '$1 (sigh) (long-break) ');
-
-  // 4. Add pauses around key meditation words for emphasis
-  processed = processed.replace(
-    /\b(relax|release|let go|soften|peace|calm|stillness)\b/gi,
-    '(break) $1 (break)'
-  );
-
-  // 5. Convert existing ellipses to Fish Audio pauses
-  processed = processed.replace(/\.{3,}/g, '(long-break)');
-
-  // Clean up multiple spaces and redundant consecutive effects
-  processed = processed.replace(/\(break\)\s*\(break\)/g, '(long-break)');
-  processed = processed.replace(/\(long-break\)\s*\(long-break\)/g, '(long-break)');
-  processed = processed.replace(/\s+/g, ' ').trim();
-
-  return processed;
+export function needsReclone(voice: VoiceProfile): boolean {
+  // Legacy providers need re-cloning
+  if (voice.provider === 'fish-audio' || voice.provider === 'chatterbox') {
+    return !voice.elevenLabsVoiceId;
+  }
+  // Check cloning status
+  if (voice.cloningStatus === 'NEEDS_RECLONE') {
+    return true;
+  }
+  // Cloned voices without ElevenLabs ID need migration
+  if (voice.isCloned && !voice.elevenLabsVoiceId) {
+    return true;
+  }
+  return false;
 }
 
 /**
  * Unified voice service that routes between providers:
- * - 'fish-audio': Fish Audio API (primary - best quality)
- * - 'chatterbox': Chatterbox via Replicate (fallback)
+ * - 'elevenlabs': ElevenLabs API (primary - best quality)
  * - 'browser': Free Web Speech API
  */
 export const voiceService = {
@@ -96,12 +66,18 @@ export const voiceService = {
     text: string,
     voice: VoiceProfile,
     audioContext?: AudioContext
-  ): Promise<{ audioBuffer: AudioBuffer | null; base64: string; usedWebSpeech?: boolean }> {
-    // Convert audio tags to Fish Audio paralanguage effects (e.g., [pause] -> (break))
-    const cleanText = convertAudioTagsToEffects(text);
+  ): Promise<{ audioBuffer: AudioBuffer | null; base64: string; usedWebSpeech?: boolean; needsReclone?: boolean }> {
+    // Check if voice needs re-cloning (legacy Fish Audio/Chatterbox voice)
+    if (needsReclone(voice)) {
+      return {
+        audioBuffer: null,
+        base64: '',
+        needsReclone: true,
+      };
+    }
 
-    // Prepare text for slower, meditation-style delivery with additional effects
-    const meditationText = prepareMeditationText(cleanText);
+    // Prepare text for meditation-style delivery
+    const meditationText = prepareMeditationText(text);
 
     const provider = voice.provider || this.detectProvider(voice);
 
@@ -110,46 +86,41 @@ export const voiceService = {
       case 'browser':
         return this.generateWithWebSpeech(meditationText, voice);
 
-      case 'fish-audio':
-        // Fish Audio uses unified generate-speech endpoint (handles fallback internally)
-        return this.generateWithFishAudio(meditationText, voice, audioContext);
-
-      case 'chatterbox':
+      case 'elevenlabs':
       default:
-        return this.generateWithChatterbox(meditationText, voice, audioContext);
+        // ElevenLabs is the primary provider
+        return this.generateWithElevenLabs(meditationText, voice, audioContext);
     }
   },
 
   /**
    * Detect provider from voice profile
    * Routes to appropriate TTS backend:
-   * - 'fish-audio': Primary (best quality, real-time API)
-   * - 'chatterbox': Fallback (via Replicate)
+   * - 'elevenlabs': Primary (best quality, voice cloning)
    * - 'browser': Web Speech API (free, works offline)
    */
   detectProvider(voice: VoiceProfile): VoiceProvider {
     // Check for browser voices first
     if (voice.id.startsWith('browser-')) return 'browser';
 
-    // Fish Audio voices (primary)
-    if (voice.provider === 'fish-audio') {
-      return 'fish-audio';
+    // Check for preset ElevenLabs voices
+    if (voice.id.startsWith('elevenlabs-')) return 'elevenlabs';
+
+    // ElevenLabs voices (primary)
+    if (voice.elevenLabsVoiceId) {
+      return 'elevenlabs';
     }
 
-    // Legacy ElevenLabs voices go through unified endpoint (routes internally)
-    // @ts-ignore - voice.provider may have legacy 'ElevenLabs' value from database
-    if (voice.provider === 'ElevenLabs') {
-      return 'fish-audio';  // Unified endpoint handles fallback
+    // Legacy providers should use browser fallback until re-cloned
+    if (voice.provider === 'fish-audio' || voice.provider === 'chatterbox') {
+      // These need migration - fall back to browser
+      if (DEBUG) console.log('[voiceService] Legacy voice detected, needs re-clone:', voice.id);
+      return 'browser';
     }
 
-    // Chatterbox voices with proper setup
-    if (voice.provider === 'chatterbox' && (voice.providerVoiceId || voice.isCloned)) {
-      return 'fish-audio';  // Route through unified endpoint for Fish Audio fallback
-    }
-
-    // Any cloned voice with voice data - use unified endpoint
-    if (voice.providerVoiceId || voice.isCloned) {
-      return 'fish-audio';  // Unified endpoint handles provider selection
+    // Any cloned voice with ElevenLabs voice ID
+    if (voice.isCloned && voice.elevenLabsVoiceId) {
+      return 'elevenlabs';
     }
 
     // Voices without proper setup fall back to free browser TTS
@@ -180,10 +151,9 @@ export const voiceService = {
   },
 
   /**
-   * Generate speech using Fish Audio (with automatic Chatterbox fallback)
-   * Uses the unified generate-speech endpoint which handles provider selection
+   * Generate speech using ElevenLabs API
    */
-  async generateWithFishAudio(
+  async generateWithElevenLabs(
     text: string,
     voice: VoiceProfile,
     audioContext?: AudioContext
@@ -191,41 +161,19 @@ export const voiceService = {
     // Import dynamically to avoid circular dependency
     const { generateSpeech } = await import('./edgeFunctions');
 
-    // Use voice profile ID - the edge function will look up the voice
-    const voiceId = voice.id;
-
-    // Call generate-speech edge function (handles Fish Audio with Chatterbox fallback)
-    const base64 = await generateSpeech(voiceId, text);
-
-    // Decode to AudioBuffer if needed
-    // decodeAudio automatically detects format (MP3 from Fish Audio, WAV from Chatterbox)
-    if (audioContext) {
-      const audioBuffer = await this.decodeAudio(base64, audioContext);
-      return { audioBuffer, base64 };
-    }
-
-    return { audioBuffer: null, base64 };
-  },
-
-  /**
-   * Generate speech using Chatterbox via edge function (legacy/fallback)
-   */
-  async generateWithChatterbox(
-    text: string,
-    voice: VoiceProfile,
-    audioContext?: AudioContext
-  ): Promise<{ audioBuffer: AudioBuffer | null; base64: string }> {
-    // Import dynamically to avoid circular dependency
-    const { generateSpeech } = await import('./edgeFunctions');
-
-    // Use voice profile ID - the edge function will look up the voice
-    const voiceId = voice.id;
+    // Determine voice ID to use
+    // For preset voices, use the elevenLabsVoiceId directly
+    // For user clones, use the voice profile ID (edge function will look up elevenLabsVoiceId)
+    const isPresetVoice = voice.id.startsWith('elevenlabs-');
 
     // Call generate-speech edge function
-    const base64 = await generateSpeech(voiceId, text);
+    const base64 = await generateSpeech(
+      isPresetVoice ? undefined : voice.id,  // voiceId for user clones
+      text,
+      isPresetVoice ? voice.elevenLabsVoiceId : undefined  // elevenLabsVoiceId for presets
+    );
 
     // Decode to AudioBuffer if needed
-    // decodeAudio automatically detects format
     if (audioContext) {
       const audioBuffer = await this.decodeAudio(base64, audioContext);
       return { audioBuffer, base64 };
@@ -244,7 +192,7 @@ export const voiceService = {
   async decodeAudio(
     base64: string,
     audioContext: AudioContext,
-    mimeType: string = 'audio/mpeg'  // Kept for backward compatibility, but unused
+    _mimeType: string = 'audio/mpeg'  // Kept for backward compatibility, but unused
   ): Promise<AudioBuffer> {
     // Decode base64 to binary
     const binaryString = atob(base64);
@@ -267,7 +215,6 @@ export const voiceService = {
         duration: audioBuffer.duration.toFixed(2) + 's',
         sampleRate: audioBuffer.sampleRate + 'Hz',
         channels: audioBuffer.numberOfChannels,
-        expectedMimeType: mimeType,
       });
 
       return audioBuffer;
@@ -275,7 +222,6 @@ export const voiceService = {
       console.error('[voiceService] Failed to decode audio:', {
         error,
         audioSize: bytes.length,
-        expectedMimeType: mimeType,
         firstBytes: Array.from(bytes.slice(0, 12)).map(b => b.toString(16).padStart(2, '0')).join(' '),
       });
       throw new Error(`Failed to decode audio: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -286,6 +232,11 @@ export const voiceService = {
    * Checks if a voice is ready for TTS generation
    */
   async isVoiceReady(voice: VoiceProfile): Promise<boolean> {
+    // Check if voice needs re-cloning first
+    if (needsReclone(voice)) {
+      return false;
+    }
+
     const provider = voice.provider || this.detectProvider(voice);
 
     switch (provider) {
@@ -293,21 +244,21 @@ export const voiceService = {
         // Browser voices are always ready if Web Speech API is available
         return isWebSpeechAvailable();
 
-      case 'fish-audio':
-      case 'chatterbox':
+      case 'elevenlabs':
       default:
-        // Cloned voices are ready if they have a voice reference
-        return !!(voice.providerVoiceId || voice.isCloned);
+        // ElevenLabs voices are ready if they have a voice ID
+        return !!voice.elevenLabsVoiceId;
     }
   },
 
   /**
    * Gets estimated credit cost for an operation
+   * Note: ElevenLabs uses character-based pricing
    */
   getEstimatedCost(text: string, isCloning: boolean = false): number {
-    // Credits configuration
-    const CLONE_COST = 5000; // 5,000 credits to clone
-    const TTS_COST_PER_1K_CHARS = 280; // 280 credits per 1K characters
+    // Credits configuration (mapped to ElevenLabs pricing)
+    const CLONE_COST = 5000; // Voice cloning cost
+    const TTS_COST_PER_1K_CHARS = 300; // ~300 credits per 1K characters
 
     if (isCloning) {
       return CLONE_COST;

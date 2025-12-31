@@ -17,6 +17,7 @@ interface EdgeFunctionError extends Error {
   requestId?: string;
   status?: number;
   isNetworkError?: boolean;
+  needsReclone?: boolean;
 }
 
 // ============================================================================
@@ -156,7 +157,7 @@ async function getAuthToken(): Promise<string | null> {
  */
 async function callEdgeFunction<T>(
   functionName: string,
-  body: Record<string, any>,
+  body: Record<string, unknown>,
   options?: { isFormData?: boolean; timeout?: number; retry?: RetryOptions }
 ): Promise<T> {
   const token = await getAuthToken();
@@ -177,7 +178,7 @@ async function callEdgeFunction<T>(
   let requestBody: BodyInit;
 
   if (options?.isFormData && body instanceof FormData) {
-    requestBody = body;
+    requestBody = body as unknown as BodyInit;
     // Don't set Content-Type for FormData - browser sets it with boundary
   } else {
     headers['Content-Type'] = 'application/json';
@@ -212,6 +213,7 @@ async function callEdgeFunction<T>(
         const error = new Error(errorMessage) as EdgeFunctionError;
         error.requestId = requestId;
         error.status = response.status;
+        error.needsReclone = data.needsReclone;
 
         // Check if we should retry
         if (attempt < retryOpts.maxRetries && isRetryableError(error, response.status)) {
@@ -288,40 +290,45 @@ async function callEdgeFunction<T>(
 }
 
 // ============================================================================
-// TTS Edge Function Wrappers (Chatterbox via Replicate)
+// ElevenLabs TTS Edge Function Wrappers
 // ============================================================================
 
 /**
- * Generate speech using TTS Edge Function (Fish Audio primary, Chatterbox fallback)
- * API key is stored server-side
+ * Generate speech using ElevenLabs TTS Edge Function
+ * ElevenLabs is the primary (and only) TTS provider
  *
- * IMPORTANT: Uses 120s timeout because Fish Audio takes 35-76s for long meditations
+ * @param voiceId - Voice profile ID (UUID) for user clones
+ * @param text - Text to synthesize
+ * @param elevenLabsVoiceId - Direct ElevenLabs voice ID (for preset voices)
  */
 export async function generateSpeech(
-  voiceId: string,
+  voiceId: string | undefined,
   text: string,
-  voiceSettings?: {
-    exaggeration?: number;  // 0-1, emotion exaggeration
-    cfgWeight?: number;     // 0-1, quality weight
-  }
+  elevenLabsVoiceId?: string
 ): Promise<string> {
-  // Settings optimized for calm, natural meditation delivery
-  // 120s timeout to match edge function (Fish Audio needs 35-76s for long scripts)
-  const response = await callEdgeFunction<{ success: boolean; audioBase64: string }>('generate-speech', {
+  const response = await callEdgeFunction<{
+    success: boolean;
+    audioBase64: string;
+    format: string;
+    needsReclone?: boolean;
+  }>('generate-speech', {
     voiceId,
     text,
-    voiceSettings: voiceSettings || {
-      exaggeration: 0.35,  // Lower for calmer delivery (meditation-optimized)
-      cfgWeight: 0.6,      // Balanced for deliberate pacing
-    },
+    elevenLabsVoiceId,
   }, {
-    timeout: 120000, // 120s - Fish Audio needs time for long meditations
+    timeout: 120000, // 120s - long meditations take time
     retry: {
-      maxRetries: 1, // Single retry for TTS (expensive operation)
+      maxRetries: 1, // Single retry for TTS
       baseDelayMs: 2000,
       maxDelayMs: 5000,
     },
   });
+
+  if (response.needsReclone) {
+    const error = new Error('This voice needs to be re-cloned with ElevenLabs.') as EdgeFunctionError;
+    error.needsReclone = true;
+    throw error;
+  }
 
   return response.audioBase64;
 }
@@ -361,7 +368,68 @@ async function blobToBase64(blob: Blob): Promise<string> {
 }
 
 // ============================================================================
-// Gemini Script Generation (TTS removed - not implemented)
+// ElevenLabs Voice Cloning Edge Function Wrappers
+// ============================================================================
+
+export interface ElevenLabsCloneResponse {
+  voiceProfileId: string;
+  elevenLabsVoiceId: string;
+  voiceSampleUrl: string | null;
+}
+
+/**
+ * Clone a voice using ElevenLabs Instant Voice Cloning (IVC)
+ * Primary and only voice cloning provider
+ *
+ * @param audioBlob - WAV audio blob of voice sample
+ * @param name - Name for the voice clone
+ * @param description - Optional description
+ * @param metadata - Optional voice metadata (language, accent, etc.)
+ * @param removeBackgroundNoise - Remove background noise (default: true)
+ */
+export async function elevenLabsCloneVoice(
+  audioBlob: Blob,
+  name: string,
+  description?: string,
+  metadata?: VoiceMetadata,
+  removeBackgroundNoise: boolean = true
+): Promise<ElevenLabsCloneResponse> {
+  const base64Audio = await blobToBase64(audioBlob);
+
+  const data = await callEdgeFunction<{
+    success: boolean;
+    voiceProfileId: string;
+    elevenLabsVoiceId: string;
+    voiceSampleUrl: string | null;
+    error?: string;
+  }>('elevenlabs-clone', {
+    audioBase64: base64Audio,
+    voiceName: name,
+    description: description || 'Voice clone created with INrVO',
+    metadata: metadata || undefined,
+    removeBackgroundNoise,
+  }, {
+    timeout: 90000, // 90 seconds for voice cloning
+    retry: {
+      maxRetries: 2,    // 2 retries for expensive operations
+      baseDelayMs: 1000, // 1 second base delay
+      maxDelayMs: 8000,  // 8 second max delay
+    },
+  });
+
+  if (!data.voiceProfileId || !data.elevenLabsVoiceId) {
+    throw new Error('Voice cloning failed: No voice IDs returned');
+  }
+
+  return {
+    voiceProfileId: data.voiceProfileId,
+    elevenLabsVoiceId: data.elevenLabsVoiceId,
+    voiceSampleUrl: data.voiceSampleUrl || null,
+  };
+}
+
+// ============================================================================
+// Gemini Script Generation
 // ============================================================================
 
 export interface GeminiScriptResponse {
@@ -456,212 +524,6 @@ export async function geminiChat(
 }
 
 // ============================================================================
-// Chatterbox Edge Function Wrappers (via Replicate)
-// ============================================================================
-
-export interface ChatterboxTTSResponse {
-  audioBase64: string;
-  format: string;
-}
-
-export interface ChatterboxCloneResponse {
-  voiceProfileId: string;
-  voiceSampleUrl: string;
-}
-
-/**
- * Generate speech using Chatterbox via Replicate Edge Function
- * Much cheaper than ElevenLabs (~$0.03/run vs ~$0.30/1000 chars)
- */
-export async function chatterboxTTS(
-  voiceId: string,
-  text: string,
-  options?: {
-    exaggeration?: number;  // 0-1, emotion exaggeration
-    cfgWeight?: number;     // 0-1, quality weight
-  }
-): Promise<string> {
-  const response = await callEdgeFunction<{ success: boolean; audioBase64: string; format: string }>('chatterbox-tts', {
-    voiceId,
-    text,
-    exaggeration: options?.exaggeration ?? 0.35,  // Lower for calm meditation
-    cfgWeight: options?.cfgWeight ?? 0.6,         // Balanced for deliberate pacing
-  });
-
-  return response.audioBase64;
-}
-
-/**
- * Clone a voice using Chatterbox via Replicate Edge Function
- * Zero-shot cloning - just uploads audio sample, used at TTS time
- * Now uses callEdgeFunction for retry logic and better error handling
- */
-export async function chatterboxCloneVoice(
-  audioBlob: Blob,
-  name: string,
-  description?: string,
-  metadata?: VoiceMetadata
-): Promise<ChatterboxCloneResponse> {
-  const base64Audio = await blobToBase64(audioBlob);
-
-  // Use callEdgeFunction for retry logic and better error handling
-  // Voice cloning takes longer, so use 90s timeout with 2 retries
-  const data = await callEdgeFunction<{
-    success: boolean;
-    voiceProfileId: string;
-    voiceSampleUrl: string;
-    error?: string;
-  }>('chatterbox-clone', {
-    audioBase64: base64Audio,
-    voiceName: name,
-    description: description || 'Voice clone created with Chatterbox',
-    metadata: metadata || undefined,
-  }, {
-    timeout: 90000, // 90 seconds for voice cloning
-    retry: {
-      maxRetries: 2,    // 2 retries for expensive operations
-      baseDelayMs: 1000, // 1 second base delay
-      maxDelayMs: 8000,  // 8 second max delay
-    },
-  });
-
-  if (!data.voiceProfileId) {
-    throw new Error('No voice profile ID returned from cloning service');
-  }
-
-  return {
-    voiceProfileId: data.voiceProfileId,
-    voiceSampleUrl: data.voiceSampleUrl,
-  };
-}
-
-// ============================================================================
-// Fish Audio Edge Function Wrappers (Primary Provider)
-// ============================================================================
-
-export interface FishAudioTTSResponse {
-  audioBase64: string;
-  format: string;
-  usedFallback?: boolean;
-}
-
-export interface FishAudioCloneResponse {
-  voiceProfileId: string;
-  fishAudioModelId: string | null;
-  voiceSampleUrl: string | null;
-}
-
-/**
- * Generate speech using Fish Audio (with automatic Chatterbox fallback)
- * Fish Audio is the primary provider - best quality, real-time API
- *
- * IMPORTANT: Uses 120s timeout because Fish Audio takes 35-76s for long meditations
- */
-export async function fishAudioTTS(
-  voiceId: string,
-  text: string,
-  options?: {
-    speed?: number;
-    temperature?: number;
-    format?: 'mp3' | 'wav' | 'opus';
-  }
-): Promise<FishAudioTTSResponse> {
-  const response = await callEdgeFunction<{
-    success: boolean;
-    audioBase64: string;
-    format: string;
-    usedFallback?: boolean;
-  }>('fish-audio-tts', {
-    voiceId,
-    text,
-    options,
-  }, {
-    timeout: 120000, // 120s - Fish Audio needs time for long scripts
-    retry: {
-      maxRetries: 1, // Single retry for TTS
-      baseDelayMs: 2000,
-      maxDelayMs: 5000,
-    },
-  });
-
-  return {
-    audioBase64: response.audioBase64,
-    format: response.format,
-    usedFallback: response.usedFallback || false,
-  };
-}
-
-/**
- * Clone a voice using Fish Audio (with Chatterbox storage for fallback)
- * Creates both a Fish Audio model and stores sample for Chatterbox backup
- * Now uses callEdgeFunction for retry logic and better error handling
- *
- * @param highQuality - Use high-quality training mode (slower but better results). Default: true
- */
-export async function fishAudioCloneVoice(
-  audioBlob: Blob,
-  name: string,
-  description?: string,
-  metadata?: VoiceMetadata,
-  highQuality: boolean = true  // Default to high quality for natural voice
-): Promise<FishAudioCloneResponse> {
-  const base64Audio = await blobToBase64(audioBlob);
-
-  // Use callEdgeFunction for retry logic and better error handling
-  // Voice cloning takes longer, so use 90s timeout with 2 retries
-  const data = await callEdgeFunction<{
-    success: boolean;
-    voiceProfileId: string;
-    fishAudioModelId: string | null;
-    voiceSampleUrl: string | null;
-    error?: string;
-  }>('fish-audio-clone', {
-    audioBase64: base64Audio,
-    voiceName: name,
-    description: description || 'Voice clone created with INrVO',
-    metadata: metadata || undefined,
-    highQuality,  // Use high-quality training for better voice naturalness
-  }, {
-    timeout: 90000, // 90 seconds for voice cloning
-    retry: {
-      maxRetries: 2,    // 2 retries for expensive operations
-      baseDelayMs: 1000, // 1 second base delay
-      maxDelayMs: 8000,  // 8 second max delay
-    },
-  });
-
-  if (!data.voiceProfileId) {
-    throw new Error('No voice profile ID returned from cloning service');
-  }
-
-  return {
-    voiceProfileId: data.voiceProfileId,
-    fishAudioModelId: data.fishAudioModelId || null,
-    voiceSampleUrl: data.voiceSampleUrl || null,
-  };
-}
-
-/**
- * Smart TTS that uses the unified generate-speech endpoint
- * Automatically routes to Fish Audio (primary) or Chatterbox (fallback)
- */
-export async function generateSpeechWithFallback(
-  voiceId: string,
-  text: string,
-  voiceSettings?: {
-    exaggeration?: number;
-    cfgWeight?: number;
-  }
-): Promise<{ audioBase64: string; format: string }> {
-  // Use the unified generate-speech endpoint which handles provider selection
-  const audioBase64 = await generateSpeech(voiceId, text, voiceSettings);
-  return {
-    audioBase64,
-    format: 'audio/mpeg', // Default format
-  };
-}
-
-// ============================================================================
 // Feature flags for gradual migration
 // ============================================================================
 
@@ -674,3 +536,18 @@ export async function isEdgeFunctionAvailable(): Promise<boolean> {
   // They now support anonymous access with IP-based rate limiting
   return !!supabase && !!SUPABASE_URL;
 }
+
+// ============================================================================
+// Legacy exports for backwards compatibility during migration
+// These will be removed once all code is updated
+// ============================================================================
+
+/**
+ * @deprecated Use elevenLabsCloneVoice instead
+ */
+export const fishAudioCloneVoice = elevenLabsCloneVoice;
+
+/**
+ * @deprecated Use elevenLabsCloneVoice instead
+ */
+export const chatterboxCloneVoice = elevenLabsCloneVoice;
