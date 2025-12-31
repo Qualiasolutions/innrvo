@@ -178,7 +178,8 @@ export class GeminiLiveClient {
       // Connect to WebSocket with API key
       const wsUrlWithKey = `${config.wsUrl}?key=${config.apiKey}`;
 
-      if (DEBUG) console.log('[GeminiLive] Connecting to WebSocket...');
+      // Always log connection attempts for debugging
+      console.log('[GeminiLive] Connecting...', { wsUrl: config.wsUrl.substring(0, 50), model: config.model });
 
       this.ws = new WebSocket(wsUrlWithKey);
       this.ws.binaryType = 'arraybuffer';
@@ -314,7 +315,8 @@ export class GeminiLiveClient {
   }
 
   private handleOpen(): void {
-    if (DEBUG) console.log('[GeminiLive] WebSocket connected, sending setup...');
+    // Always log for debugging connection issues
+    console.log('[GeminiLive] WebSocket opened, sending setup...');
 
     if (!this.config || !this.ws) return;
 
@@ -339,13 +341,15 @@ export class GeminiLiveClient {
       },
     };
 
-    if (DEBUG) console.log('[GeminiLive] Setup message:', { model: this.config.model, voice: this.config.voiceName });
+    console.log('[GeminiLive] Sending setup:', { model: this.config.model, voice: this.config.voiceName });
     this.ws.send(JSON.stringify(setupMessage));
   }
 
   private handleMessage(event: MessageEvent): void {
     try {
-      if (DEBUG) console.log('[GeminiLive] Message received:', typeof event.data === 'string' ? event.data.substring(0, 200) : 'binary');
+      // Always log first message for debugging
+      const msgPreview = typeof event.data === 'string' ? event.data.substring(0, 100) : 'binary';
+      console.log('[GeminiLive] Message:', msgPreview);
 
       const message = JSON.parse(event.data as string);
 
@@ -367,7 +371,7 @@ export class GeminiLiveClient {
 
       // Handle setup complete
       if ('setupComplete' in message) {
-        if (DEBUG) console.log('[GeminiLive] ✅ Setup complete!');
+        console.log('[GeminiLive] ✅ Setup complete!');
         this.setupComplete = true;
         this.state = 'connected';
         this.reconnectAttempts = 0;

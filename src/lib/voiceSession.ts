@@ -170,7 +170,9 @@ export class VoiceSession {
       // Step 3: Connect to Gemini Live
       this.setState('connecting');
 
+      console.log('[VoiceSession] Fetching Gemini config...');
       const geminiConfig = await fetchGeminiLiveConfig(this.config.voiceName);
+      console.log('[VoiceSession] Config received:', { wsUrl: geminiConfig.wsUrl.substring(0, 50), model: geminiConfig.model });
 
       await this.geminiClient.connect(geminiConfig, {
         onConnected: this.handleConnected.bind(this),
