@@ -171,10 +171,9 @@ Browser (VoiceAgent.tsx)
 **Visual Design (Minimalist Zen):**
 - Dark gradient background (`slate-950` to `slate-900`)
 - Shooting stars animation with cyan/white gradient trails
-- Voice-reactive sparkle particles when agent speaks
 - Minimal voice level bars (5 bars, cyan glow)
 - Soft frosted-glass call buttons
-- No pulsing/radar circles - clean, calm aesthetic
+- Clean, calm aesthetic with no distracting effects
 
 **Voice Session States:**
 - `idle` - Not connected, shooting stars animate slowly
@@ -182,7 +181,7 @@ Browser (VoiceAgent.tsx)
 - `connecting` - WebSocket connecting, loader visible
 - `connected` - Ready, call button visible
 - `listening` - Mic active, voice bars animate
-- `agent-speaking` - Sparkle particles appear, stars intensify
+- `agent-speaking` - Stars intensify, voice bars pulse
 - `error` / `disconnected` - Session ended
 
 **Access:** Phone icon button in AgentChat input area opens VoiceAgent modal.
@@ -419,7 +418,7 @@ import { m, AnimatePresence } from 'framer-motion';
 
 **Files using `m` components:**
 - `components/V0MeditationPlayer/index.tsx` - Breathing orb, particles, controls
-- `components/VoiceAgent.tsx` - Shooting stars, sparkle particles, voice bars
+- `components/VoiceAgent.tsx` - Shooting stars, voice bars, call button
 - `components/ui/AudioPreview.tsx` - Play/pause animations, waveform
 - `src/pages/LibraryPage.tsx` - Card expansion animations
 - `src/components/MeditationEditor/components/ControlPanel.tsx` - Tab transitions
