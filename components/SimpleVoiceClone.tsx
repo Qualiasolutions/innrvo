@@ -1,6 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
-import GlassCard from './GlassCard';
 import {
   CloningStatus,
   CreditInfo,
@@ -18,10 +17,12 @@ interface SimpleVoiceCloneProps {
   creditInfo: CreditInfo;
 }
 
-// Recording settings - 30+ seconds recommended for best quality
-const MIN_RECORDING_SECONDS = 30; // Minimum for acceptable quality
-const RECOMMENDED_SECONDS = 45;   // Recommended for best quality
-const MAX_RECORDING_SECONDS = 90; // Maximum allowed
+// Recording settings
+const MIN_RECORDING_SECONDS = 30;
+const RECOMMENDED_SECONDS = 45;
+const MAX_RECORDING_SECONDS = 90;
+
+type Step = 'record' | 'describe' | 'processing';
 
 export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
   onClose,
@@ -29,23 +30,22 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
   cloningStatus,
   creditInfo
 }) => {
+  const [step, setStep] = useState<Step>('record');
   const [isRecording, setIsRecording] = useState(false);
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
   const [profileName, setProfileName] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
   const [recordingDuration, setRecordingDuration] = useState(0);
 
-  // Voice characteristics state
+  // Voice characteristics
   const [gender, setGender] = useState<VoiceMetadata['gender']>(DEFAULT_VOICE_METADATA.gender);
   const [ageRange, setAgeRange] = useState<VoiceMetadata['ageRange']>(DEFAULT_VOICE_METADATA.ageRange);
   const [language, setLanguage] = useState(DEFAULT_VOICE_METADATA.language);
   const [accent, setAccent] = useState(DEFAULT_VOICE_METADATA.accent);
   const [descriptive, setDescriptive] = useState(DEFAULT_VOICE_METADATA.descriptive || 'calm');
 
-  // Get available accents based on selected language
   const availableAccents = getAccentsForLanguage(language);
 
-  // Reset accent when language changes
   useEffect(() => {
     const accents = getAccentsForLanguage(language);
     if (!accents.find(a => a.value === accent)) {
@@ -59,10 +59,6 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const autoStopRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Voice cloning is always configured
-  const isConfigured = true;
-
-  // Derive state from cloningStatus
   const isProcessing = cloningStatus.state === 'validating' ||
                        cloningStatus.state === 'processing_audio' ||
                        cloningStatus.state === 'uploading' ||
@@ -72,7 +68,13 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
   const error = cloningStatus.state === 'error' ? cloningStatus.message : localError;
   const isSuccess = cloningStatus.state === 'success';
 
-  // Show toast notifications for cloning status changes
+  // Update step based on cloning status
+  useEffect(() => {
+    if (isProcessing) {
+      setStep('processing');
+    }
+  }, [isProcessing]);
+
   useEffect(() => {
     if (cloningStatus.state === 'uploading' || cloningStatus.state === 'uploading_to_elevenlabs') {
       toast.loading('Creating your voice clone...', {
@@ -89,10 +91,10 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
         id: 'voice-clone',
         description: cloningStatus.message || 'Please try again',
       });
+      setStep('describe');
     }
   }, [cloningStatus.state, cloningStatus.voiceName, cloningStatus.message]);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
@@ -110,16 +112,15 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
 
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
-          echoCancellation: false,     // Preserve natural voice characteristics
-          noiseSuppression: false,     // Keep voice qualities for better cloning
-          autoGainControl: false,      // Preserve natural volume dynamics
-          sampleRate: 44100,           // Matches ElevenLabs expected rate (eliminates server resampling)
-          channelCount: 1,             // Mono for voice clarity
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false,
+          sampleRate: 44100,
+          channelCount: 1,
         }
       });
       streamRef.current = stream;
 
-      // Use a supported MIME type
       const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
         ? 'audio/webm;codecs=opus'
         : MediaRecorder.isTypeSupported('audio/webm')
@@ -141,23 +142,19 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
         setRecordedBlob(blob);
         stream.getTracks().forEach(track => track.stop());
 
-        // Clear timer
         if (timerRef.current) {
           clearInterval(timerRef.current);
           timerRef.current = null;
         }
       };
 
-      // Request data every second for smoother recording
       recorder.start(1000);
       setIsRecording(true);
 
-      // Start duration timer
       timerRef.current = setInterval(() => {
         setRecordingDuration(prev => prev + 1);
       }, 1000);
 
-      // Auto-stop after MAX_RECORDING_SECONDS
       autoStopRef.current = setTimeout(() => {
         if (mediaRecorderRef.current?.state === 'recording') {
           stopRecording();
@@ -167,9 +164,9 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
     } catch (e: any) {
       console.error('Recording error:', e);
       if (e.name === 'NotAllowedError') {
-        setLocalError('Microphone access denied. Please allow microphone access and try again.');
+        setLocalError('Microphone access denied. Please allow microphone access.');
       } else if (e.name === 'NotFoundError') {
-        setLocalError('No microphone found. Please connect a microphone and try again.');
+        setLocalError('No microphone found. Please connect a microphone.');
       } else {
         setLocalError(e.message || 'Failed to start recording');
       }
@@ -181,7 +178,6 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
       mediaRecorderRef.current.stop();
       setIsRecording(false);
 
-      // Clear auto-stop timer
       if (autoStopRef.current) {
         clearTimeout(autoStopRef.current);
         autoStopRef.current = null;
@@ -203,11 +199,6 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
       return;
     }
 
-    if (!isConfigured) {
-      setLocalError('Voice cloning service not configured. Please check your settings.');
-      return;
-    }
-
     if (!creditInfo.canClone) {
       setLocalError(creditInfo.reason || 'Cannot clone voice at this time');
       return;
@@ -215,17 +206,17 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
 
     const voiceName = profileName.trim() || `My Voice ${new Date().toLocaleDateString()}`;
 
-    // Build metadata from user selections
     const metadata: VoiceMetadata = {
       language,
       accent,
       gender,
       ageRange,
-      hasBackgroundNoise: false, // Recording tips should minimize this
+      hasBackgroundNoise: false,
       useCase: 'meditation',
       descriptive,
     };
 
+    setStep('processing');
     await onRecordingComplete(recordedBlob, voiceName, metadata);
   };
 
@@ -234,214 +225,327 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
     setIsRecording(false);
     setRecordingDuration(0);
     setLocalError(null);
+    setStep('record');
   };
 
-  // Get status message for upload progress
   const getStatusMessage = () => {
     switch (cloningStatus.state) {
-      case 'validating':
-        return 'Analyzing your voice...';
-      case 'processing_audio':
-        return 'Preparing your recording...';
+      case 'validating': return 'Analyzing your voice...';
+      case 'processing_audio': return 'Preparing your recording...';
       case 'uploading':
       case 'uploading_to_elevenlabs':
         return cloningStatus.progress
-          ? `Capturing your inner voice... ${cloningStatus.progress}%`
-          : 'Capturing your inner voice...';
-      case 'saving_to_database':
-        return 'Saving your voice profile...';
-      case 'success':
-        return `Voice "${cloningStatus.voiceName}" created!`;
-      default:
-        return null;
+          ? `Creating voice clone... ${cloningStatus.progress}%`
+          : 'Creating voice clone...';
+      case 'saving_to_database': return 'Saving your voice...';
+      case 'success': return `Voice "${cloningStatus.voiceName}" created!`;
+      default: return null;
     }
   };
 
-  // Format duration as MM:SS
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Get recording quality indicator
   const getRecordingQuality = () => {
     if (recordingDuration < MIN_RECORDING_SECONDS) {
-      return { label: 'Too short', color: 'text-rose-400', bg: 'bg-rose-500/20' };
+      return { label: 'Keep going', color: 'text-rose-400', ring: 'ring-rose-500/50', progress: recordingDuration / MIN_RECORDING_SECONDS };
     } else if (recordingDuration < RECOMMENDED_SECONDS) {
-      return { label: 'Basic quality', color: 'text-amber-400', bg: 'bg-amber-500/20' };
+      return { label: 'Good', color: 'text-amber-400', ring: 'ring-amber-500/50', progress: recordingDuration / RECOMMENDED_SECONDS };
     } else {
-      return { label: 'Excellent quality', color: 'text-emerald-400', bg: 'bg-emerald-500/20' };
+      return { label: 'Excellent', color: 'text-emerald-400', ring: 'ring-emerald-500/50', progress: 1 };
     }
   };
 
   const quality = getRecordingQuality();
-  const canSubmit = recordedBlob && recordingDuration >= MIN_RECORDING_SECONDS;
+  const canProceed = recordedBlob && recordingDuration >= MIN_RECORDING_SECONDS;
+
+  // Voice quality options - compact pills
+  const voiceQualities = ['calm', 'warm', 'soothing', 'gentle', 'deep', 'soft'];
 
   return (
-    <div className="fixed inset-0 z-[80] bg-[#020617]/95 backdrop-blur-3xl flex items-center justify-center p-4">
-      <GlassCard className="w-full max-w-lg relative max-h-[90vh] flex flex-col">
-        {/* Close button */}
+    <div className="fixed inset-0 z-[80] bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950">
+      {/* Header - Fixed */}
+      <header className="sticky top-0 z-10 px-4 py-3 flex items-center justify-between bg-slate-900/80 backdrop-blur-xl border-b border-white/5">
         <button
           onClick={onClose}
           disabled={isProcessing}
-          className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-slate-400 hover:text-white transition-all disabled:opacity-50"
+          className="p-2 -ml-2 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-all disabled:opacity-50"
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
+        <h1 className="text-lg font-semibold text-white">Clone Your Voice</h1>
+        <div className="w-9" /> {/* Spacer for centering */}
+      </header>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* Header */}
-          <div className="text-center space-y-2">
-            <h2 className="text-2xl font-bold text-white">Clone Your Voice</h2>
-            <p className="text-slate-400 text-sm">
-              Record your voice for a personalized meditation experience
-            </p>
-          </div>
-
-          {/* Service Warning */}
-          {!isConfigured && (
-            <div className="text-amber-400 text-sm font-medium bg-amber-500/10 p-3 rounded-lg flex items-center gap-2">
-              <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-              <span>Voice cloning service not configured. Please check your settings.</span>
-            </div>
-          )}
-
-          {/* Credit info */}
-          <div className="flex items-center justify-center gap-4 text-xs flex-wrap">
-            <div className="px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
-              <span className="text-slate-500">Credits: </span>
-              <span className="text-white font-medium">{creditInfo.creditsRemaining.toLocaleString()}</span>
-            </div>
-            <div className="px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
-              <span className="text-slate-500">Clones left: </span>
-              <span className="text-white font-medium">{creditInfo.clonesRemaining}</span>
-            </div>
-            <div className="px-3 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/20">
-              <span className="text-cyan-400">Cost: {creditInfo.cloneCost.toLocaleString()}</span>
-            </div>
-          </div>
-
-          {/* Error message */}
-          {error && (
-            <div className="text-rose-400 text-sm font-medium bg-rose-500/10 p-3 rounded-lg flex items-center gap-2">
-              <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span className="flex-1">{error}</span>
-              {cloningStatus.state === 'error' && cloningStatus.canRetry && (
-                <button
-                  onClick={handleCloneVoice}
-                  className="ml-auto px-2 py-1 rounded bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-xs font-medium transition-all"
-                >
-                  Retry
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* Success message */}
-          {isSuccess && (
-            <div className="text-emerald-400 text-sm font-medium bg-emerald-500/10 p-3 rounded-lg flex items-center gap-2">
-              <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      {/* Main Content */}
+      <main className="h-[calc(100vh-60px)] overflow-y-auto">
+        {/* Success State */}
+        {isSuccess && (
+          <div className="flex flex-col items-center justify-center min-h-full px-6 py-12">
+            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 flex items-center justify-center mb-6 ring-2 ring-emerald-500/30">
+              <svg className="w-10 h-10 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
-              <span>Voice "{cloningStatus.voiceName}" created successfully!</span>
             </div>
-          )}
+            <h2 className="text-2xl font-bold text-white mb-2">Voice Created!</h2>
+            <p className="text-slate-400 text-center mb-8">
+              "{cloningStatus.voiceName}" is ready to use for your meditations.
+            </p>
+            <button
+              onClick={onClose}
+              className="w-full max-w-xs px-6 py-3.5 rounded-2xl bg-gradient-to-r from-cyan-600 to-cyan-500 text-white font-semibold shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/40 transition-all"
+            >
+              Start Creating
+            </button>
+          </div>
+        )}
 
-          {/* Voice Name Input */}
-          {!isSuccess && (
+        {/* Processing State */}
+        {step === 'processing' && !isSuccess && (
+          <div className="flex flex-col items-center justify-center min-h-full px-6 py-12">
+            <div className="relative w-24 h-24 mb-8">
+              {/* Outer ring animation */}
+              <div className="absolute inset-0 rounded-full border-2 border-cyan-500/20 animate-ping" />
+              {/* Spinning ring */}
+              <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-cyan-500 animate-spin" />
+              {/* Inner glow */}
+              <div className="absolute inset-3 rounded-full bg-gradient-to-br from-cyan-500/20 to-purple-500/20 flex items-center justify-center">
+                <svg className="w-8 h-8 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                </svg>
+              </div>
+            </div>
+            <p className="text-lg font-medium text-white mb-2">{getStatusMessage()}</p>
+            <p className="text-slate-500 text-sm">This usually takes about 30 seconds</p>
+
+            {/* Error in processing */}
+            {error && (
+              <div className="mt-6 w-full max-w-sm p-4 rounded-xl bg-rose-500/10 border border-rose-500/20">
+                <p className="text-rose-400 text-sm text-center">{error}</p>
+                <button
+                  onClick={() => { setStep('describe'); setLocalError(null); }}
+                  className="mt-3 w-full px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-all"
+                >
+                  Try Again
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Step 1: Record */}
+        {step === 'record' && !isSuccess && (
+          <div className="flex flex-col min-h-full px-6 py-8">
+            {/* Recording UI */}
+            <div className="flex-1 flex flex-col items-center justify-center">
+              {/* Error message */}
+              {localError && (
+                <div className="w-full max-w-sm mb-6 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20">
+                  <p className="text-rose-400 text-sm text-center">{localError}</p>
+                </div>
+              )}
+
+              {!recordedBlob ? (
+                <>
+                  {/* Recording visualization */}
+                  <div className={`relative mb-6 ${isRecording ? 'scale-110' : ''} transition-transform duration-300`}>
+                    {/* Pulsing rings when recording */}
+                    {isRecording && (
+                      <>
+                        <div className="absolute inset-0 rounded-full bg-cyan-500/20 animate-ping" style={{ animationDuration: '1.5s' }} />
+                        <div className="absolute -inset-4 rounded-full bg-cyan-500/10 animate-pulse" />
+                      </>
+                    )}
+
+                    {/* Main recorder button */}
+                    <div className="relative z-10">
+                      <AIVoiceInput
+                        isRecording={isRecording}
+                        onToggle={handleToggleRecording}
+                        visualizerBars={24}
+                        className="scale-125"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Timer & Quality */}
+                  {isRecording && (
+                    <div className="text-center mb-4">
+                      <div className="text-4xl font-mono font-bold text-white mb-2 tabular-nums">
+                        {formatDuration(recordingDuration)}
+                      </div>
+                      <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${quality.color} bg-white/5`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${quality.color.replace('text-', 'bg-')} animate-pulse`} />
+                        {quality.label}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Instructions */}
+                  <div className="text-center max-w-xs">
+                    <p className="text-white font-medium mb-1">
+                      {isRecording ? 'Recording...' : 'Tap to Start Recording'}
+                    </p>
+                    <p className="text-slate-500 text-sm">
+                      {isRecording
+                        ? recordingDuration < MIN_RECORDING_SECONDS
+                          ? `${MIN_RECORDING_SECONDS - recordingDuration}s more needed`
+                          : 'Tap again to stop'
+                        : `Record at least ${MIN_RECORDING_SECONDS}s of calm speech`}
+                    </p>
+                  </div>
+
+                  {/* Tips - only show when not recording */}
+                  {!isRecording && (
+                    <div className="mt-8 w-full max-w-sm space-y-2">
+                      <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-3">Quick Tips</p>
+                      {[
+                        'Speak slowly at a calm pace',
+                        'Stay consistent with your tone',
+                        'Use a quiet environment',
+                      ].map((tip, i) => (
+                        <div key={i} className="flex items-center gap-2 text-slate-500 text-sm">
+                          <svg className="w-4 h-4 text-cyan-500/70" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                          {tip}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              ) : (
+                /* Recording Complete */
+                <div className="w-full max-w-sm text-center">
+                  <div className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-4 ${canProceed ? 'bg-emerald-500/20' : 'bg-amber-500/20'}`}>
+                    {canProceed ? (
+                      <svg className="w-8 h-8 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    ) : (
+                      <svg className="w-8 h-8 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01" />
+                      </svg>
+                    )}
+                  </div>
+                  <h3 className={`text-lg font-semibold mb-1 ${canProceed ? 'text-emerald-400' : 'text-amber-400'}`}>
+                    {canProceed ? 'Recording Complete!' : 'Recording Too Short'}
+                  </h3>
+                  <p className="text-slate-400 text-sm mb-6">
+                    {formatDuration(recordingDuration)} recorded
+                    {!canProceed && ` - need ${MIN_RECORDING_SECONDS}s minimum`}
+                  </p>
+
+                  <div className="flex gap-3">
+                    <button
+                      onClick={resetRecording}
+                      className="flex-1 px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white font-medium border border-white/10 transition-all"
+                    >
+                      Re-record
+                    </button>
+                    {canProceed && (
+                      <button
+                        onClick={() => setStep('describe')}
+                        className="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-cyan-600 to-cyan-500 text-white font-medium shadow-lg shadow-cyan-500/25 transition-all"
+                      >
+                        Continue
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Step 2: Describe */}
+        {step === 'describe' && !isSuccess && (
+          <div className="px-6 py-6 space-y-5">
+            {/* Voice Name */}
             <div className="space-y-2">
-              <label className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                Voice Name (optional)
-              </label>
+              <label className="text-sm font-medium text-slate-300">Voice Name</label>
               <input
                 type="text"
                 value={profileName}
                 onChange={(e) => setProfileName(e.target.value)}
                 placeholder="My Meditation Voice"
-                className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white placeholder:text-slate-600 focus:outline-none focus:border-cyan-500 transition-all"
+                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-slate-600 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 transition-all"
               />
             </div>
-          )}
 
-          {/* Voice Characteristics Form */}
-          {!isSuccess && (
-            <div className="space-y-4 p-4 rounded-xl bg-white/5 border border-white/10">
-              <div className="flex items-center gap-2 mb-2">
-                <svg className="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                </svg>
-                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                  Voice Characteristics
-                </span>
-              </div>
-              <p className="text-xs text-slate-500 -mt-2">
-                Help us create a better voice clone by describing your voice
-              </p>
+            {/* Voice Characteristics - Compact Grid */}
+            <div className="space-y-4">
+              <p className="text-sm font-medium text-slate-300">Voice Characteristics</p>
 
-              {/* Gender & Age Row */}
               <div className="grid grid-cols-2 gap-3">
+                {/* Gender */}
                 <div className="space-y-1.5">
-                  <label className="text-xs text-slate-400">Gender</label>
-                  <select
-                    value={gender}
-                    onChange={(e) => setGender(e.target.value as VoiceMetadata['gender'])}
-                    className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-cyan-500 transition-all appearance-none cursor-pointer"
-                    style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%236b7280\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'/%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.5rem center', backgroundSize: '1.25rem' }}
-                  >
-                    <option value="female" className="bg-slate-800">Female</option>
-                    <option value="male" className="bg-slate-800">Male</option>
-                    <option value="other" className="bg-slate-800">Other</option>
-                  </select>
+                  <label className="text-xs text-slate-500">Gender</label>
+                  <div className="flex gap-1.5">
+                    {(['female', 'male'] as const).map((g) => (
+                      <button
+                        key={g}
+                        onClick={() => setGender(g)}
+                        className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${
+                          gender === g
+                            ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
+                            : 'bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10'
+                        }`}
+                      >
+                        {g === 'female' ? 'Female' : 'Male'}
+                      </button>
+                    ))}
+                  </div>
                 </div>
+
+                {/* Age */}
                 <div className="space-y-1.5">
-                  <label className="text-xs text-slate-400">Age Range</label>
+                  <label className="text-xs text-slate-500">Age Range</label>
                   <select
                     value={ageRange}
                     onChange={(e) => setAgeRange(e.target.value as VoiceMetadata['ageRange'])}
-                    className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-cyan-500 transition-all appearance-none cursor-pointer"
-                    style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%236b7280\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'/%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.5rem center', backgroundSize: '1.25rem' }}
+                    className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-cyan-500/50 transition-all appearance-none cursor-pointer"
+                    style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%236b7280\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'/%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.5rem center', backgroundSize: '1rem' }}
                   >
-                    <option value="young" className="bg-slate-800">Young (18-30)</option>
-                    <option value="middle-aged" className="bg-slate-800">Middle-aged (30-50)</option>
-                    <option value="mature" className="bg-slate-800">Mature (50+)</option>
+                    <option value="young" className="bg-slate-900">Young</option>
+                    <option value="middle-aged" className="bg-slate-900">Middle</option>
+                    <option value="mature" className="bg-slate-900">Mature</option>
                   </select>
                 </div>
-              </div>
 
-              {/* Language & Accent Row */}
-              <div className="grid grid-cols-2 gap-3">
+                {/* Language */}
                 <div className="space-y-1.5">
-                  <label className="text-xs text-slate-400">Language</label>
+                  <label className="text-xs text-slate-500">Language</label>
                   <select
                     value={language}
                     onChange={(e) => setLanguage(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-cyan-500 transition-all appearance-none cursor-pointer"
-                    style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%236b7280\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'/%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.5rem center', backgroundSize: '1.25rem' }}
+                    className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-cyan-500/50 transition-all appearance-none cursor-pointer"
+                    style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%236b7280\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'/%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.5rem center', backgroundSize: '1rem' }}
                   >
                     {VOICE_LANGUAGES.map((lang) => (
-                      <option key={lang.code} value={lang.code} className="bg-slate-800">
+                      <option key={lang.code} value={lang.code} className="bg-slate-900">
                         {lang.label}
                       </option>
                     ))}
                   </select>
                 </div>
+
+                {/* Accent */}
                 <div className="space-y-1.5">
-                  <label className="text-xs text-slate-400">Accent</label>
+                  <label className="text-xs text-slate-500">Accent</label>
                   <select
                     value={accent}
                     onChange={(e) => setAccent(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-cyan-500 transition-all appearance-none cursor-pointer"
-                    style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%236b7280\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'/%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.5rem center', backgroundSize: '1.25rem' }}
+                    className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-cyan-500/50 transition-all appearance-none cursor-pointer"
+                    style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%236b7280\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'/%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.5rem center', backgroundSize: '1rem' }}
                   >
                     {availableAccents.map((acc) => (
-                      <option key={acc.value} value={acc.value} className="bg-slate-800">
+                      <option key={acc.value} value={acc.value} className="bg-slate-900">
                         {acc.label}
                       </option>
                     ))}
@@ -449,184 +553,71 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
                 </div>
               </div>
 
-              {/* Voice Quality */}
-              <div className="space-y-1.5">
-                <label className="text-xs text-slate-400">Voice Quality</label>
+              {/* Voice Quality Pills */}
+              <div className="space-y-2">
+                <label className="text-xs text-slate-500">Voice Quality</label>
                 <div className="flex flex-wrap gap-2">
-                  {['calm', 'warm', 'soothing', 'gentle', 'deep', 'soft'].map((quality) => (
+                  {voiceQualities.map((q) => (
                     <button
-                      key={quality}
-                      type="button"
-                      onClick={() => setDescriptive(quality)}
+                      key={q}
+                      onClick={() => setDescriptive(q)}
                       className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                        descriptive === quality
+                        descriptive === q
                           ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
                           : 'bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10'
                       }`}
                     >
-                      {quality.charAt(0).toUpperCase() + quality.slice(1)}
+                      {q.charAt(0).toUpperCase() + q.slice(1)}
                     </button>
                   ))}
                 </div>
               </div>
             </div>
-          )}
 
-          {/* Recording */}
-          {!isSuccess && (
-            <div className="space-y-4">
-              {/* Recording tips */}
-              {!recordedBlob && !isRecording && (
-                <div className="p-4 rounded-lg bg-cyan-500/10 border border-cyan-500/20">
-                  <p className="text-cyan-400 text-sm font-medium mb-2">Recording Tips for Best Quality:</p>
-                  <ul className="text-xs text-slate-400 space-y-1">
-                    <li>• Speak calmly at a meditation pace</li>
-                    <li>• Stay 6-12 inches from your microphone</li>
-                    <li>• Keep the same energy level throughout</li>
-                    <li>• Record at least {MIN_RECORDING_SECONDS} seconds (longer is better)</li>
-                  </ul>
-                </div>
-              )}
-
-              {/* Voice recording or playback */}
-              {!recordedBlob ? (
-                <div className="p-6 rounded-xl bg-white/5 border border-white/10">
-                  {/* Recording instructions */}
-                  <div className="text-center mb-4">
-                    <p className="text-slate-300 text-sm font-medium mb-1">
-                      {isRecording ? 'Recording...' : 'Click to start recording'}
-                    </p>
-                    <p className="text-slate-500 text-xs">
-                      Minimum {MIN_RECORDING_SECONDS} seconds, {RECOMMENDED_SECONDS}+ recommended
-                    </p>
-                  </div>
-
-                  {/* Recording timer */}
-                  {isRecording && (
-                    <div className="mb-4 text-center">
-                      <div className="text-3xl font-mono font-bold text-white mb-2">
-                        {formatDuration(recordingDuration)}
-                      </div>
-                      <div className={`inline-block px-2 py-1 rounded text-xs font-medium ${quality.bg} ${quality.color}`}>
-                        {quality.label}
-                      </div>
-                      {/* Progress bar */}
-                      <div className="mt-3 h-1.5 bg-white/10 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full transition-all duration-1000 ${
-                            recordingDuration >= RECOMMENDED_SECONDS
-                              ? 'bg-emerald-500'
-                              : recordingDuration >= MIN_RECORDING_SECONDS
-                              ? 'bg-amber-500'
-                              : 'bg-rose-500'
-                          }`}
-                          style={{ width: `${Math.min((recordingDuration / RECOMMENDED_SECONDS) * 100, 100)}%` }}
-                        />
-                      </div>
-                      <p className="text-xs text-slate-500 mt-2">
-                        {recordingDuration < MIN_RECORDING_SECONDS
-                          ? `${MIN_RECORDING_SECONDS - recordingDuration}s more needed`
-                          : recordingDuration < RECOMMENDED_SECONDS
-                          ? `${RECOMMENDED_SECONDS - recordingDuration}s more for best quality`
-                          : 'Great! You can stop recording now'}
-                      </p>
-                    </div>
-                  )}
-
-                  <div className="flex justify-center">
-                    <AIVoiceInput
-                      isRecording={isRecording}
-                      onToggle={handleToggleRecording}
-                      visualizerBars={24}
-                      className="[&_button]:!bg-white/10 [&_button]:!hover:bg-white/20"
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div className={`p-4 rounded-xl border ${canSubmit ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-amber-500/10 border-amber-500/20'}`}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${canSubmit ? 'bg-emerald-500/20' : 'bg-amber-500/20'}`}>
-                        {canSubmit ? (
-                          <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
-                        ) : (
-                          <svg className="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01" />
-                          </svg>
-                        )}
-                      </div>
-                      <div>
-                        <p className={`text-sm font-medium ${canSubmit ? 'text-emerald-400' : 'text-amber-400'}`}>
-                          Recording complete - {formatDuration(recordingDuration)}
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          {(recordedBlob.size / 1024).toFixed(1)} KB
-                          {!canSubmit && ` - Too short, need ${MIN_RECORDING_SECONDS}s minimum`}
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={resetRecording}
-                      disabled={isProcessing}
-                      className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-slate-400 text-xs font-medium transition-all disabled:opacity-50"
-                    >
-                      Re-record
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Status message */}
-              {isProcessing && (
-                <div className="flex items-center justify-center gap-3 py-2">
-                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-cyan-400/30 border-t-cyan-400"></div>
-                  <span className="text-cyan-400 text-sm font-medium">{getStatusMessage()}</span>
-                </div>
-              )}
+            {/* Recording info */}
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10">
+              <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-white truncate">Recording ready</p>
+                <p className="text-xs text-slate-500">{formatDuration(recordingDuration)} · {recordedBlob ? `${(recordedBlob.size / 1024).toFixed(0)} KB` : ''}</p>
+              </div>
+              <button
+                onClick={resetRecording}
+                className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 text-xs font-medium transition-all"
+              >
+                Re-record
+              </button>
             </div>
-          )}
 
-          {/* Cannot clone warning */}
-          {!creditInfo.canClone && !isSuccess && (
-            <p className="text-xs text-rose-400 text-center">
-              {creditInfo.reason || 'Cannot clone voice at this time'}
-            </p>
-          )}
-        </div>
+            {/* Error */}
+            {error && (
+              <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20">
+                <p className="text-rose-400 text-sm text-center">{error}</p>
+              </div>
+            )}
 
-        {/* Sticky footer with action buttons */}
-        <div className="flex-shrink-0 p-6 pt-4 border-t border-white/10 bg-slate-900/50">
-          {/* Clone button */}
-          {!isSuccess && (
+            {/* Cannot clone warning */}
+            {!creditInfo.canClone && (
+              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                <p className="text-amber-400 text-sm text-center">{creditInfo.reason || 'Cannot clone voice'}</p>
+              </div>
+            )}
+
+            {/* Clone Button */}
             <button
               onClick={handleCloneVoice}
-              disabled={!canSubmit || isProcessing || !creditInfo.canClone || !isConfigured}
-              className="w-full px-4 py-3 rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              disabled={!canProceed || isProcessing || !creditInfo.canClone}
+              className="w-full py-4 rounded-2xl bg-gradient-to-r from-cyan-600 to-cyan-500 text-white font-semibold shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
             >
-              {isProcessing ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white"></div>
-                  Processing...
-                </>
-              ) : (
-                'Clone Voice'
-              )}
+              Create Voice Clone
             </button>
-          )}
-
-          {/* Success state - Done button */}
-          {isSuccess && (
-            <button
-              onClick={onClose}
-              className="w-full px-4 py-3 rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white font-medium transition-all"
-            >
-              Done
-            </button>
-          )}
-        </div>
-      </GlassCard>
+          </div>
+        )}
+      </main>
     </div>
   );
 };
