@@ -9,6 +9,45 @@ import { getCachedAudioTags, setCachedAudioTags, clearAudioTagCache } from './au
 const DEBUG = import.meta.env?.DEV ?? false;
 
 // ============================================================================
+// Audit Logging Helper
+// ============================================================================
+
+/**
+ * Log an admin action to the audit_log table
+ */
+async function logAdminAction(
+  tableName: string,
+  recordId: string | null,
+  operation: 'INSERT' | 'UPDATE' | 'DELETE' | 'ADMIN_DELETE' | 'ADMIN_VIEW' | 'DATA_EXPORT',
+  targetUserId?: string,
+  oldData?: Record<string, unknown>,
+  newData?: Record<string, unknown>
+): Promise<void> {
+  if (!supabase) return;
+
+  try {
+    const { error } = await supabase.rpc('log_admin_action', {
+      p_table_name: tableName,
+      p_record_id: recordId,
+      p_operation: operation,
+      p_target_user_id: targetUserId || null,
+      p_old_data: oldData ? JSON.stringify(oldData) : null,
+      p_new_data: newData ? JSON.stringify(newData) : null,
+      p_request_id: null,
+    });
+
+    if (error) {
+      // Don't throw - audit logging failure shouldn't block admin action
+      if (DEBUG) console.warn('[adminSupabase] Failed to log admin action:', error);
+    } else if (DEBUG) {
+      console.log('[adminSupabase] Logged admin action:', operation, tableName, recordId);
+    }
+  } catch (e) {
+    if (DEBUG) console.warn('[adminSupabase] Audit log error:', e);
+  }
+}
+
+// ============================================================================
 // Types
 // ============================================================================
 
@@ -63,6 +102,13 @@ export async function deleteUserAdmin(userId: string): Promise<void> {
   if (!userId) throw new Error('User ID required');
 
   return withRetry(async () => {
+    // Get user data for audit log before deletion
+    const { data: userData } = await supabase
+      .from('users')
+      .select('id, email, role, created_at')
+      .eq('id', userId)
+      .single();
+
     // Delete from users table - FK constraints will cascade to meditation_history, voice_profiles
     const { error } = await supabase
       .from('users')
@@ -70,6 +116,10 @@ export async function deleteUserAdmin(userId: string): Promise<void> {
       .eq('id', userId);
 
     if (error) throw error;
+
+    // Log the admin action
+    await logAdminAction('users', userId, 'ADMIN_DELETE', userId, userData || undefined);
+
     if (DEBUG) console.log('[adminSupabase] Deleted user:', userId);
   });
 }
@@ -105,12 +155,29 @@ export async function deleteMeditationAdmin(meditationId: string): Promise<void>
   if (!meditationId) throw new Error('Meditation ID required');
 
   return withRetry(async () => {
+    // Get meditation data for audit log before deletion
+    const { data: meditationData } = await supabase
+      .from('meditation_history')
+      .select('id, user_id, prompt, voice_name, created_at')
+      .eq('id', meditationId)
+      .single();
+
     const { error } = await supabase
       .from('meditation_history')
       .delete()
       .eq('id', meditationId);
 
     if (error) throw error;
+
+    // Log the admin action
+    await logAdminAction(
+      'meditation_history',
+      meditationId,
+      'ADMIN_DELETE',
+      meditationData?.user_id,
+      meditationData || undefined
+    );
+
     if (DEBUG) console.log('[adminSupabase] Deleted meditation:', meditationId);
   });
 }
@@ -143,6 +210,13 @@ export async function deleteVoiceProfileAdmin(profileId: string): Promise<void> 
   if (!profileId) throw new Error('Voice profile ID required');
 
   return withRetry(async () => {
+    // Get profile data for audit log before archiving
+    const { data: profileData } = await supabase
+      .from('voice_profiles')
+      .select('id, user_id, name, status, created_at')
+      .eq('id', profileId)
+      .single();
+
     // Soft delete by setting status to ARCHIVED (existing pattern)
     const { error } = await supabase
       .from('voice_profiles')
@@ -153,6 +227,17 @@ export async function deleteVoiceProfileAdmin(profileId: string): Promise<void> 
       .eq('id', profileId);
 
     if (error) throw error;
+
+    // Log the admin action
+    await logAdminAction(
+      'voice_profiles',
+      profileId,
+      'ADMIN_DELETE',
+      profileData?.user_id,
+      profileData || undefined,
+      { status: 'ARCHIVED' }
+    );
+
     if (DEBUG) console.log('[adminSupabase] Archived voice profile:', profileId);
   });
 }

@@ -45,6 +45,11 @@ export interface MeditationResult {
   readyForReview?: boolean;
 }
 
+export interface UseMeditationAgentOptions {
+  /** ID of a conversation to resume. If provided, loads that conversation on mount. */
+  resumeConversationId?: string | null;
+}
+
 export interface UseMeditationAgentReturn {
   // State
   messages: ChatMessage[];
@@ -59,6 +64,7 @@ export interface UseMeditationAgentReturn {
   synthesizeMeditation: (script: string, voice: VoiceProfile) => Promise<void>;
   clearConversation: () => void;
   executeAction: (action: AgentAction) => Promise<void>;
+  loadConversation: (conversationId: string) => Promise<void>;
 
   // Helpers
   greeting: string;
@@ -79,7 +85,9 @@ const QUICK_PROMPTS = [
 // HOOK IMPLEMENTATION
 // ============================================================================
 
-export function useMeditationAgent(): UseMeditationAgentReturn {
+export function useMeditationAgent(options: UseMeditationAgentOptions = {}): UseMeditationAgentReturn {
+  const { resumeConversationId } = options;
+
   // State
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -91,6 +99,19 @@ export function useMeditationAgent(): UseMeditationAgentReturn {
   // Refs
   const agentRef = useRef<MeditationAgent | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
+  const lastResumedIdRef = useRef<string | null>(null);
+
+  // Helper to convert stored messages to ChatMessage format
+  const convertStoredMessages = useCallback((storedMessages: ConversationMessage[]): ChatMessage[] => {
+    return storedMessages
+      .filter(m => m.role === 'user' || m.role === 'assistant')
+      .map((m, index) => ({
+        id: `msg_${index}_${Date.now()}`,
+        role: m.role as 'user' | 'assistant',
+        content: m.content,
+        timestamp: new Date(m.timestamp),
+      }));
+  }, []);
 
   // Initialize agent on mount
   useEffect(() => {
@@ -112,8 +133,7 @@ export function useMeditationAgent(): UseMeditationAgentReturn {
     const preferences = conversationStore.loadPreferences();
     agentRef.current = new MeditationAgent(generateContent, preferences);
 
-    // Always start fresh - don't load previous conversations
-    // Each visit to the app is a new meditation session
+    // Start fresh conversation on initial mount
     conversationStore.startNewConversation();
     setMessages([]);
 
@@ -124,6 +144,22 @@ export function useMeditationAgent(): UseMeditationAgentReturn {
       }
     };
   }, []);
+
+  // Handle conversation resumption when resumeConversationId changes
+  useEffect(() => {
+    if (resumeConversationId && resumeConversationId !== lastResumedIdRef.current) {
+      lastResumedIdRef.current = resumeConversationId;
+
+      // Load the conversation from the store
+      conversationStore.loadConversation(resumeConversationId).then((conversation) => {
+        if (conversation && conversation.messages.length > 0) {
+          const chatMessages = convertStoredMessages(conversation.messages);
+          setMessages(chatMessages);
+          if (DEBUG) console.log('[useMeditationAgent] Resumed conversation:', resumeConversationId, 'with', chatMessages.length, 'messages');
+        }
+      });
+    }
+  }, [resumeConversationId, convertStoredMessages]);
 
   /**
    * Generate a unique message ID
@@ -411,6 +447,19 @@ export function useMeditationAgent(): UseMeditationAgentReturn {
     }
   }, []);
 
+  /**
+   * Load a specific conversation by ID
+   */
+  const loadConversation = useCallback(async (conversationId: string) => {
+    const conversation = await conversationStore.loadConversation(conversationId);
+    if (conversation && conversation.messages.length > 0) {
+      const chatMessages = convertStoredMessages(conversation.messages);
+      setMessages(chatMessages);
+      lastResumedIdRef.current = conversationId;
+      if (DEBUG) console.log('[useMeditationAgent] Loaded conversation:', conversationId, 'with', chatMessages.length, 'messages');
+    }
+  }, [convertStoredMessages]);
+
   return {
     // State
     messages,
@@ -425,6 +474,7 @@ export function useMeditationAgent(): UseMeditationAgentReturn {
     synthesizeMeditation,
     clearConversation,
     executeAction,
+    loadConversation,
 
     // Helpers
     greeting,
