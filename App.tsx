@@ -10,6 +10,8 @@ import { useAuth } from './src/contexts/AuthContext';
 import { useScript } from './src/contexts/ScriptContext';
 import { useLibrary } from './src/contexts/LibraryContext';
 import { useAudioTags } from './src/contexts/AudioTagsContext';
+import { useChatHistory } from './src/contexts/ChatHistoryContext';
+import { useOnboarding } from './src/contexts/OnboardingContext';
 import GlassCard from './components/GlassCard';
 import Starfield from './components/Starfield';
 import Background from './components/Background';
@@ -25,6 +27,8 @@ const MeditationPlayer = lazy(() => import('./components/V0MeditationPlayer'));
 // InlinePlayer removed - using only V0MeditationPlayer now
 // AgentChat lazy-loaded to reduce initial bundle (~15KB savings)
 const AgentChat = lazy(() => import('./components/AgentChat').then(m => ({ default: m.AgentChat })));
+// Onboarding lazy-loaded to not impact initial bundle
+const Onboarding = lazy(() => import('./src/components/Onboarding'));
 // Error boundary for handling chunk load failures gracefully
 import ErrorBoundary from './components/ErrorBoundary';
 // Modal components extracted to reduce App.tsx complexity
@@ -112,6 +116,17 @@ const App: React.FC = () => {
     loadAudioTagPreferences
   } = useAudioTags();
 
+  const {
+    chatHistory,
+    isLoadingChatHistory,
+    refreshChatHistory,
+    loadConversation,
+    startNewConversation,
+  } = useChatHistory();
+
+  // Onboarding context for restart tour functionality
+  const { restartOnboarding } = useOnboarding();
+
   // UI-specific state (not shared across components)
   const [isLoading, setIsLoading] = useState(true);
   const [currentView, setCurrentView] = useState<View>(View.HOME);
@@ -162,6 +177,9 @@ const App: React.FC = () => {
 
   // Inline player state - script content from ScriptContext
   const [isInlineMode, setIsInlineMode] = useState(false);
+
+  // Resume conversation state - ID of conversation to resume
+  const [resumeConversationId, setResumeConversationId] = useState<string | null>(null);
 
   // Script edit preview state - editableScript from ScriptContext
   const [showScriptPreview, setShowScriptPreview] = useState(false);
@@ -282,12 +300,19 @@ const App: React.FC = () => {
     };
   }, []);
 
-  // Fetch meditation history when library or burger menu opens
+  // Fetch meditation history when library opens
   useEffect(() => {
-    if ((showLibrary || showBurgerMenu) && user && meditationHistory.length === 0) {
+    if (showLibrary && user && meditationHistory.length === 0) {
       refreshHistory();
     }
-  }, [showLibrary, showBurgerMenu, user, meditationHistory.length, refreshHistory]);
+  }, [showLibrary, user, meditationHistory.length, refreshHistory]);
+
+  // Fetch chat history when burger menu opens
+  useEffect(() => {
+    if (showBurgerMenu && user && chatHistory.length === 0) {
+      refreshChatHistory();
+    }
+  }, [showBurgerMenu, user, chatHistory.length, refreshChatHistory]);
 
   // loadMoreHistory is now provided by LibraryContext
 
@@ -2121,6 +2146,8 @@ const App: React.FC = () => {
                       isGeneratingAudio={isGenerating && generationStage === 'voice'}
                       restoredScript={restoredScript}
                       onRestoredScriptClear={() => setRestoredScript(null)}
+                      resumeConversationId={resumeConversationId}
+                      onConversationResumed={() => setResumeConversationId(null)}
                     />
                 </Suspense>
               )}
@@ -2536,57 +2563,85 @@ const App: React.FC = () => {
               </svg>
               Templates
             </button>
+            <button
+              onClick={() => { setShowBurgerMenu(false); restartOnboarding(); }}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors text-sm"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
+              </svg>
+              Restart Tour
+            </button>
           </div>
 
           {/* Divider */}
           <div className="mx-4 h-px bg-white/5" />
 
-          {/* History */}
+          {/* Chat History */}
           <div className="flex-1 flex flex-col min-h-0 p-4">
-            <p className="text-[10px] font-medium text-white/70 uppercase tracking-wider mb-3">History</p>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[10px] font-medium text-white/70 uppercase tracking-wider">Chats</p>
+              {user && chatHistory.length > 0 && (
+                <button
+                  onClick={async () => {
+                    await startNewConversation();
+                    setResumeConversationId(null);
+                    setShowBurgerMenu(false);
+                  }}
+                  className="text-[10px] text-cyan-400/70 hover:text-cyan-400 transition-colors flex items-center gap-1"
+                  title="Start new chat"
+                >
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  New
+                </button>
+              )}
+            </div>
             <div className="flex-1 overflow-y-auto space-y-1">
               {user ? (
-                isLoadingHistory ? (
+                isLoadingChatHistory ? (
                   <div className="flex justify-center py-6">
                     <div className="w-5 h-5 border-2 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin" />
                   </div>
-                ) : meditationHistory.length > 0 ? (
-                  meditationHistory.slice(0, 10).map((item, index) => (
+                ) : chatHistory.length > 0 ? (
+                  chatHistory.slice(0, 15).map((item, index) => (
                     <div key={item.id}>
                       {index > 0 && (
                         <div className="h-px bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent my-1" />
                       )}
                       <button
-                        onClick={() => {
-                          const scriptToRestore = item.enhanced_script || item.prompt;
-                          setScript(item.prompt);
-                          setEnhancedScript(scriptToRestore);
-                          setRestoredScript(scriptToRestore);
-                          if (item.voice_id && savedVoices.length > 0) {
-                            const matchingVoice = savedVoices.find(v => v.id === item.voice_id);
-                            if (matchingVoice) {
-                              setSelectedVoice({
-                                id: matchingVoice.id,
-                                name: matchingVoice.name,
-                                provider: 'chatterbox',
-                                voiceName: matchingVoice.name,
-                                description: 'Cloned voice',
-                                isCloned: true,
-                                providerVoiceId: matchingVoice.provider_voice_id,
-                              });
-                            }
+                        onClick={async () => {
+                          // Load the conversation and resume it
+                          const conversation = await loadConversation(item.id);
+                          if (conversation) {
+                            setResumeConversationId(item.id);
+                            setShowBurgerMenu(false);
                           }
-                          setShowBurgerMenu(false);
                         }}
                         className="w-full text-left p-2.5 rounded-lg hover:bg-cyan-500/10 transition-all group border-l-2 border-cyan-500/20 hover:border-cyan-400"
                       >
-                        <p className="text-sm text-white/90 group-hover:text-white whitespace-pre-wrap line-clamp-2">{item.enhanced_script || item.prompt}</p>
-                        <p className="text-[10px] text-cyan-400/60 group-hover:text-cyan-400 mt-1">{new Date(item.created_at).toLocaleDateString()}</p>
+                        <p className="text-sm text-white/90 group-hover:text-white whitespace-pre-wrap line-clamp-2">
+                          {item.preview}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <p className="text-[10px] text-cyan-400/60 group-hover:text-cyan-400">
+                            {new Date(item.createdAt).toLocaleDateString()}
+                          </p>
+                          {item.mood && (
+                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300">
+                              {item.mood}
+                            </span>
+                          )}
+                          <span className="text-[9px] text-white/40">
+                            {item.messageCount} msgs
+                          </span>
+                        </div>
                       </button>
                     </div>
                   ))
                 ) : (
-                  <p className="text-sm text-white/60 text-center py-6">No history yet</p>
+                  <p className="text-sm text-white/60 text-center py-6">No chats yet</p>
                 )
               ) : (
                 <div className="text-center py-6">
@@ -3361,6 +3416,11 @@ const App: React.FC = () => {
             </button>
           </div>
         )}
+
+        {/* Onboarding overlay - guides new users through the app */}
+        <Suspense fallback={null}>
+          <Onboarding />
+        </Suspense>
 
       </div>
     </LazyMotion>

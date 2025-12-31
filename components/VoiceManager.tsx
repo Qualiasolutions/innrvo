@@ -111,6 +111,7 @@ const VoiceManager: React.FC<VoiceManagerProps> = ({
 
           {/* Clone Voice Button */}
           <button
+            data-onboarding="clone-voice"
             onClick={() => {
               onClose();
               onCloneVoice();
@@ -161,7 +162,7 @@ const VoiceManager: React.FC<VoiceManagerProps> = ({
             </button>
           </GlassCard>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+          <div data-onboarding="voice-list" className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
             {voices.map((voice) => (
               <GlassCard
                 key={voice.id}

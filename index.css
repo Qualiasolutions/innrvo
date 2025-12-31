@@ -187,6 +187,17 @@
     contain: layout paint;
   }
 
+  /* Onboarding performance optimization */
+  .onboarding-overlay {
+    contain: strict;
+    will-change: opacity;
+  }
+
+  .onboarding-tooltip {
+    contain: layout paint;
+    will-change: transform, opacity;
+  }
+
   /* Micro-interactions */
   .btn-press {
     transition: transform 0.12s cubic-bezier(0.22, 1, 0.36, 1);

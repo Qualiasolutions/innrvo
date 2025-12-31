@@ -125,6 +125,9 @@ interface AgentChatProps {
   // Restored meditation from history
   restoredScript?: string | null;
   onRestoredScriptClear?: () => void;
+  // Resume a previous conversation
+  resumeConversationId?: string | null;
+  onConversationResumed?: () => void;
 }
 
 export const AgentChat: React.FC<AgentChatProps> = ({
@@ -143,6 +146,8 @@ export const AgentChat: React.FC<AgentChatProps> = ({
   className = '',
   restoredScript,
   onRestoredScriptClear,
+  resumeConversationId,
+  onConversationResumed,
 }) => {
   const {
     messages,
@@ -150,7 +155,7 @@ export const AgentChat: React.FC<AgentChatProps> = ({
     isGeneratingMeditation,
     currentMeditation,
     sendMessage,
-  } = useMeditationAgent();
+  } = useMeditationAgent({ resumeConversationId });
 
   const [inputValue, setInputValue] = useState('');
   const [isRecording, setIsRecording] = useState(false);
@@ -175,12 +180,19 @@ export const AgentChat: React.FC<AgentChatProps> = ({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, showMeditationPanel]);
 
-  // Notify parent when chat has started
+  // Notify parent when chat has started (includes resumed conversations)
   useEffect(() => {
     if (hasMessages && onChatStarted) {
       onChatStarted();
     }
   }, [hasMessages, onChatStarted]);
+
+  // Notify parent when conversation is resumed
+  useEffect(() => {
+    if (resumeConversationId && hasMessages && onConversationResumed) {
+      onConversationResumed();
+    }
+  }, [resumeConversationId, hasMessages, onConversationResumed]);
 
   // Show meditation panel when meditation is ready
   useEffect(() => {
@@ -413,7 +425,7 @@ export const AgentChat: React.FC<AgentChatProps> = ({
   }, []);
 
   return (
-    <div className={`flex flex-col h-full min-h-[100dvh] ${className}`}>
+    <div data-onboarding="agent-chat" className={`flex flex-col h-full min-h-[100dvh] ${className}`}>
       {/* Messages Area - grows from bottom up, above the input */}
       {!showMeditationPanel && hasMessages && (
         <div className="fixed left-0 right-0 bottom-32 top-20 overflow-y-auto px-4 md:px-6 z-40">
@@ -458,10 +470,12 @@ export const AgentChat: React.FC<AgentChatProps> = ({
               {/* Voice Call Button */}
               <button
                 type="button"
+                data-onboarding="voice-toggle"
                 onClick={handleOpenVoiceAgent}
                 disabled={isProcessing || isRecording}
                 className="flex-shrink-0 p-2 mr-2 rounded-full hover:bg-white/10 transition-colors text-cyan-400/70 hover:text-cyan-400 disabled:opacity-50"
                 title="Start voice chat"
+                aria-label="Start voice conversation"
               >
                 <PhoneIcon />
               </button>

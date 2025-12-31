@@ -455,7 +455,7 @@ const LibraryPage: React.FC = () => {
                 </p>
               </GlassCard>
             ) : (
-              <div className="space-y-6">
+              <div data-onboarding="library-list" className="space-y-6">
                 {/* With Audio */}
                 {meditationsWithAudio.length > 0 && (
                   <div>

@@ -14,6 +14,8 @@ import { AuthProvider } from './src/contexts/AuthContext';
 import { ScriptProvider } from './src/contexts/ScriptContext';
 import { LibraryProvider } from './src/contexts/LibraryContext';
 import { AudioTagsProvider } from './src/contexts/AudioTagsContext';
+import { ChatHistoryProvider } from './src/contexts/ChatHistoryContext';
+import { OnboardingProvider } from './src/contexts/OnboardingContext';
 import ErrorBoundary from './components/ErrorBoundary';
 
 // Web vitals types for lazy-loaded module
@@ -83,9 +85,11 @@ root.render(
             <ScriptProvider>
               <LibraryProvider>
                 <AudioTagsProvider>
-                  <AppProvider>
-                    <AppRouter />
-                    <Toaster
+                  <ChatHistoryProvider>
+                    <AppProvider>
+                      <OnboardingProvider>
+                      <AppRouter />
+                      <Toaster
                       position="top-center"
                       richColors
                       closeButton
@@ -100,7 +104,9 @@ root.render(
                       }}
                     />
                     <Analytics />
-                  </AppProvider>
+                    </OnboardingProvider>
+                    </AppProvider>
+                  </ChatHistoryProvider>
                 </AudioTagsProvider>
               </LibraryProvider>
             </ScriptProvider>

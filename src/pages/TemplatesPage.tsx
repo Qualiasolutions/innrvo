@@ -163,7 +163,7 @@ const TemplatesPage: React.FC = () => {
 
         {/* Level 1: Categories */}
         {!selectedCategory && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div data-onboarding="templates-grid" className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {TEMPLATE_CATEGORIES.map(category => {
               const colors = CATEGORY_COLORS[category.color] || CATEGORY_COLORS.cyan;
               const templateCount = category.subgroups.reduce((sum, sub) => sum + sub.templates.length, 0);
