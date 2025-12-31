@@ -1,8 +1,8 @@
 /**
  * VoiceAgent Component
  *
- * Minimalist voice conversation interface for INrVO Meditation.
- * Zen-like aesthetic with breathing animations and calming visuals.
+ * Real-time voice conversation interface for INrVO Meditation.
+ * Clean, minimal design with clear visual feedback.
  */
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
@@ -15,11 +15,11 @@ import {
 } from '../src/lib/voiceSession';
 
 // ============================================================================
-// MINIMAL ICONS
+// ICONS
 // ============================================================================
 
 const PhoneIcon = ({ className = '' }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
   </svg>
 );
@@ -31,7 +31,7 @@ const EndCallIcon = ({ className = '' }: { className?: string }) => (
 );
 
 const MicIcon = ({ className = '' }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" />
     <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
     <line x1="12" y1="19" x2="12" y2="22" />
@@ -39,7 +39,7 @@ const MicIcon = ({ className = '' }: { className?: string }) => (
 );
 
 const MicOffIcon = ({ className = '' }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <line x1="1" y1="1" x2="23" y2="23" />
     <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V5a3 3 0 0 0-5.94-.6" />
     <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23" />
@@ -47,142 +47,157 @@ const MicOffIcon = ({ className = '' }: { className?: string }) => (
   </svg>
 );
 
-const CloseIcon = ({ className = '' }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+const XIcon = ({ className = '' }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <line x1="18" y1="6" x2="6" y2="18" />
     <line x1="6" y1="6" x2="18" y2="18" />
   </svg>
 );
 
 // ============================================================================
-// SHOOTING STARS - Central Visual Element
+// AUDIO VISUALIZER - Elegant waveform
 // ============================================================================
 
-interface ShootingStarProps {
-  delay: number;
-  duration: number;
-  startX: number;
-  startY: number;
+interface AudioVisualizerProps {
   isActive: boolean;
-}
-
-const ShootingStar: React.FC<ShootingStarProps> = ({
-  delay,
-  duration,
-  startX,
-  startY,
-  isActive,
-}) => {
-  const angle = -25 + Math.random() * 15; // Gentle diagonal
-  const length = 120 + Math.random() * 80; // Longer trails
-
-  return (
-    <m.div
-      className="absolute"
-      style={{
-        left: `${startX}%`,
-        top: `${startY}%`,
-        width: `${length}px`,
-        height: '3px', // Thicker
-        background: `linear-gradient(90deg, transparent 0%, rgba(34,211,238,${isActive ? 0.9 : 0.6}) 30%, rgba(255,255,255,${isActive ? 1 : 0.8}) 100%)`,
-        borderRadius: '3px',
-        transform: `rotate(${angle}deg)`,
-        boxShadow: isActive
-          ? '0 0 12px rgba(34,211,238,0.8), 0 0 24px rgba(34,211,238,0.4), 0 0 4px rgba(255,255,255,0.9)'
-          : '0 0 8px rgba(34,211,238,0.5), 0 0 16px rgba(34,211,238,0.2), 0 0 3px rgba(255,255,255,0.6)',
-      }}
-      initial={{ opacity: 0, x: 0, y: 0 }}
-      animate={{
-        opacity: [0, 1, 1, 0],
-        x: [0, length * 2.5],
-        y: [0, length * 0.6],
-      }}
-      transition={{
-        duration: duration * 1.5, // Slower, more visible
-        delay: delay,
-        repeat: Infinity,
-        repeatDelay: Math.random() * 4 + 3, // More spacing between appearances
-        ease: 'easeOut',
-      }}
-    />
-  );
-};
-
-interface ShootingStarsFieldProps {
-  isActive: boolean;
-  isSpeaking: boolean;
   isListening: boolean;
+  isSpeaking: boolean;
   volume: number;
 }
 
-const ShootingStarsField: React.FC<ShootingStarsFieldProps> = ({
+const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
   isActive,
-  isSpeaking,
   isListening,
+  isSpeaking,
   volume,
 }) => {
-  // Fewer but more prominent stars
-  const stars = [
-    { delay: 0, duration: 1.4, startX: 15, startY: 15 },
-    { delay: 2.5, duration: 1.6, startX: 65, startY: 8 },
-    { delay: 5.0, duration: 1.5, startX: 40, startY: 25 },
-    { delay: 7.5, duration: 1.3, startX: 80, startY: 20 },
-  ];
-
-  // Add one more star when active
-  const activeStars = isActive ? [
-    { delay: 1.2, duration: 1.2, startX: 30, startY: 10 },
-    { delay: 4.0, duration: 1.4, startX: 55, startY: 18 },
-  ] : [];
+  const bars = 7;
 
   return (
-    <div className="relative w-80 h-48 flex items-center justify-center overflow-hidden">
-      {/* Shooting stars */}
-      {[...stars, ...activeStars].map((star, i) => (
-        <ShootingStar
-          key={i}
-          delay={star.delay}
-          duration={isSpeaking ? star.duration * 0.7 : star.duration}
-          startX={star.startX}
-          startY={star.startY}
-          isActive={isActive}
-        />
-      ))}
+    <div className="flex items-center justify-center gap-1 h-16">
+      {[...Array(bars)].map((_, i) => {
+        // Create wave pattern - center bars taller
+        const centerDistance = Math.abs(i - (bars - 1) / 2);
+        const baseHeight = 24 - centerDistance * 4;
 
-      {/* Central voice indicator */}
-      <m.div
-        className="relative z-10 flex items-center justify-center gap-1"
-        animate={{
-          scale: isListening ? 1 + volume * 0.2 : 1,
-        }}
-        transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-      >
-        {/* Subtle voice bars */}
-        {[...Array(5)].map((_, i) => (
+        // Calculate dynamic height based on state
+        let height = 4; // idle height
+        if (isActive) {
+          if (isListening) {
+            height = baseHeight * (0.3 + volume * 0.7);
+          } else if (isSpeaking) {
+            // Smooth wave animation when speaking
+            const phase = (Date.now() / 200 + i * 0.5) % (Math.PI * 2);
+            height = baseHeight * (0.4 + Math.sin(phase) * 0.3);
+          } else {
+            height = baseHeight * 0.3; // connected but idle
+          }
+        }
+
+        return (
           <m.div
             key={i}
-            className="w-0.5 rounded-full"
+            className="w-1.5 rounded-full"
             style={{
               background: isActive
-                ? 'linear-gradient(to top, rgba(34,211,238,0.3), rgba(34,211,238,0.8))'
+                ? 'linear-gradient(to top, rgba(34,211,238,0.6), rgba(34,211,238,1))'
                 : 'rgba(255,255,255,0.2)',
             }}
             animate={{
-              height: isListening
-                ? `${8 + volume * 24}px`
-                : isSpeaking
-                  ? `${6 + Math.sin(Date.now() / 150 + i * 0.8) * 10}px`
-                  : '3px',
-              opacity: isActive ? [0.5, 1, 0.5] : 0.3,
+              height: `${Math.max(4, height)}px`,
+              opacity: isActive ? 1 : 0.5,
             }}
             transition={{
-              height: { duration: 0.1 },
-              opacity: { duration: 1.5, repeat: Infinity },
+              height: { duration: 0.1, ease: 'easeOut' },
+              opacity: { duration: 0.3 },
             }}
           />
-        ))}
-      </m.div>
+        );
+      })}
+    </div>
+  );
+};
 
+// ============================================================================
+// PULSING ORB - Visual feedback for connection state
+// ============================================================================
+
+interface PulsingOrbProps {
+  state: VoiceSessionState;
+  volume: number;
+}
+
+const PulsingOrb: React.FC<PulsingOrbProps> = ({ state, volume }) => {
+  const isConnected = state === 'connected' || state === 'listening' || state === 'agent-speaking';
+  const isListening = state === 'listening';
+  const isSpeaking = state === 'agent-speaking';
+  const isConnecting = state === 'connecting' || state === 'requesting-mic';
+
+  return (
+    <div className="relative flex items-center justify-center">
+      {/* Outer glow rings */}
+      <m.div
+        className="absolute w-48 h-48 rounded-full"
+        style={{
+          background: isConnected
+            ? 'radial-gradient(circle, rgba(34,211,238,0.15) 0%, transparent 70%)'
+            : 'radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%)',
+        }}
+        animate={{
+          scale: isListening ? [1, 1.1 + volume * 0.2, 1] : isSpeaking ? [1, 1.15, 1] : 1,
+          opacity: isConnected ? [0.5, 1, 0.5] : 0.3,
+        }}
+        transition={{
+          duration: isSpeaking ? 1.5 : 2,
+          repeat: Infinity,
+          ease: 'easeInOut',
+        }}
+      />
+
+      {/* Middle ring */}
+      <m.div
+        className="absolute w-32 h-32 rounded-full border"
+        style={{
+          borderColor: isConnected ? 'rgba(34,211,238,0.3)' : 'rgba(255,255,255,0.1)',
+        }}
+        animate={{
+          scale: isConnecting ? [1, 1.1, 1] : 1,
+          opacity: isConnecting ? [0.3, 0.6, 0.3] : 0.5,
+        }}
+        transition={{
+          duration: 1.5,
+          repeat: Infinity,
+          ease: 'easeInOut',
+        }}
+      />
+
+      {/* Inner orb */}
+      <m.div
+        className="relative w-24 h-24 rounded-full flex items-center justify-center"
+        style={{
+          background: isConnected
+            ? 'radial-gradient(circle at 30% 30%, rgba(34,211,238,0.4), rgba(34,211,238,0.1))'
+            : 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.1), rgba(255,255,255,0.02))',
+          boxShadow: isConnected
+            ? '0 0 40px rgba(34,211,238,0.3), inset 0 0 30px rgba(34,211,238,0.1)'
+            : 'inset 0 0 20px rgba(255,255,255,0.05)',
+        }}
+        animate={{
+          scale: isListening ? 1 + volume * 0.15 : 1,
+        }}
+        transition={{
+          type: 'spring',
+          stiffness: 300,
+          damping: 20,
+        }}
+      >
+        <AudioVisualizer
+          isActive={isConnected}
+          isListening={isListening}
+          isSpeaking={isSpeaking}
+          volume={volume}
+        />
+      </m.div>
     </div>
   );
 };
@@ -203,26 +218,23 @@ const TranscriptDisplay: React.FC<TranscriptDisplayProps> = ({
   if (transcripts.length === 0) return null;
 
   return (
-    <m.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="w-full max-w-md mx-auto space-y-3"
-    >
+    <div className="w-full max-w-lg mx-auto px-4">
       <AnimatePresence mode="popLayout">
-        {transcripts.slice(-4).map((entry) => (
+        {transcripts.slice(-5).map((entry) => (
           <m.div
             key={entry.id}
-            initial={{ opacity: 0, y: 10, scale: 0.95 }}
-            animate={{ opacity: entry.isFinal ? 1 : 0.6, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -10, scale: 0.95 }}
-            className={`flex ${entry.role === 'user' ? 'justify-end' : 'justify-start'}`}
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: entry.isFinal ? 1 : 0.7, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            className={`mb-3 flex ${entry.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
             <div
               className={`
-                max-w-[85%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed
+                max-w-[85%] px-4 py-3 rounded-2xl text-sm leading-relaxed
                 ${entry.role === 'user'
-                  ? 'bg-cyan-500/10 text-cyan-50 border border-cyan-500/20'
-                  : 'bg-white/[0.03] text-white/80 border border-white/[0.06]'
+                  ? 'bg-cyan-500/20 text-white border border-cyan-500/30 rounded-br-sm'
+                  : 'bg-white/10 text-white/90 border border-white/10 rounded-bl-sm'
                 }
               `}
             >
@@ -232,7 +244,7 @@ const TranscriptDisplay: React.FC<TranscriptDisplayProps> = ({
         ))}
       </AnimatePresence>
       <div ref={transcriptsEndRef} />
-    </m.div>
+    </div>
   );
 };
 
@@ -271,6 +283,7 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({
 
   // Handlers
   const handleStateChange = useCallback((state: VoiceSessionState) => {
+    console.log('[VoiceAgent] State changed:', state);
     setSessionState(state);
   }, []);
 
@@ -298,6 +311,7 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({
   const startSession = useCallback(async () => {
     setError(null);
     setTranscripts([]);
+    console.log('[VoiceAgent] Starting session...');
     try {
       await voiceSession.current.start({
         onStateChange: handleStateChange,
@@ -306,6 +320,7 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({
         onError: handleError,
       });
     } catch (err) {
+      console.error('[VoiceAgent] Start failed:', err);
       setError(err instanceof Error ? err.message : 'Failed to start voice session');
     }
   }, [handleStateChange, handleTranscript, handleVolumeChange, handleError]);
@@ -336,14 +351,14 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({
   // Status text
   const getStatusText = () => {
     switch (sessionState) {
-      case 'idle': return 'Tap to begin';
-      case 'requesting-mic': return 'Allowing microphone...';
+      case 'idle': return 'Tap to start';
+      case 'requesting-mic': return 'Requesting microphone...';
       case 'connecting': return 'Connecting...';
       case 'connected': return 'Connected';
       case 'listening': return 'Listening...';
       case 'agent-speaking': return 'Speaking...';
-      case 'error': return 'Connection error';
-      case 'disconnected': return 'Ended';
+      case 'error': return 'Connection failed';
+      case 'disconnected': return 'Call ended';
       default: return '';
     }
   };
@@ -355,28 +370,23 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className={`fixed inset-0 z-[70] bg-[#030712] flex flex-col items-center justify-center p-8 ${className}`}
+        className={`fixed inset-0 z-[70] bg-gradient-to-b from-slate-900 to-slate-950 flex flex-col items-center justify-center p-8 ${className}`}
       >
-        <m.div
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.1 }}
-          className="text-center max-w-sm"
-        >
-          <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-white/5 flex items-center justify-center">
-            <MicOffIcon className="w-7 h-7 text-white/40" />
+        <div className="text-center max-w-sm">
+          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-white/5 flex items-center justify-center border border-white/10">
+            <MicOffIcon className="w-8 h-8 text-white/40" />
           </div>
-          <h2 className="text-lg font-light text-white/90 mb-2">Voice Not Available</h2>
-          <p className="text-sm text-white/40 mb-8 leading-relaxed">
-            Your browser doesn't support voice features. Please try Chrome, Firefox, or Safari.
+          <h2 className="text-xl font-medium text-white mb-3">Voice Not Available</h2>
+          <p className="text-sm text-white/50 mb-8 leading-relaxed">
+            Your browser doesn't support voice features. Please try Chrome, Firefox, or Safari on desktop.
           </p>
           <button
             onClick={onClose}
-            className="px-6 py-2.5 text-sm text-white/70 hover:text-white bg-white/5 hover:bg-white/10 rounded-full transition-all duration-300"
+            className="px-8 py-3 text-sm font-medium text-white bg-white/10 hover:bg-white/15 rounded-full transition-all duration-300 border border-white/10"
           >
             Go Back
           </button>
-        </m.div>
+        </div>
       </m.div>
     );
   }
@@ -386,49 +396,36 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className={`fixed inset-0 z-[70] bg-[#030712] flex flex-col ${className}`}
+      className={`fixed inset-0 z-[70] bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 flex flex-col ${className}`}
     >
-      {/* Subtle gradient overlay */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: 'radial-gradient(ellipse at 50% 30%, rgba(34,211,238,0.03) 0%, transparent 50%)',
-        }}
-      />
+      {/* Header */}
+      <div className="flex items-center justify-between px-6 py-4">
+        <div className="flex items-center gap-3">
+          <m.div
+            className={`w-2 h-2 rounded-full ${
+              isConnected ? 'bg-emerald-400' :
+              isConnecting ? 'bg-amber-400' :
+              error ? 'bg-rose-400' : 'bg-white/30'
+            }`}
+            animate={isConnecting ? { opacity: [0.5, 1, 0.5] } : {}}
+            transition={{ duration: 1, repeat: Infinity }}
+          />
+          <span className="text-sm text-white/60">{getStatusText()}</span>
+        </div>
 
-      {/* Close button - minimal */}
-      <m.button
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.3 }}
-        onClick={onClose}
-        className="absolute top-6 right-6 p-2 rounded-full text-white/30 hover:text-white/60 hover:bg-white/5 transition-all duration-300 z-10"
-      >
-        <CloseIcon className="w-5 h-5" />
-      </m.button>
-
-      {/* Main content area */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 relative">
-        {/* Status indicator */}
-        <m.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="absolute top-8 left-1/2 -translate-x-1/2"
+        <button
+          onClick={onClose}
+          className="p-2 rounded-full text-white/40 hover:text-white/70 hover:bg-white/5 transition-all"
         >
-          <div className="flex items-center gap-2">
-            <m.div
-              className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-cyan-400' : 'bg-white/20'}`}
-              animate={isConnected ? { scale: [1, 1.2, 1], opacity: [0.7, 1, 0.7] } : {}}
-              transition={{ duration: 2, repeat: Infinity }}
-            />
-            <span className="text-xs text-white/40 tracking-wide">{getStatusText()}</span>
-          </div>
-        </m.div>
+          <XIcon className="w-5 h-5" />
+        </button>
+      </div>
 
-        {/* Transcripts - above the orb when active */}
+      {/* Main content */}
+      <div className="flex-1 flex flex-col items-center justify-center px-6 overflow-hidden">
+        {/* Transcripts area */}
         {transcripts.length > 0 && (
-          <div className="absolute top-24 left-0 right-0 bottom-48 overflow-y-auto px-6 py-4">
+          <div className="absolute top-20 left-0 right-0 bottom-72 overflow-y-auto">
             <TranscriptDisplay
               transcripts={transcripts}
               transcriptsEndRef={transcriptsEndRef as React.RefObject<HTMLDivElement>}
@@ -436,34 +433,27 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({
           </div>
         )}
 
-        {/* Shooting stars field */}
+        {/* Pulsing orb visualization */}
         <m.div
-          initial={{ scale: 0.9, opacity: 0 }}
+          initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.1, duration: 0.6 }}
-          className={transcripts.length > 0 ? 'mt-auto mb-8' : ''}
+          transition={{ delay: 0.1, duration: 0.4 }}
+          className={transcripts.length > 0 ? 'mt-auto mb-4' : ''}
         >
-          <ShootingStarsField
-            isActive={isConnected}
-            isSpeaking={isSpeaking}
-            isListening={isListening && !isMuted}
-            volume={volume}
-          />
+          <PulsingOrb state={sessionState} volume={volume} />
         </m.div>
 
-        {/* Idle state message */}
+        {/* Status message */}
         <AnimatePresence>
-          {!isConnected && !isConnecting && transcripts.length === 0 && (
-            <m.div
+          {!isConnected && !isConnecting && !error && transcripts.length === 0 && (
+            <m.p
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="mt-8 text-center"
+              exit={{ opacity: 0 }}
+              className="mt-8 text-white/40 text-sm text-center"
             >
-              <p className="text-white/40 text-sm font-light">
-                Speak with your meditation guide
-              </p>
-            </m.div>
+              Talk with your meditation guide
+            </m.p>
           )}
         </AnimatePresence>
 
@@ -473,24 +463,19 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({
             <m.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="mt-6 px-4 py-3 bg-rose-500/10 border border-rose-500/20 rounded-xl max-w-sm"
+              exit={{ opacity: 0 }}
+              className="mt-6 px-5 py-3 bg-rose-500/10 border border-rose-500/20 rounded-xl max-w-sm"
             >
-              <p className="text-rose-300/80 text-sm text-center">{error}</p>
+              <p className="text-rose-300 text-sm text-center">{error}</p>
             </m.div>
           )}
         </AnimatePresence>
       </div>
 
       {/* Bottom controls */}
-      <m.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="flex-shrink-0 pb-12 pt-6"
-      >
-        <div className="flex items-center justify-center gap-6">
-          {/* Mute button - only when connected */}
+      <div className="flex-shrink-0 pb-10 pt-6">
+        <div className="flex items-center justify-center gap-8">
+          {/* Mute button */}
           <AnimatePresence>
             {isConnected && (
               <m.button
@@ -499,18 +484,14 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({
                 exit={{ opacity: 0, scale: 0.8 }}
                 onClick={toggleMute}
                 className={`
-                  w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300
+                  w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300
                   ${isMuted
-                    ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                    : 'bg-white/5 text-white/50 hover:text-white/70 border border-white/10 hover:border-white/20'
+                    ? 'bg-rose-500/20 text-rose-400 border-2 border-rose-500/40'
+                    : 'bg-white/5 text-white/60 hover:text-white border-2 border-white/10 hover:border-white/20'
                   }
                 `}
               >
-                {isMuted ? (
-                  <MicOffIcon className="w-5 h-5" />
-                ) : (
-                  <MicIcon className="w-5 h-5" />
-                )}
+                {isMuted ? <MicOffIcon className="w-5 h-5" /> : <MicIcon className="w-5 h-5" />}
               </m.button>
             )}
           </AnimatePresence>
@@ -519,55 +500,67 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({
           <m.button
             onClick={isConnected ? stopSession : startSession}
             disabled={isConnecting}
-            className="relative"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
+            className="relative"
           >
-  
-            {/* Button */}
+            {/* Animated ring when connecting */}
+            {isConnecting && (
+              <m.div
+                className="absolute inset-0 rounded-full border-2 border-cyan-400/50"
+                animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0, 0.5] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+              />
+            )}
+
             <div
               className={`
-                relative w-16 h-16 rounded-full flex items-center justify-center transition-all duration-500
+                relative w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300
                 ${isConnecting
-                  ? 'bg-cyan-500/20 border border-cyan-500/30'
+                  ? 'bg-cyan-500/20 border-2 border-cyan-500/50'
                   : isConnected
-                    ? 'bg-rose-500/90 border border-rose-400/50 shadow-lg shadow-rose-500/20'
-                    : 'bg-cyan-500/90 border border-cyan-400/50 shadow-lg shadow-cyan-500/20'
+                    ? 'bg-rose-500 border-2 border-rose-400 shadow-lg shadow-rose-500/30'
+                    : 'bg-cyan-500 border-2 border-cyan-400 shadow-lg shadow-cyan-500/30 hover:shadow-cyan-500/50'
                 }
               `}
             >
               {isConnecting ? (
                 <m.div
-                  className="w-5 h-5 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full"
+                  className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full"
                   animate={{ rotate: 360 }}
                   transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                 />
               ) : isConnected ? (
-                <EndCallIcon className="w-6 h-6 text-white" />
+                <EndCallIcon className="w-7 h-7 text-white" />
               ) : (
-                <PhoneIcon className="w-6 h-6 text-white" />
+                <PhoneIcon className="w-7 h-7 text-white" />
               )}
             </div>
           </m.button>
 
-          {/* Spacer for symmetry when mute is visible */}
-          {isConnected && <div className="w-12" />}
+          {/* Spacer for symmetry */}
+          {isConnected && <div className="w-14" />}
         </div>
 
-        {/* Subtle hint text */}
+        {/* Helper text */}
         <m.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="text-center text-white/20 text-xs mt-6 font-light"
+          className="text-center text-white/30 text-xs mt-6"
         >
           {isConnected
             ? isMuted
-              ? 'Tap mic to unmute'
-              : 'Speak naturally'
-            : 'Voice conversation'}
+              ? 'Microphone muted'
+              : isListening
+                ? 'Listening to you...'
+                : isSpeaking
+                  ? 'Guide is speaking'
+                  : 'Say something'
+            : isConnecting
+              ? 'Setting up voice connection...'
+              : 'Start a voice conversation'}
         </m.p>
-      </m.div>
+      </div>
     </m.div>
   );
 };
