@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useMemo, memo } from 'react';
 import { toast } from 'sonner';
 import {
   CloningStatus,
@@ -24,6 +24,23 @@ const MAX_RECORDING_SECONDS = 90;
 
 type Step = 'record' | 'describe' | 'processing';
 
+// Move constant arrays outside component to prevent recreation
+const VOICE_QUALITIES = ['calm', 'warm', 'soothing', 'gentle', 'deep', 'soft'] as const;
+const GENDERS = ['female', 'male'] as const;
+const TIPS = [
+  'Speak slowly at a calm pace',
+  'Stay consistent with your tone',
+  'Use a quiet environment',
+] as const;
+
+// Memoized select dropdown style (prevents object recreation)
+const SELECT_STYLE = {
+  backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%236b7280\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'/%3E%3C/svg%3E")',
+  backgroundRepeat: 'no-repeat',
+  backgroundPosition: 'right 0.5rem center',
+  backgroundSize: '1rem',
+} as const;
+
 export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
   onClose,
   onRecordingComplete,
@@ -44,14 +61,14 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
   const [accent, setAccent] = useState(DEFAULT_VOICE_METADATA.accent);
   const [descriptive, setDescriptive] = useState(DEFAULT_VOICE_METADATA.descriptive || 'calm');
 
-  const availableAccents = getAccentsForLanguage(language);
+  // Memoize accent list to prevent recalculation
+  const availableAccents = useMemo(() => getAccentsForLanguage(language), [language]);
 
   useEffect(() => {
-    const accents = getAccentsForLanguage(language);
-    if (!accents.find(a => a.value === accent)) {
-      setAccent(accents[0]?.value || 'native');
+    if (!availableAccents.find(a => a.value === accent)) {
+      setAccent(availableAccents[0]?.value || 'native');
     }
-  }, [language, accent]);
+  }, [language, availableAccents, accent]);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -228,7 +245,8 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
     setStep('record');
   };
 
-  const getStatusMessage = () => {
+  // Memoize status message
+  const statusMessage = useMemo(() => {
     switch (cloningStatus.state) {
       case 'validating': return 'Analyzing your voice...';
       case 'processing_audio': return 'Preparing your recording...';
@@ -241,34 +259,42 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
       case 'success': return `Voice "${cloningStatus.voiceName}" created!`;
       default: return null;
     }
-  };
+  }, [cloningStatus.state, cloningStatus.progress, cloningStatus.voiceName]);
 
-  const formatDuration = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
+  // Memoize formatted duration
+  const formattedDuration = useMemo(() => {
+    const mins = Math.floor(recordingDuration / 60);
+    const secs = recordingDuration % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
+  }, [recordingDuration]);
 
-  const getRecordingQuality = () => {
+  // Memoize recording quality
+  const quality = useMemo(() => {
     if (recordingDuration < MIN_RECORDING_SECONDS) {
-      return { label: 'Keep going', color: 'text-rose-400', ring: 'ring-rose-500/50', progress: recordingDuration / MIN_RECORDING_SECONDS };
+      return { label: 'Keep going', color: 'text-rose-400', bgColor: 'bg-rose-400' };
     } else if (recordingDuration < RECOMMENDED_SECONDS) {
-      return { label: 'Good', color: 'text-amber-400', ring: 'ring-amber-500/50', progress: recordingDuration / RECOMMENDED_SECONDS };
+      return { label: 'Good', color: 'text-amber-400', bgColor: 'bg-amber-400' };
     } else {
-      return { label: 'Excellent', color: 'text-emerald-400', ring: 'ring-emerald-500/50', progress: 1 };
+      return { label: 'Excellent', color: 'text-emerald-400', bgColor: 'bg-emerald-400' };
     }
-  };
+  }, [recordingDuration]);
 
-  const quality = getRecordingQuality();
-  const canProceed = recordedBlob && recordingDuration >= MIN_RECORDING_SECONDS;
+  // Memoize canProceed
+  const canProceed = useMemo(
+    () => recordedBlob !== null && recordingDuration >= MIN_RECORDING_SECONDS,
+    [recordedBlob, recordingDuration]
+  );
 
-  // Voice quality options - compact pills
-  const voiceQualities = ['calm', 'warm', 'soothing', 'gentle', 'deep', 'soft'];
+  // Memoize file size display
+  const fileSizeDisplay = useMemo(
+    () => recordedBlob ? `${(recordedBlob.size / 1024).toFixed(0)} KB` : '',
+    [recordedBlob]
+  );
 
   return (
     <div className="fixed inset-0 z-[80] bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950">
-      {/* Header - Fixed */}
-      <header className="sticky top-0 z-10 px-4 py-3 flex items-center justify-between bg-slate-900/80 backdrop-blur-xl border-b border-white/5">
+      {/* Header - Use less expensive blur */}
+      <header className="sticky top-0 z-10 px-4 py-3 flex items-center justify-between bg-slate-900/95 border-b border-white/5">
         <button
           onClick={onClose}
           disabled={isProcessing}
@@ -308,19 +334,20 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
         {/* Processing State */}
         {step === 'processing' && !isSuccess && (
           <div className="flex flex-col items-center justify-center min-h-full px-6 py-12">
-            <div className="relative w-24 h-24 mb-8">
-              {/* Outer ring animation */}
-              <div className="absolute inset-0 rounded-full border-2 border-cyan-500/20 animate-ping" />
-              {/* Spinning ring */}
-              <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-cyan-500 animate-spin" />
-              {/* Inner glow */}
+            <div className="relative w-24 h-24 mb-8" style={{ contain: 'layout paint' }}>
+              {/* Spinning ring - use GPU-accelerated transform */}
+              <div
+                className="absolute inset-0 rounded-full border-2 border-transparent border-t-cyan-500"
+                style={{ animation: 'spin 1s linear infinite', willChange: 'transform' }}
+              />
+              {/* Inner glow - static, no animation */}
               <div className="absolute inset-3 rounded-full bg-gradient-to-br from-cyan-500/20 to-purple-500/20 flex items-center justify-center">
                 <svg className="w-8 h-8 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                 </svg>
               </div>
             </div>
-            <p className="text-lg font-medium text-white mb-2">{getStatusMessage()}</p>
+            <p className="text-lg font-medium text-white mb-2">{statusMessage}</p>
             <p className="text-slate-500 text-sm">This usually takes about 30 seconds</p>
 
             {/* Error in processing */}
@@ -352,14 +379,17 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
 
               {!recordedBlob ? (
                 <>
-                  {/* Recording visualization */}
-                  <div className={`relative mb-6 ${isRecording ? 'scale-110' : ''} transition-transform duration-300`}>
-                    {/* Pulsing rings when recording */}
+                  {/* Recording visualization - simplified animations */}
+                  <div
+                    className="relative mb-6 transition-transform duration-300"
+                    style={{ transform: isRecording ? 'scale(1.1)' : 'scale(1)', contain: 'layout' }}
+                  >
+                    {/* Simple glow ring when recording - no expensive animations */}
                     {isRecording && (
-                      <>
-                        <div className="absolute inset-0 rounded-full bg-cyan-500/20 animate-ping" style={{ animationDuration: '1.5s' }} />
-                        <div className="absolute -inset-4 rounded-full bg-cyan-500/10 animate-pulse" />
-                      </>
+                      <div
+                        className="absolute -inset-4 rounded-full bg-cyan-500/10"
+                        style={{ animation: 'pulse 2s ease-in-out infinite', willChange: 'opacity' }}
+                      />
                     )}
 
                     {/* Main recorder button */}
@@ -367,7 +397,7 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
                       <AIVoiceInput
                         isRecording={isRecording}
                         onToggle={handleToggleRecording}
-                        visualizerBars={24}
+                        visualizerBars={16}
                         className="scale-125"
                       />
                     </div>
@@ -377,10 +407,10 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
                   {isRecording && (
                     <div className="text-center mb-4">
                       <div className="text-4xl font-mono font-bold text-white mb-2 tabular-nums">
-                        {formatDuration(recordingDuration)}
+                        {formattedDuration}
                       </div>
                       <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${quality.color} bg-white/5`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${quality.color.replace('text-', 'bg-')} animate-pulse`} />
+                        <span className={`w-1.5 h-1.5 rounded-full ${quality.bgColor}`} />
                         {quality.label}
                       </div>
                     </div>
@@ -404,13 +434,9 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
                   {!isRecording && (
                     <div className="mt-8 w-full max-w-sm space-y-2">
                       <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-3">Quick Tips</p>
-                      {[
-                        'Speak slowly at a calm pace',
-                        'Stay consistent with your tone',
-                        'Use a quiet environment',
-                      ].map((tip, i) => (
+                      {TIPS.map((tip, i) => (
                         <div key={i} className="flex items-center gap-2 text-slate-500 text-sm">
-                          <svg className="w-4 h-4 text-cyan-500/70" fill="currentColor" viewBox="0 0 20 20">
+                          <svg className="w-4 h-4 text-cyan-500/70 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                           </svg>
                           {tip}

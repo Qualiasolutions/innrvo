@@ -184,7 +184,7 @@ serve(async (req) => {
       // WebSocket URL for Gemini Multimodal Live API
       wsUrl: 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent',
       apiKey: geminiApiKey,
-      model: 'models/gemini-2.0-flash-exp',
+      model: 'models/gemini-2.5-flash', // Updated to 2.5 for better Live API support
       voiceName,
       systemPrompt: VOICE_SYSTEM_PROMPT,
       requestId,

@@ -73,8 +73,8 @@ const ShootingStar: React.FC<ShootingStarProps> = ({
   startY,
   isActive,
 }) => {
-  const angle = -30 + Math.random() * 20; // Slightly varied angles
-  const length = 60 + Math.random() * 40;
+  const angle = -25 + Math.random() * 15; // Gentle diagonal
+  const length = 120 + Math.random() * 80; // Longer trails
 
   return (
     <m.div
@@ -83,25 +83,25 @@ const ShootingStar: React.FC<ShootingStarProps> = ({
         left: `${startX}%`,
         top: `${startY}%`,
         width: `${length}px`,
-        height: '2px',
-        background: `linear-gradient(90deg, transparent, rgba(34,211,238,${isActive ? 0.8 : 0.4}), rgba(255,255,255,${isActive ? 0.9 : 0.5}))`,
-        borderRadius: '2px',
+        height: '3px', // Thicker
+        background: `linear-gradient(90deg, transparent 0%, rgba(34,211,238,${isActive ? 0.9 : 0.6}) 30%, rgba(255,255,255,${isActive ? 1 : 0.8}) 100%)`,
+        borderRadius: '3px',
         transform: `rotate(${angle}deg)`,
         boxShadow: isActive
-          ? '0 0 6px rgba(34,211,238,0.6), 0 0 12px rgba(34,211,238,0.3)'
-          : '0 0 4px rgba(255,255,255,0.3)',
+          ? '0 0 12px rgba(34,211,238,0.8), 0 0 24px rgba(34,211,238,0.4), 0 0 4px rgba(255,255,255,0.9)'
+          : '0 0 8px rgba(34,211,238,0.5), 0 0 16px rgba(34,211,238,0.2), 0 0 3px rgba(255,255,255,0.6)',
       }}
       initial={{ opacity: 0, x: 0, y: 0 }}
       animate={{
         opacity: [0, 1, 1, 0],
-        x: [0, length * 2],
-        y: [0, length * 0.8],
+        x: [0, length * 2.5],
+        y: [0, length * 0.6],
       }}
       transition={{
-        duration: duration,
+        duration: duration * 1.5, // Slower, more visible
         delay: delay,
         repeat: Infinity,
-        repeatDelay: Math.random() * 3 + 2,
+        repeatDelay: Math.random() * 4 + 3, // More spacing between appearances
         ease: 'easeOut',
       }}
     />
@@ -121,26 +121,18 @@ const ShootingStarsField: React.FC<ShootingStarsFieldProps> = ({
   isListening,
   volume,
 }) => {
-  // Generate stars with varied positions and timings
+  // Fewer but more prominent stars
   const stars = [
-    { delay: 0, duration: 1.2, startX: 10, startY: 20 },
-    { delay: 0.8, duration: 1.0, startX: 70, startY: 10 },
-    { delay: 1.5, duration: 1.4, startX: 30, startY: 5 },
-    { delay: 2.2, duration: 1.1, startX: 85, startY: 30 },
-    { delay: 3.0, duration: 1.3, startX: 50, startY: 15 },
-    { delay: 3.8, duration: 1.0, startX: 15, startY: 35 },
-    { delay: 4.5, duration: 1.2, startX: 60, startY: 25 },
-    { delay: 5.2, duration: 1.1, startX: 40, startY: 8 },
+    { delay: 0, duration: 1.4, startX: 15, startY: 15 },
+    { delay: 2.5, duration: 1.6, startX: 65, startY: 8 },
+    { delay: 5.0, duration: 1.5, startX: 40, startY: 25 },
+    { delay: 7.5, duration: 1.3, startX: 80, startY: 20 },
   ];
 
-  // Add more stars when active
+  // Add one more star when active
   const activeStars = isActive ? [
-    { delay: 0.3, duration: 0.8, startX: 25, startY: 12 },
-    { delay: 1.0, duration: 0.9, startX: 75, startY: 22 },
-    { delay: 1.8, duration: 0.7, startX: 45, startY: 18 },
-    { delay: 2.5, duration: 0.85, startX: 90, startY: 15 },
-    { delay: 3.3, duration: 0.75, startX: 20, startY: 28 },
-    { delay: 4.0, duration: 0.9, startX: 55, startY: 5 },
+    { delay: 1.2, duration: 1.2, startX: 30, startY: 10 },
+    { delay: 4.0, duration: 1.4, startX: 55, startY: 18 },
   ] : [];
 
   return (

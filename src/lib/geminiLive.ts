@@ -332,6 +332,7 @@ export class GeminiLiveClient {
 
   private handleMessage(event: MessageEvent): void {
     try {
+      if (DEBUG) console.log('[GeminiLive] Raw message received:', event.data);
       const message: ServerMessage = JSON.parse(event.data as string);
 
       // Handle setup complete
@@ -396,13 +397,25 @@ export class GeminiLiveClient {
   }
 
   private handleError(event: Event): void {
-    if (DEBUG) console.error('[GeminiLive] WebSocket error:', event);
+    if (DEBUG) {
+      console.error('[GeminiLive] WebSocket error details:', {
+        type: event.type,
+        target: event.target,
+        currentTarget: event.currentTarget,
+      });
+    }
     this.state = 'error';
     this.callbacks.onError?.(new Error('WebSocket error'));
   }
 
   private handleClose(event: CloseEvent): void {
-    if (DEBUG) console.log('[GeminiLive] WebSocket closed:', event.code, event.reason);
+    if (DEBUG) {
+      console.log('[GeminiLive] WebSocket closed with details:', {
+        code: event.code,
+        reason: event.reason,
+        wasClean: event.wasClean,
+      });
+    }
 
     const wasConnected = this.state === 'connected';
     this.state = 'disconnected';
