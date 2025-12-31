@@ -182,9 +182,9 @@ serve(async (req) => {
     // Return configuration for frontend WebSocket connection
     const response: GeminiLiveTokenResponse = {
       // WebSocket URL for Gemini Multimodal Live API
-      wsUrl: 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent',
+      wsUrl: 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent',
       apiKey: geminiApiKey,
-      model: 'models/gemini-2.0-flash-exp', // Gemini 2.0 Flash Exp - supports Multimodal Live API
+      model: 'models/gemini-2.0-flash-exp', // Gemini 2.0 Flash Exp - official model for Live API
       voiceName,
       systemPrompt: VOICE_SYSTEM_PROMPT,
       requestId,
