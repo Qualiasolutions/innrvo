@@ -7,8 +7,7 @@ let mockGetCredits = vi.fn();
 let mockGetClonesRemaining = vi.fn();
 let mockGetUserVoiceProfiles = vi.fn();
 let mockCreateVoiceClone = vi.fn();
-let mockFishAudioCloneVoice = vi.fn();
-let mockChatterboxCloneVoice = vi.fn();
+let mockElevenLabsCloneVoice = vi.fn();
 let mockValidateAudioForCloning = vi.fn();
 let mockConvertToWAV = vi.fn();
 
@@ -31,8 +30,10 @@ vi.mock('../../lib/supabase', () => ({
 
 // Mock edge functions - dynamically imported
 vi.mock('../../src/lib/edgeFunctions', () => ({
-  fishAudioCloneVoice: (...args: any[]) => mockFishAudioCloneVoice(...args),
-  chatterboxCloneVoice: (...args: any[]) => mockChatterboxCloneVoice(...args),
+  elevenLabsCloneVoice: (...args: any[]) => mockElevenLabsCloneVoice(...args),
+  // Keep deprecated aliases pointing to the same mock
+  fishAudioCloneVoice: (...args: any[]) => mockElevenLabsCloneVoice(...args),
+  chatterboxCloneVoice: (...args: any[]) => mockElevenLabsCloneVoice(...args),
 }));
 
 // Mock audio converter
@@ -61,12 +62,9 @@ describe('useVoiceCloning', () => {
     mockCreateVoiceClone.mockResolvedValue({ id: 'clone-id' });
     mockValidateAudioForCloning.mockResolvedValue({ valid: true });
     mockConvertToWAV.mockResolvedValue(new Blob(['wav data'], { type: 'audio/wav' }));
-    mockFishAudioCloneVoice.mockResolvedValue({
-      voiceProfileId: 'fish-voice-id',
-      fishAudioModelId: 'fish-model-123',
-    });
-    mockChatterboxCloneVoice.mockResolvedValue({
-      voiceProfileId: 'chatterbox-voice-id',
+    mockElevenLabsCloneVoice.mockResolvedValue({
+      voiceProfileId: 'elevenlabs-voice-id',
+      elevenLabsVoiceId: 'xi-voice-123',
       voiceSampleUrl: 'https://example.com/sample.wav',
     });
   });
@@ -322,35 +320,13 @@ describe('useVoiceCloning', () => {
       expect(result.current.cloningStatus.state).toBe('success');
       expect(result.current.cloningStatus.voiceName).toBe('My Voice');
       expect(result.current.selectedVoice).not.toBeNull();
-      expect(result.current.selectedVoice?.provider).toBe('fish-audio');
+      expect(result.current.selectedVoice?.provider).toBe('elevenlabs');
       expect(onVoiceCreated).toHaveBeenCalled();
     });
 
-    it('should fallback to Chatterbox when Fish Audio fails', async () => {
-      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      mockFishAudioCloneVoice.mockRejectedValue(new Error('Fish Audio unavailable'));
-
-      const { result } = renderHook(() =>
-        useVoiceCloning({ userId: 'user-123' })
-      );
-
-      const mockBlob = new Blob(['audio'], { type: 'audio/webm' });
-
-      await act(async () => {
-        await result.current.handleCloneRecordingComplete(mockBlob, 'My Voice');
-      });
-
-      expect(result.current.cloningStatus.state).toBe('success');
-      expect(result.current.selectedVoice?.provider).toBe('chatterbox');
-      expect(consoleSpy).toHaveBeenCalled();
-      consoleSpy.mockRestore();
-    });
-
-    it('should error when both providers fail', async () => {
+    it('should error when ElevenLabs cloning fails', async () => {
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      mockFishAudioCloneVoice.mockRejectedValue(new Error('Fish Audio failed'));
-      mockChatterboxCloneVoice.mockRejectedValue(new Error('Chatterbox failed'));
+      mockElevenLabsCloneVoice.mockRejectedValue(new Error('ElevenLabs cloning failed'));
 
       const { result } = renderHook(() =>
         useVoiceCloning({ userId: 'user-123' })
@@ -365,7 +341,6 @@ describe('useVoiceCloning', () => {
       expect(result.current.cloningStatus.state).toBe('error');
       expect(result.current.cloningStatus.canRetry).toBe(true);
       consoleSpy.mockRestore();
-      warnSpy.mockRestore();
     });
 
     it('should add voice to savedVoices list', async () => {
@@ -500,31 +475,9 @@ describe('useVoiceCloning', () => {
       expect(result.current.voiceSaved).toBe(true);
     });
 
-    it('should fallback to Chatterbox when Fish Audio fails', async () => {
-      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      mockFishAudioCloneVoice.mockRejectedValue(new Error('Fish Audio down'));
-
-      const { result } = renderHook(() =>
-        useVoiceCloning({ userId: 'user-123' })
-      );
-
-      await act(async () => {
-        await result.current.autoSaveVoiceRecording('base64audio');
-      });
-
-      await waitFor(() => {
-        expect(result.current.voiceSaved).toBe(true);
-      });
-
-      expect(result.current.selectedVoice?.provider).toBe('chatterbox');
-      consoleSpy.mockRestore();
-    });
-
-    it('should call onError when both providers fail', async () => {
+    it('should call onError when ElevenLabs cloning fails during autoSave', async () => {
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      mockFishAudioCloneVoice.mockRejectedValue(new Error('Fish Audio failed'));
-      mockChatterboxCloneVoice.mockRejectedValue(new Error('Chatterbox failed'));
+      mockElevenLabsCloneVoice.mockRejectedValue(new Error('ElevenLabs cloning failed'));
 
       const onError = vi.fn();
       const { result } = renderHook(() =>
@@ -535,9 +488,9 @@ describe('useVoiceCloning', () => {
         await result.current.autoSaveVoiceRecording('base64audio');
       });
 
-      expect(onError).toHaveBeenCalledWith(expect.stringContaining('Voice cloning failed'));
+      expect(onError).toHaveBeenCalledWith(expect.stringContaining('ElevenLabs cloning failed'));
+      expect(result.current.voiceSaved).toBe(false);
       consoleSpy.mockRestore();
-      warnSpy.mockRestore();
     });
   });
 

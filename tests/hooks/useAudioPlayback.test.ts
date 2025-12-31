@@ -47,6 +47,8 @@ describe('useAudioPlayback', () => {
     play: ReturnType<typeof vi.fn>;
     pause: ReturnType<typeof vi.fn>;
     load: ReturnType<typeof vi.fn>;
+    addEventListener: ReturnType<typeof vi.fn>;
+    removeEventListener: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(() => {
@@ -100,6 +102,11 @@ describe('useAudioPlayback', () => {
       play: vi.fn().mockResolvedValue(undefined),
       pause: vi.fn(),
       load: vi.fn(),
+      addEventListener: vi.fn().mockImplementation((_event: string, callback: () => void) => {
+        // Immediately trigger callback for canplaythrough to allow tests to proceed
+        Promise.resolve().then(() => callback());
+      }),
+      removeEventListener: vi.fn(),
     };
 
     // Set up global mocks using function constructors

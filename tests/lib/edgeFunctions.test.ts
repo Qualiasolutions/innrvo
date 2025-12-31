@@ -64,7 +64,21 @@ describe('edgeFunctions', () => {
       expect(result).toBe('base64audio');
     });
 
-    it('should use default voice settings if not provided', async () => {
+    it('should pass elevenLabsVoiceId when provided', async () => {
+      fetchMock.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ success: true, audioBase64: 'audio' }),
+      });
+
+      await generateSpeech('voice-123', 'Test', 'xi-elevenlabs-id');
+
+      const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+      expect(body.voiceId).toBe('voice-123');
+      expect(body.elevenLabsVoiceId).toBe('xi-elevenlabs-id');
+    });
+
+    it('should work without elevenLabsVoiceId', async () => {
       fetchMock.mockResolvedValueOnce({
         ok: true,
         status: 200,
@@ -74,22 +88,8 @@ describe('edgeFunctions', () => {
       await generateSpeech('voice-123', 'Test');
 
       const body = JSON.parse(fetchMock.mock.calls[0][1].body);
-      expect(body.voiceSettings.exaggeration).toBe(0.35);
-      expect(body.voiceSettings.cfgWeight).toBe(0.6);
-    });
-
-    it('should use custom voice settings when provided', async () => {
-      fetchMock.mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: () => Promise.resolve({ success: true, audioBase64: 'audio' }),
-      });
-
-      await generateSpeech('voice-123', 'Test', { exaggeration: 0.5, cfgWeight: 0.8 });
-
-      const body = JSON.parse(fetchMock.mock.calls[0][1].body);
-      expect(body.voiceSettings.exaggeration).toBe(0.5);
-      expect(body.voiceSettings.cfgWeight).toBe(0.8);
+      expect(body.voiceId).toBe('voice-123');
+      expect(body.elevenLabsVoiceId).toBeUndefined();
     });
 
     it('should include X-Request-ID header for tracing', async () => {

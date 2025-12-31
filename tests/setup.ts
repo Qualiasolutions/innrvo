@@ -61,6 +61,58 @@ globalThis.AudioContext = MockAudioContext;
 // @ts-ignore
 globalThis.webkitAudioContext = MockAudioContext;
 
+// Mock Audio constructor for background music tests
+class MockHTMLAudioElement {
+  src = '';
+  volume = 1;
+  loop = false;
+  paused = true;
+  currentTime = 0;
+  preload = '';
+  private listeners: Map<string, ((e?: Event) => void)[]> = new Map();
+
+  constructor(src?: string) {
+    if (src) this.src = src;
+  }
+
+  addEventListener(event: string, callback: (e?: Event) => void, _options?: any) {
+    if (!this.listeners.has(event)) {
+      this.listeners.set(event, []);
+    }
+    this.listeners.get(event)!.push(callback);
+    // Auto-trigger canplaythrough for tests
+    if (event === 'canplaythrough') {
+      setTimeout(() => callback(), 0);
+    }
+  }
+
+  removeEventListener(event: string, callback: (e?: Event) => void) {
+    const eventListeners = this.listeners.get(event);
+    if (eventListeners) {
+      const index = eventListeners.indexOf(callback);
+      if (index > -1) eventListeners.splice(index, 1);
+    }
+  }
+
+  play() {
+    this.paused = false;
+    return Promise.resolve();
+  }
+
+  pause() {
+    this.paused = true;
+  }
+
+  load() {
+    // Simulate canplaythrough after load
+    const canPlayCallbacks = this.listeners.get('canplaythrough') || [];
+    canPlayCallbacks.forEach(cb => setTimeout(() => cb(), 0));
+  }
+}
+
+// @ts-ignore
+globalThis.Audio = MockHTMLAudioElement;
+
 // Mock MediaRecorder
 class MockMediaRecorder {
   static isTypeSupported = () => true;
