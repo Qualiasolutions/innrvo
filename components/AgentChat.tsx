@@ -3,6 +3,7 @@
  *
  * A dedicated conversational chat interface for the INrVO Meditation Agent.
  * Includes inline meditation panel with music, voice, and audio tag controls.
+ * Now supports real-time voice conversation via VoiceAgent component.
  */
 
 import React, { useState, useRef, useEffect, useCallback, useMemo, memo, lazy, Suspense } from 'react';
@@ -11,8 +12,9 @@ import type { VoiceProfile } from '../types';
 import type { BackgroundTrack } from '../constants';
 import type { MeditationType } from '../src/lib/agent/knowledgeBase';
 
-// Lazy load MeditationEditor for bundle optimization
+// Lazy load MeditationEditor and VoiceAgent for bundle optimization
 const MeditationEditor = lazy(() => import('../src/components/MeditationEditor'));
+const VoiceAgent = lazy(() => import('./VoiceAgent'));
 
 // Error boundary for handling chunk load failures
 import ErrorBoundary from './ErrorBoundary';
@@ -38,6 +40,12 @@ const WavesIcon = () => (
 const WaveIcon = () => (
   <svg className="w-4 h-4 md:w-5 md:h-5" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2.5">
     <path d="M6 9v6M12 5v14M18 8v8" strokeLinecap="round" />
+  </svg>
+);
+
+const PhoneIcon = () => (
+  <svg className="w-4 h-4 md:w-5 md:h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
   </svg>
 );
 
@@ -150,6 +158,7 @@ export const AgentChat: React.FC<AgentChatProps> = ({
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [showMeditationPanel, setShowMeditationPanel] = useState(false);
   const [restoredMeditationScript, setRestoredMeditationScript] = useState<string | null>(null);
+  const [showVoiceAgent, setShowVoiceAgent] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
@@ -395,6 +404,14 @@ export const AgentChat: React.FC<AgentChatProps> = ({
     setRestoredMeditationScript(null);
   }, []);
 
+  const handleOpenVoiceAgent = useCallback(() => {
+    setShowVoiceAgent(true);
+  }, []);
+
+  const handleCloseVoiceAgent = useCallback(() => {
+    setShowVoiceAgent(false);
+  }, []);
+
   return (
     <div className={`flex flex-col h-full min-h-[100dvh] ${className}`}>
       {/* Messages Area - grows from bottom up, above the input */}
@@ -438,6 +455,17 @@ export const AgentChat: React.FC<AgentChatProps> = ({
                   : '0 0 20px rgba(34, 211, 238, 0.12), 0 0 40px rgba(139, 92, 246, 0.08), 0 0 2px rgba(34, 211, 238, 0.3)'
               }}
             >
+              {/* Voice Call Button */}
+              <button
+                type="button"
+                onClick={handleOpenVoiceAgent}
+                disabled={isProcessing || isRecording}
+                className="flex-shrink-0 p-2 mr-2 rounded-full hover:bg-white/10 transition-colors text-cyan-400/70 hover:text-cyan-400 disabled:opacity-50"
+                title="Start voice chat"
+              >
+                <PhoneIcon />
+              </button>
+
               <textarea
                 ref={inputRef}
                 value={isRecording ? transcribedText : inputValue}
@@ -510,6 +538,19 @@ export const AgentChat: React.FC<AgentChatProps> = ({
               isGenerating={isGeneratingAudio}
               source="agent"
             />
+          </Suspense>
+        </ErrorBoundary>
+      )}
+
+      {/* Voice Agent - Full-screen real-time voice conversation */}
+      {showVoiceAgent && (
+        <ErrorBoundary>
+          <Suspense fallback={
+            <div className="fixed inset-0 z-[70] bg-[#020617] flex items-center justify-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-2 border-cyan-500 border-t-transparent" />
+            </div>
+          }>
+            <VoiceAgent onClose={handleCloseVoiceAgent} />
           </Suspense>
         </ErrorBoundary>
       )}

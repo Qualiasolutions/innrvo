@@ -54,7 +54,8 @@ supabase db push                            # Push migrations to remote
 Root `components/` - Shared, feature-rich components:
 - `V0MeditationPlayer/` - Main player with BreathingOrb visualization
 - `SimpleVoiceClone.tsx` - Voice cloning UI
-- `AgentChat.tsx` - Conversational AI interface
+- `AgentChat.tsx` - Conversational AI interface (text + voice toggle)
+- `VoiceAgent.tsx` - Real-time voice conversation interface (Gemini Live API)
 - `ui/chronos-engine.tsx` - Animated gear engine for agent avatar and loading states
 
 `src/components/` - Page-specific components:
@@ -95,6 +96,7 @@ All API keys are server-side only. Edge functions in `supabase/functions/`:
 | `fish-audio-clone` | Voice cloning via Fish Audio API |
 | `gemini-chat` | **Conversational AI** - respects agent's system prompt for natural dialogue |
 | `gemini-script` | Meditation script generation via Gemini API (NOT for chat) |
+| `gemini-live-token` | **Real-time voice** - returns Gemini Live API config for frontend WebSocket |
 | `chatterbox-tts` | Fallback TTS via Replicate |
 | `chatterbox-clone` | Fallback voice cloning via Replicate |
 | `delete-user-data` | GDPR-compliant user data deletion |
@@ -139,6 +141,52 @@ Script extend:      geminiService.extendScript() → gemini-script edge function
 The agent uses TWO different Gemini endpoints:
 - `gemini-chat` - For natural conversation, respects the agent's SYSTEM_PROMPT
 - `gemini-script` - For meditation generation, extension, and harmonization
+
+### Real-Time Voice System
+
+Real-time bidirectional voice conversation using Gemini Multimodal Live API.
+
+**Architecture:**
+```
+Browser (VoiceAgent.tsx)
+├── getUserMedia() → Mic Audio Stream (16kHz PCM16)
+├── WebSocket → Gemini Live API (wss://generativelanguage.googleapis.com/...)
+│     └── Audio In → Gemini 2.0 Flash → Audio Out (24kHz PCM16)
+├── AudioContext → Speaker Playback
+└── VoiceSession → Session state management
+```
+
+**Files:**
+- `components/VoiceAgent.tsx` - Full-screen voice UI with call controls
+- `src/lib/geminiLive.ts` - Gemini Live WebSocket client
+- `src/lib/audioCapture.ts` - Mic audio capture at 16kHz PCM16
+- `src/lib/audioPlayback.ts` - Audio playback queue with barge-in support
+- `src/lib/voiceSession.ts` - Session lifecycle and transcript management
+- `supabase/functions/gemini-live-token/index.ts` - Token endpoint for API config
+
+**Voice Session States:**
+- `idle` - Not connected
+- `requesting-mic` - Awaiting microphone permission
+- `connecting` - WebSocket connecting
+- `connected` - Ready
+- `listening` - Mic active, waiting for speech
+- `agent-speaking` - Playing audio response
+- `error` / `disconnected` - Session ended
+
+**Access:** Phone icon button in AgentChat input area opens VoiceAgent modal.
+
+**Features:**
+- Barge-in (interrupt agent by speaking)
+- Mute toggle
+- Volume control
+- Real-time transcripts
+- Auto-reconnection (3 attempts)
+
+**Voice Names (meditation-optimized):**
+- Aoede (default) - Calm female
+- Charon - Deep male
+- Fenrir - Warm male
+- Kore - Soft female
 
 ### Harmonize Feature
 
@@ -606,6 +654,95 @@ See `docs/OPTIMIZATION_ROADMAP.md` for full details. Key optimizations applied:
 | Script quality variance | High | Low | 40% more consistent |
 | Admin dashboard | 30-50ms | 2-5ms | 90% faster |
 | Voice profile lookup | 0.5-1ms | 0.3-0.7ms | 30% faster |
+
+## Applied Optimizations (2025-12-31)
+
+Sprint-based performance optimizations across client, server, and database layers.
+
+### Client-Side Caching
+
+| Cache | Location | TTL | Purpose |
+|-------|----------|-----|---------|
+| Meditation history | `src/lib/historyCache.ts` | 5 min | Instant library load on revisit |
+| Voice profiles | `src/lib/voiceProfileCache.ts` | 15 min | Reduced voice profile fetches |
+| Edge function cache | `supabase/functions/_shared/voiceProfileCache.ts` | 1 hour | LRU cache with 1000 entry limit |
+
+### Database Optimizations (Applied via MCP)
+
+| Migration | Purpose | Impact |
+|-----------|---------|--------|
+| `atomic_meditation_save` | `save_meditation_with_audio()` RPC function | 50% faster saves (2 queries → 1) |
+| `atomic_meditation_save` | `idx_meditation_history_with_audio` partial index | 30% faster "My Audios" queries |
+| `tts_response_cache_fixed` | `tts_response_cache` table + functions | 10-20% cache hit rate, saves 35-76s/hit |
+
+**TTS Cache Functions:**
+```sql
+-- Get cached TTS (updates access tracking)
+SELECT * FROM get_tts_cache(script_hash, voice_id, 'fish-audio');
+
+-- Store TTS response (24hr TTL default)
+SELECT set_tts_cache(script_hash, voice_id, audio_base64, 'mp3', duration_seconds);
+
+-- Cleanup expired entries (run via cron)
+SELECT cleanup_tts_cache();
+```
+
+### Performance Optimizations
+
+| Optimization | File(s) | Impact |
+|--------------|---------|--------|
+| Combined XSS regex | `geminiService.ts` | O(1) vs O(10) pattern matching |
+| Single-pass audio tags | `src/lib/voiceService.ts` | O(2n) vs O(8n) string processing |
+| Pre-compiled regex | `src/lib/agent/contentDetection.ts` | Static compilation, no runtime cost |
+| Mobile particles | `components/V0MeditationPlayer/index.tsx` | 60% fewer particles on mobile |
+| Route prefetching | `src/router.tsx` | Instant navigation to adjacent pages |
+| Parallel music loading | `App.tsx`, `src/hooks/useAudioPlayback.ts` | ~1-3s faster playback start |
+
+### Route Prefetching Map
+
+Adjacent routes are prefetched after 1s delay using `requestIdleCallback`:
+
+```typescript
+const prefetchMap = {
+  '/': ['/library', '/templates', '/voice', '/play'],
+  '/library': ['/', '/play', '/templates'],
+  '/templates': ['/', '/library'],
+  '/voice': ['/', '/clone', '/library'],
+  '/clone': ['/voice', '/library'],
+  '/pricing': ['/', '/library'],
+};
+```
+
+### Parallel Background Music Loading
+
+Background music now preloads during TTS generation instead of after:
+
+```typescript
+// Called when TTS generation starts
+preloadBackgroundMusic(selectedBackgroundTrack);
+
+// Later, when TTS completes - music is already loaded
+startBackgroundMusic(selectedBackgroundTrack); // Instant start!
+```
+
+### Deferred Optimizations
+
+These were evaluated but deferred based on architecture decisions:
+
+| Optimization | Reason Deferred |
+|--------------|-----------------|
+| AppContext decomposition | Under 500 lines, no performance issues (per CLAUDE.md) |
+| LibraryPage virtualization | Pagination already limits load to 20 items |
+| WebWorker audio processing | `AudioContext.decodeAudioData` requires main thread |
+| Service Worker caching | Requires dedicated PWA implementation |
+
+### New Files Created
+
+```
+src/lib/historyCache.ts              # Meditation history sessionStorage cache
+src/lib/voiceProfileCache.ts         # Voice profile localStorage cache
+supabase/functions/_shared/voiceProfileCache.ts  # Shared LRU cache for edge functions
+```
 
 ## Stack Research
 
