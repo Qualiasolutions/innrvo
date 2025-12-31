@@ -2623,34 +2623,32 @@ const App: React.FC = () => {
                   chatHistory.slice(0, 15).map((item, index) => (
                     <div key={item.id}>
                       {index > 0 && (
-                        <div className="h-px bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent my-1" />
+                        <div className="h-px bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent" />
                       )}
                       <button
                         onClick={async () => {
-                          // Load the conversation and resume it
                           const conversation = await loadConversation(item.id);
                           if (conversation) {
                             setResumeConversationId(item.id);
                             setShowBurgerMenu(false);
                           }
                         }}
-                        className="w-full text-left p-2.5 rounded-lg hover:bg-cyan-500/10 transition-all group border-l-2 border-cyan-500/20 hover:border-cyan-400"
+                        className="w-full text-left px-2.5 py-2 rounded-lg hover:bg-cyan-500/10 transition-all group border-l-2 border-transparent hover:border-cyan-400/60"
                       >
-                        <p className="text-sm text-white/90 group-hover:text-white whitespace-pre-wrap line-clamp-2">
-                          {item.preview}
-                        </p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <p className="text-[10px] text-cyan-400/60 group-hover:text-cyan-400">
-                            {new Date(item.createdAt).toLocaleDateString()}
-                          </p>
-                          {item.mood && (
-                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300">
-                              {item.mood}
-                            </span>
-                          )}
-                          <span className="text-[9px] text-white/40">
-                            {item.messageCount} msgs
+                        <div className="flex items-center gap-2">
+                          <span className="flex-1 text-[13px] text-white/80 group-hover:text-white truncate">
+                            {item.preview}
                           </span>
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                            {item.mood && (
+                              <span className="text-[9px] px-1 py-0.5 rounded bg-purple-500/20 text-purple-300/80 hidden sm:inline">
+                                {item.mood}
+                              </span>
+                            )}
+                            <span className="text-[10px] text-white/30 tabular-nums">
+                              {new Date(item.createdAt).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' })}
+                            </span>
+                          </div>
                         </div>
                       </button>
                     </div>
