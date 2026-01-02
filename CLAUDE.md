@@ -83,12 +83,18 @@ Each category has color theming, custom icons (Sparkle, Affirmation heart, Hypno
 **Chat Input Styling:**
 The chat input has a subtle cyan/purple glow effect that intensifies when recording. Recording button uses solid cyan (not red).
 
-**Data Layer:**
-- `lib/supabase.ts` - Supabase client and all database operations
-- `src/lib/adminSupabase.ts` - Admin-specific database operations (protected by RLS)
-- `src/lib/edgeFunctions.ts` - Edge function wrappers with retry logic
-- `src/lib/voiceService.ts` - TTS provider routing (ElevenLabs primary, Web Speech API fallback)
-- `src/lib/credits.ts` - Credit system (DISABLED - all users have unlimited access)
+**Data Layer (two locations):**
+
+Root `/lib/` - Core database layer:
+- `lib/supabase.ts` - Supabase client and **all** database operations (~32KB)
+- `lib/authStorage.ts` - Session storage adapter and "Remember Me" preference management
+
+`src/lib/` - Feature-specific modules:
+- `adminSupabase.ts` - Admin-specific database operations (protected by RLS)
+- `edgeFunctions.ts` - Edge function wrappers with retry logic
+- `voiceService.ts` - TTS provider routing (ElevenLabs primary, Web Speech API fallback)
+- `mediaSessionManager.ts` - Media Session API for lock screen playback controls
+- `credits.ts` - Credit system (DISABLED - all users have unlimited access)
 
 ### Backend (Supabase Edge Functions)
 
@@ -130,6 +136,22 @@ All API keys are server-side only. Edge functions in `supabase/functions/`:
 
 The agent is designed to **converse first, generate later** - it only creates meditation scripts when explicitly requested.
 
+**Agent Philosophy (High-Consciousness Design):**
+The agent embodies a loving, calm, grounded presence inspired by:
+- **New Thought teachers**: Neville Goddard ("feeling is the secret"), Wallace D. Wattles, James Allen, Ernest Holmes
+- **Modern consciousness**: Joe Dispenza, Bruce Lipton, Eckhart Tolle, Ram Dass
+- **Core principles**: Gratitude as foundational practice, world vision (peace, unity, generosity)
+- **Safety/ethics**: No magical health guarantees, no shaming, respects all beliefs, suggests professional help when needed
+- **Golden rule**: Before responding, considers "Would this response make the user feel loved, supported, and empowered?"
+
+**Wisdom Traditions (`knowledgeBase.ts`):**
+- `modern_consciousness` - Dispenza, Lipton, Tolle, Singer
+- `ancient_wisdom` - Buddha, Rumi, Lao Tzu, Hafiz
+- `psychology_healing` - Frankl, Kornfield, Neff
+- `mindfulness` - Kabat-Zinn, Thich Nhat Hanh
+- `science_consciousness` - Goleman, Davidson
+- `new_thought` - Neville Goddard, Wattles, Allen, Holmes, Esther Hicks, Rhonda Byrne
+
 **CRITICAL Architecture:**
 ```
 Conversation flow:  geminiService.chat() → gemini-chat edge function
@@ -143,6 +165,22 @@ Script extend:      geminiService.extendScript() → gemini-script edge function
 The agent uses TWO different Gemini endpoints:
 - `gemini-chat` - For natural conversation, respects the agent's SYSTEM_PROMPT
 - `gemini-script` - For meditation generation, extension, and harmonization
+
+**SYSTEM_PROMPT Architecture (Critical for Natural Responses):**
+```
+useMeditationAgent.ts
+    │
+    └── geminiService.chat(prompt, { systemPrompt: SYSTEM_PROMPT })
+            │
+            └── gemini-chat edge function
+                    │
+                    └── Gemini API with systemInstruction parameter
+                        (NOT embedded in content)
+```
+
+The `SYSTEM_PROMPT` is exported from `MeditationAgent.ts` and passed via Gemini's native `systemInstruction` parameter. This ensures Gemini FOLLOWS the instructions rather than summarizing them.
+
+**DO NOT** embed SYSTEM_PROMPT in the content - this causes Gemini to respond with "Okay, I understand..." summaries instead of natural conversation.
 
 ### Real-Time Voice System
 
@@ -197,6 +235,80 @@ Browser (VoiceAgent.tsx)
 - Charon - Deep male
 - Fenrir - Warm male
 - Kore - Soft female
+
+### Lock Screen Playback (Media Session API)
+
+Background audio controls for lock screen, Control Center, and external devices (headphones, car stereo).
+
+**Files:**
+- `src/lib/mediaSessionManager.ts` - `MediaSessionManager` class and `useMediaSession` hook
+- `src/global.d.ts` - TypeScript type declarations for Media Session API
+- `src/pages/PlayerPage.tsx` - Hook integration
+
+**Architecture:**
+```
+PlayerPage
+    │
+    └── useMediaSession({
+            metadata,        ← Title, artist, artwork
+            isPlaying,       ← Playback state sync
+            currentTime,     ← Position bar sync
+            onPlay/onPause,  ← Control handlers
+            onSeek/onSkip    ← Seek handlers
+        })
+            │
+            └── MediaSessionManager
+                    ├── navigator.mediaSession.metadata
+                    ├── navigator.mediaSession.playbackState
+                    ├── navigator.mediaSession.setPositionState()
+                    └── Action handlers (play, pause, seekforward, seekbackward, seekto)
+```
+
+**Features:**
+- Lock screen play/pause, skip ±15s, seek scrubber
+- Metadata display (title: "INrVO Meditation", artist: voice name, artwork: app icon)
+- Position bar synchronization (throttled to 1s updates)
+- Headphone/Bluetooth controls support
+- Progressive enhancement (graceful no-op if unsupported)
+
+**iOS Workaround:**
+iOS requires an `<audio>` element for Media Session to work with AudioContext:
+```typescript
+// In PlayerPage.tsx - on play
+startIOSMediaSession();  // Creates silent audio element
+
+// On close
+stopIOSMediaSession();   // Removes silent audio element
+```
+
+**Usage in PlayerPage.tsx:**
+```typescript
+import { useMediaSession, startIOSMediaSession, stopIOSMediaSession } from '../lib/mediaSessionManager';
+
+const meditationMetadata = useMemo(() => ({
+  title: 'Meditation',
+  category: 'meditation',
+  voiceName: selectedVoice?.name,
+  duration,
+}), [duration, selectedVoice?.name]);
+
+useMediaSession({
+  metadata: meditationMetadata,
+  isPlaying, currentTime, duration, playbackRate,
+  skipSeconds: 15,
+  onPlay: handleMediaSessionPlay,
+  onPause: handleMediaSessionPause,
+  onSeek: handleMediaSessionSeek,
+  onSkip: handleMediaSessionSkip,
+});
+```
+
+**Platform Support:**
+| Platform | Controls Location |
+|----------|-------------------|
+| iOS | Lock screen, Control Center |
+| Android | Notification shade, lock screen |
+| Desktop | Media keys, browser tab indicator |
 
 ### Harmonize Feature
 
@@ -447,13 +559,6 @@ import { m, AnimatePresence } from 'framer-motion';
 <m.div animate={{ opacity: 1 }} />
 ```
 
-**Files using `m` components:**
-- `components/V0MeditationPlayer/index.tsx` - Breathing orb, particles, controls
-- `components/VoiceAgent.tsx` - Shooting stars, voice bars, call button
-- `components/ui/AudioPreview.tsx` - Play/pause animations, waveform
-- `src/pages/LibraryPage.tsx` - Card expansion animations
-- `src/components/MeditationEditor/components/ControlPanel.tsx` - Tab transitions
-
 **CSS Containment** (`index.css`):
 ```css
 .animate-shimmer, .animate-gradient, [class*="animate-"] {
@@ -483,21 +588,7 @@ import { fishAudioCloneVoice } from './src/lib/edgeFunctions';
 - Test environment: happy-dom (configured in `vitest.config.ts`)
 - Test setup: `tests/setup.ts` includes mocks for AudioContext, MediaRecorder, and fetch
 - Coverage thresholds: `src/lib/credits.ts` has strict 90% coverage requirement
-
-**Test Files (355 tests total):**
-
-| File | Tests | Coverage |
-|------|-------|----------|
-| `tests/lib/credits.test.ts` | 42 | Credit calculations, deductions, atomic RPC |
-| `tests/lib/voiceService.test.ts` | 27 | Provider detection, paralanguage conversion, cost estimation |
-| `tests/lib/edgeFunctions.test.ts` | 27 | Retry logic, timeout handling, error scenarios |
-| `tests/lib/agent/MeditationAgent.test.ts` | 52 | Content detection, disambiguation, context extraction |
-| `tests/hooks/useAudioPlayback.test.ts` | 37 | Audio playback, background music, volume control, callbacks |
-| `tests/hooks/useMeditationAgent.test.ts` | 18 | Message sending, meditation generation, synthesis, actions |
-| `tests/hooks/useVoiceCloning.test.ts` | 29 | Credit checks, ElevenLabs cloning, recording |
-| `tests/hooks/useVoiceGeneration.test.ts` | 27 | Script generation, extension, audio synthesis, tags |
-| `tests/contexts/AppContext.test.tsx` | 42 | All state categories, setters, auth, voices, history |
-| `tests/contexts/ModalContext.test.tsx` | 54 | All 15 modal types, open/close/toggle, convenience setters |
+- **357 tests** across `tests/lib/`, `tests/hooks/`, and `tests/contexts/`
 
 ## Code Quality Patterns
 
@@ -533,19 +624,8 @@ All debug logs are wrapped with a DEV flag to avoid console noise in production:
 
 ```typescript
 const DEBUG = import.meta.env?.DEV ?? false;
-
-// Usage
 if (DEBUG) console.log('[moduleName] Debug info:', data);
 ```
-
-Files using this pattern:
-- `src/lib/voiceService.ts`
-- `src/lib/edgeFunctions.ts`
-- `src/lib/audioConverter.ts`
-- `src/lib/audioCapture.ts`
-- `src/lib/geminiLive.ts`
-- `src/lib/agent/MeditationAgent.ts`
-- `src/hooks/useMeditationAgent.ts`
 
 ### Error Boundaries
 
@@ -609,11 +689,57 @@ User clicks email link → /auth/reset-password → updatePassword() → Success
 - `src/pages/ResetPasswordPage.tsx` - Password reset form with strength indicator
 
 **Supabase Auth Functions (`lib/supabase.ts`):**
-- `signIn(email, password)` - Email/password authentication
+- `signIn(email, password, rememberMe = true)` - Email/password authentication with session persistence option
 - `signUp(email, password, firstName, lastName)` - New user registration with email verification
-- `signOut()` - Clear session
+- `signOut()` - Clear session from both storage types
 - `resetPasswordForEmail(email)` - Send password reset email (redirects to `/auth/reset-password`)
 - `updatePassword(newPassword)` - Update password for authenticated user
+- `getSupabaseClient()` - Returns appropriate client based on "Remember Me" preference
+
+### Remember Me Authentication
+
+Persistent session management using dual Supabase client strategy.
+
+**Problem:** Supabase JS SDK only allows `persistSession` config at client initialization, not at sign-in time.
+
+**Solution:** Two Supabase clients with different storage backends:
+
+```
+User checks "Remember Me" → signIn(email, password, rememberMe)
+                                      ↓
+              rememberMe=true         │         rememberMe=false
+                    ↓                 │               ↓
+        persistentClient              │         sessionClient
+        (localStorage)                │         (sessionStorage)
+        Session survives              │         Session expires on
+        browser restart               │         browser close
+```
+
+**Files:**
+- `lib/authStorage.ts` - sessionStorage adapter implementing Supabase's `SupportedStorage` interface
+- `lib/supabase.ts` - Dual client factory (`getPersistentClient()`, `getSessionClient()`)
+- `components/AuthModal.tsx` - Remember Me checkbox UI
+- `src/contexts/AuthContext.tsx` - Uses `getSupabaseClient()` for dynamic client selection
+
+**Key Functions (`lib/authStorage.ts`):**
+```typescript
+export const sessionStorageAdapter = { getItem, setItem, removeItem };
+export const REMEMBER_ME_KEY = 'inrvo_remember_me';
+export function getRememberMePreference(): boolean;  // Default: true
+export function setRememberMePreference(rememberMe: boolean): void;
+export function clearAuthStorage(): void;  // Clears both localStorage and sessionStorage
+```
+
+**UI (AuthModal.tsx):**
+- Checkbox appears only in sign-in mode (not signup or forgot password)
+- Default: checked (maintains backward compatibility)
+- Styled with cyan accent when checked
+
+**Behavior:**
+| Remember Me | Storage | Session Lifetime |
+|-------------|---------|------------------|
+| Checked (default) | localStorage | Survives browser restart |
+| Unchecked | sessionStorage | Cleared on browser close |
 
 **Supabase Dashboard Configuration:**
 - **URL Configuration** → Redirect URLs must include:
@@ -700,111 +826,19 @@ supabase functions deploy <name>   # Deploy single function
 
 **After deployment:** Users may need to hard refresh (Ctrl+Shift+R) if they see 404 errors on lazy-loaded chunks due to browser caching old bundle hashes.
 
-## Applied Optimizations (2025-12-29)
+## Performance Optimizations
 
-See `docs/OPTIMIZATION_ROADMAP.md` for full details. Key optimizations applied:
+See `docs/` for detailed optimization reports:
+- `OPTIMIZATION_ROADMAP.md` - Full optimization plan and status
+- `DATABASE_OPTIMIZATION_REPORT.md` - Database performance improvements
+- `FRONTEND_PERFORMANCE_OPTIMIZATION.md` - Client-side optimizations
+- `PERFORMANCE_OPTIMIZATION_REPORT.md` - Comprehensive audit results
 
-### AI Script Generation Quality
-- **Few-shot prompting:** Added example meditation script to system prompt (40-50% quality improvement)
-- **Temperature optimization:** 0.7 → 0.5 (better consistency + creativity balance)
-- **Harmonize temperature:** 0.3 → 0.2 (more precise tag placement)
-- **topP/topK sampling:** Added for better quality control
-- **File:** `gemini-script/index.ts`
-
-### Database Performance
-- **Optimized admin RLS:** STABLE `is_admin()` function, 30% faster admin queries
-- **Covering index:** Voice profile index-only scans, 30% faster lookups
-- **Audio tag client cache:** Implemented in `src/lib/audioTagCache.ts`
-
-## Applied Optimizations (2025-12-31)
-
-Sprint-based performance optimizations across client, server, and database layers.
-
-### Client-Side Caching
-
-| Cache | Location | TTL | Purpose |
-|-------|----------|-----|---------|
-| Meditation history | `src/lib/historyCache.ts` | 5 min | Instant library load on revisit |
-| Voice profiles | `src/lib/voiceProfileCache.ts` | 15 min | Reduced voice profile fetches |
-| Edge function cache | `supabase/functions/_shared/voiceProfileCache.ts` | 1 hour | LRU cache with 1000 entry limit |
-
-### Database Optimizations (Applied via MCP)
-
-| Migration | Purpose | Impact |
-|-----------|---------|--------|
-| `atomic_meditation_save` | `save_meditation_with_audio()` RPC function | 50% faster saves (2 queries → 1) |
-| `atomic_meditation_save` | `idx_meditation_history_with_audio` partial index | 30% faster "My Audios" queries |
-| `tts_response_cache_fixed` | `tts_response_cache` table + functions | 10-20% cache hit rate, saves 35-76s/hit |
-| `consolidate_rls_policies` | Merge duplicate RLS policies using OR logic | 55 policy warnings resolved, faster query planning |
-
-**TTS Cache Functions:**
-```sql
--- Get cached TTS (updates access tracking)
-SELECT * FROM get_tts_cache(script_hash, voice_id, 'elevenlabs');
-
--- Store TTS response (24hr TTL default)
-SELECT set_tts_cache(script_hash, voice_id, audio_base64, 'mp3', duration_seconds);
-
--- Cleanup expired entries (run via cron)
-SELECT cleanup_tts_cache();
-```
-
-### Performance Optimizations
-
-| Optimization | File(s) | Impact |
-|--------------|---------|--------|
-| Combined XSS regex | `geminiService.ts` | O(1) vs O(10) pattern matching |
-| Single-pass audio tags | `src/lib/voiceService.ts` | O(2n) vs O(8n) string processing |
-| Pre-compiled regex | `src/lib/agent/contentDetection.ts` | Static compilation, no runtime cost |
-| Mobile particles | `components/V0MeditationPlayer/index.tsx` | 60% fewer particles on mobile |
-| Route prefetching | `src/router.tsx` | Instant navigation to adjacent pages |
-| Parallel music loading | `App.tsx`, `src/hooks/useAudioPlayback.ts` | ~1-3s faster playback start |
-
-### Route Prefetching Map
-
-Adjacent routes are prefetched after 1s delay using `requestIdleCallback`:
-
-```typescript
-const prefetchMap = {
-  '/': ['/library', '/templates', '/voice', '/play'],
-  '/library': ['/', '/play', '/templates'],
-  '/templates': ['/', '/library'],
-  '/voice': ['/', '/clone', '/library'],
-  '/clone': ['/voice', '/library'],
-  '/pricing': ['/', '/library'],
-};
-```
-
-### Parallel Background Music Loading
-
-Background music now preloads during TTS generation instead of after:
-
-```typescript
-// Called when TTS generation starts
-preloadBackgroundMusic(selectedBackgroundTrack);
-
-// Later, when TTS completes - music is already loaded
-startBackgroundMusic(selectedBackgroundTrack); // Instant start!
-```
-
-### Deferred Optimizations
-
-These were evaluated but deferred based on architecture decisions:
-
-| Optimization | Reason Deferred |
-|--------------|-----------------|
-| AppContext decomposition | Under 500 lines, no performance issues (per CLAUDE.md) |
-| LibraryPage virtualization | Pagination already limits load to 20 items |
-| WebWorker audio processing | `AudioContext.decodeAudioData` requires main thread |
-| Service Worker caching | Requires dedicated PWA implementation |
-
-### New Files Created
-
-```
-src/lib/historyCache.ts              # Meditation history sessionStorage cache
-src/lib/voiceProfileCache.ts         # Voice profile localStorage cache
-supabase/functions/_shared/voiceProfileCache.ts  # Shared LRU cache for edge functions
-```
+**Key optimizations applied:**
+- AI script quality: Few-shot prompting, temperature tuning (0.5), topP/topK sampling in `gemini-script/index.ts`
+- Client caching: `historyCache.ts` (5min), `voiceProfileCache.ts` (15min), server-side LRU cache (1hr)
+- Database: Atomic `save_meditation_with_audio()` RPC, TTS response cache (24hr TTL), consolidated RLS policies
+- Frontend: Route prefetching, parallel background music loading, mobile particle reduction (60%)
 
 ## Credit System (DISABLED)
 
@@ -839,6 +873,20 @@ See `docs/MONITORING.md` for setup instructions. Key monitoring layers:
 **Health Endpoint:** `GET /functions/v1/health` returns service status, API key configs, and database latency.
 
 **Sentry Alerts:** Configure for error spikes (>10 in 10min), new issues, and poor Web Vitals.
+
+## Troubleshooting
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| 401 "Missing authorization header" on edge functions | JWT verification enabled | Deploy with `--no-verify-jwt` flag |
+| 404 on lazy-loaded chunks after deploy | Browser cached old bundle hashes | Hard refresh (Ctrl+Shift+R) |
+| Edge function timeout | Long TTS generation (>120s) | Check `edgeFunctions.ts` timeout config |
+| Voice cloning fails silently | Legacy Fish Audio/Chatterbox voice | Re-clone with ElevenLabs (check `needsReclone()`) |
+| Chat responses robotic | Using `gemini-script` instead of `gemini-chat` | Ensure `geminiService.chat()` for conversation |
+| Agent says "Okay, I understand..." | SYSTEM_PROMPT embedded in content | Pass via `systemInstruction` parameter, not content |
+| Audio not playing | AudioContext suspended | User interaction required before `audioContext.resume()` |
+| Lock screen controls not showing (iOS) | Missing silent audio element | Ensure `startIOSMediaSession()` called on play |
+| Session persists after "Remember Me" unchecked | Old localStorage data | Call `clearAuthStorage()` on sign out |
 
 ## Stack Research
 
