@@ -23,7 +23,8 @@ export type WisdomTradition =
   | 'ancient_wisdom'
   | 'psychology_healing'
   | 'mindfulness'
-  | 'science_consciousness';
+  | 'science_consciousness'
+  | 'new_thought';
 
 export type MeditationType =
   | 'guided_visualization'
@@ -603,6 +604,133 @@ export const WISDOM_TEACHERS: WisdomTeacher[] = [
     ],
     meditationStyles: ['affirmations', 'manifestation', 'sleep_story'],
   },
+
+  // ========== NEW THOUGHT PIONEERS ==========
+  {
+    name: 'Wallace D. Wattles',
+    tradition: 'new_thought',
+    themes: ['thinking stuff', 'gratitude', 'creative thought', 'abundance'],
+    coreTeaching: 'There is a thinking stuff from which all things are made. A thought in this substance produces the thing that is imaged.',
+    quotes: [
+      'The grateful mind is constantly fixed upon the best. Therefore it tends to become the best.',
+    ],
+    meditationStyles: ['manifestation', 'gratitude', 'affirmations'],
+  },
+  {
+    name: 'James Allen',
+    tradition: 'new_thought',
+    themes: ['thought power', 'character', 'self-mastery', 'serenity'],
+    coreTeaching: 'As a man thinketh in his heart, so is he. You are today where your thoughts have brought you.',
+    quotes: [
+      'The outer conditions of a person\'s life will always be found to reflect their inner beliefs.',
+    ],
+    meditationStyles: ['inquiry', 'affirmations', 'presence'],
+  },
+  {
+    name: 'William Walker Atkinson',
+    tradition: 'new_thought',
+    themes: ['thought force', 'mental science', 'personal magnetism', 'will power'],
+    coreTeaching: 'Thought is a force—a manifestation of energy. What you think, you create.',
+    quotes: [
+      'The mind is the master weaver, both of the inner garment of character and the outer garment of circumstance.',
+    ],
+    meditationStyles: ['affirmations', 'manifestation', 'presence'],
+  },
+  {
+    name: 'Charles F. Haanel',
+    tradition: 'new_thought',
+    themes: ['master key', 'universal mind', 'creative visualization', 'concentration'],
+    coreTeaching: 'The world within creates the world without. Thought is the connecting link between the Infinite and the finite.',
+    quotes: [
+      'Remember that no matter what the difficulty is, no matter where it is, no matter who is affected, you have no patient but yourself.',
+    ],
+    meditationStyles: ['guided_visualization', 'manifestation', 'presence'],
+  },
+  {
+    name: 'Ernest Holmes',
+    tradition: 'new_thought',
+    themes: ['science of mind', 'spiritual treatment', 'affirmative prayer', 'divine law'],
+    coreTeaching: 'Change your thinking, change your life. There is a power for good in the Universe, and you can use it.',
+    quotes: [
+      'Life is a mirror and will reflect back to the thinker what he thinks into it.',
+    ],
+    meditationStyles: ['affirmations', 'guided_visualization', 'presence'],
+  },
+
+  // ========== ADDITIONAL MODERN CONSCIOUSNESS TEACHERS ==========
+  {
+    name: 'Earl Nightingale',
+    tradition: 'modern_consciousness',
+    themes: ['success', 'attitude', 'goal setting', 'personal development'],
+    coreTeaching: 'We become what we think about. The strangest secret is that you become what you think about most of the time.',
+    quotes: [
+      'Whatever we plant in our subconscious mind and nourish with repetition and emotion will one day become a reality.',
+    ],
+    meditationStyles: ['affirmations', 'manifestation', 'guided_visualization'],
+  },
+  {
+    name: 'Esther Hicks',
+    tradition: 'modern_consciousness',
+    themes: ['law of attraction', 'alignment', 'emotional guidance', 'deliberate creation'],
+    coreTeaching: 'You are the creator of your own reality. Nothing can come into your experience unless you invite it through your thought.',
+    quotes: [
+      'The basis of your life is absolute freedom, the goal is joy, and the result of that perfect combination is motion forward.',
+    ],
+    meditationStyles: ['affirmations', 'manifestation', 'guided_visualization', 'gratitude'],
+  },
+  {
+    name: 'Rhonda Byrne',
+    tradition: 'modern_consciousness',
+    themes: ['the secret', 'gratitude', 'visualization', 'positive thinking'],
+    coreTeaching: 'Your thoughts become things. The law of attraction is always working, whether you believe it or not.',
+    quotes: [
+      'Your power is in your thoughts, so stay awake. In other words, remember to remember.',
+    ],
+    meditationStyles: ['gratitude', 'manifestation', 'affirmations', 'guided_visualization'],
+  },
+  {
+    name: 'Joe Vitale',
+    tradition: 'modern_consciousness',
+    themes: ['ho\'oponopono', 'zero limits', 'clearing', 'inspired action'],
+    coreTeaching: 'Clear your limiting beliefs and attract abundance. The universe likes speed—when inspired, act.',
+    quotes: [
+      'A goal should scare you a little and excite you a lot.',
+    ],
+    meditationStyles: ['affirmations', 'manifestation', 'loving_kindness'],
+  },
+  {
+    name: 'Michael Bernard Beckwith',
+    tradition: 'modern_consciousness',
+    themes: ['visioning', 'spiritual liberation', 'life visioning', 'emergence'],
+    coreTeaching: 'You are a spiritual being having a human experience. Your purpose is to let life express through you.',
+    quotes: [
+      'Pain pushes until vision pulls.',
+    ],
+    meditationStyles: ['guided_visualization', 'affirmations', 'presence', 'manifestation'],
+  },
+
+  // ========== SPIRITUAL ACTIVISM ==========
+  {
+    name: 'Martin Luther King Jr.',
+    tradition: 'ancient_wisdom',
+    themes: ['love', 'nonviolence', 'justice', 'faith', 'service', 'beloved community'],
+    coreTeaching: 'Darkness cannot drive out darkness; only light can do that. Hate cannot drive out hate; only love can do that.',
+    quotes: [
+      'The time is always right to do what is right.',
+      'Injustice anywhere is a threat to justice everywhere.',
+    ],
+    meditationStyles: ['loving_kindness', 'presence', 'affirmations'],
+  },
+  {
+    name: 'Satish Kumar',
+    tradition: 'ancient_wisdom',
+    themes: ['pilgrimage', 'peace', 'ecology', 'simplicity', 'interconnection'],
+    coreTeaching: 'You are because I am. We are all interconnected—soil, soul, and society.',
+    quotes: [
+      'We are all related, we are all connected. When you take care of the Earth, you take care of yourself.',
+    ],
+    meditationStyles: ['walking_meditation', 'gratitude', 'loving_kindness', 'presence'],
+  },
 ];
 
 // ============================================================================
@@ -639,6 +767,18 @@ export const CORE_PRINCIPLES = [
     principle: 'Consciousness evolution is humanity\'s next step',
     description: 'We are at a pivotal moment in human evolution. The expansion of consciousness is our collective destiny.',
     relatedTeachers: ['David Hawkins', 'Ervin Laszlo', 'John Hagelin', 'Deepak Chopra'],
+  },
+  {
+    id: 'gratitude_practice',
+    principle: 'Gratitude is a transformative daily practice',
+    description: 'Gratitude is not forced positivity—it is gently noticing what is supportive and already working. It regulates the nervous system, shifts attention away from fear and scarcity, and opens the mind to possibility.',
+    relatedTeachers: ['Thich Nhat Hanh', 'Ram Dass', 'Eckhart Tolle', 'Gregg Braden', 'Wallace D. Wattles'],
+  },
+  {
+    id: 'world_vision',
+    principle: 'Inner transformation creates outer contribution',
+    description: 'We co-create a world rooted in peace instead of fear, generosity instead of scarcity, conscious abundance instead of compulsive accumulation, self-love instead of self-attack, and unity instead of division.',
+    relatedTeachers: ['Marianne Williamson', 'Martin Luther King Jr.', 'Thich Nhat Hanh', 'Ram Dass', 'Satish Kumar'],
   },
 ];
 
