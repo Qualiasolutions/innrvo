@@ -481,44 +481,26 @@ export async function deleteAudioTag(id: string): Promise<void> {
 
 /**
  * Check if current user is an admin
- * @param userId - Optional user ID to check. If not provided, will try to get from auth.
+ * @param userId - User ID to check (required)
  */
-export async function checkIsAdmin(userId?: string): Promise<boolean> {
-  console.log('[checkIsAdmin] Starting check, supabase exists:', !!supabase, 'userId:', userId);
-  if (!supabase) return false;
+export async function checkIsAdmin(userId: string): Promise<boolean> {
+  console.log('[checkIsAdmin] Starting RPC check, supabase exists:', !!supabase, 'userId:', userId);
+  if (!supabase || !userId) return false;
 
   try {
-    // Use provided userId or try to get from auth
-    let userIdToCheck = userId;
-    if (!userIdToCheck) {
-      console.log('[checkIsAdmin] No userId provided, calling getUser()...');
-      const { data: { user } } = await supabase.auth.getUser();
-      console.log('[checkIsAdmin] Got user:', user?.id);
-      userIdToCheck = user?.id;
-    }
+    // Use RPC function which has SECURITY DEFINER to bypass RLS
+    console.log('[checkIsAdmin] Calling check_is_admin RPC...');
+    const { data, error } = await supabase.rpc('check_is_admin', { user_id: userId });
 
-    if (!userIdToCheck) {
-      console.log('[checkIsAdmin] No user ID available');
-      return false;
-    }
-
-    console.log('[checkIsAdmin] Querying role for user:', userIdToCheck);
-    const { data, error } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', userIdToCheck)
-      .single();
-
-    console.log('[checkIsAdmin] Query result:', { data, error: error?.message });
+    console.log('[checkIsAdmin] RPC result:', { data, error: error?.message });
 
     if (error) {
-      console.error('[checkIsAdmin] Error checking admin status:', error);
+      console.error('[checkIsAdmin] RPC error:', error);
       return false;
     }
 
-    const isAdmin = data?.role === 'ADMIN';
-    console.log('[checkIsAdmin] Role check:', { role: data?.role, isAdmin });
-    return isAdmin;
+    console.log('[checkIsAdmin] Admin status:', data);
+    return data === true;
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[checkIsAdmin] Exception:', message);
