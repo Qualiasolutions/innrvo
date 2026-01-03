@@ -9,6 +9,82 @@ import { getCachedAudioTags, setCachedAudioTags, clearAudioTagCache } from './au
 const DEBUG = import.meta.env?.DEV ?? false;
 
 // ============================================================================
+// Direct Fetch Helper (bypasses Supabase client issues)
+// ============================================================================
+
+const getSupabaseConfig = () => ({
+  url: import.meta.env.VITE_SUPABASE_URL as string,
+  key: import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+});
+
+async function supabaseFetch<T>(
+  endpoint: string,
+  options: {
+    method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
+    body?: unknown;
+    params?: Record<string, string>;
+  } = {}
+): Promise<T> {
+  const { url, key } = getSupabaseConfig();
+  if (!url || !key) throw new Error('Supabase not configured');
+
+  const { method = 'GET', body, params } = options;
+
+  let fullUrl = `${url}/rest/v1/${endpoint}`;
+  if (params) {
+    const searchParams = new URLSearchParams(params);
+    fullUrl += `?${searchParams.toString()}`;
+  }
+
+  const response = await fetch(fullUrl, {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': key,
+      'Authorization': `Bearer ${key}`,
+      'Prefer': method === 'GET' ? 'return=representation' : 'return=minimal',
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Supabase error: ${response.status} - ${errorText}`);
+  }
+
+  // Handle empty responses
+  const text = await response.text();
+  if (!text) return [] as T;
+
+  return JSON.parse(text) as T;
+}
+
+async function supabaseRpc<T>(functionName: string, params?: Record<string, unknown>): Promise<T> {
+  const { url, key } = getSupabaseConfig();
+  if (!url || !key) throw new Error('Supabase not configured');
+
+  const response = await fetch(`${url}/rest/v1/rpc/${functionName}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': key,
+      'Authorization': `Bearer ${key}`,
+    },
+    body: JSON.stringify(params || {}),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Supabase RPC error: ${response.status} - ${errorText}`);
+  }
+
+  const text = await response.text();
+  if (!text) return null as T;
+
+  return JSON.parse(text) as T;
+}
+
+// ============================================================================
 // Audit Logging Helper
 // ============================================================================
 
@@ -154,18 +230,19 @@ export interface TemplateWithDetails extends Template {
  * Get all users (admin only - protected by RLS)
  */
 export async function getAllUsers(): Promise<User[]> {
-  if (!supabase) throw new Error('Supabase not configured');
-
-  return withRetry(async () => {
-    const { data, error } = await supabase!
-      .from('users')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
+  try {
+    const data = await supabaseFetch<User[]>('users', {
+      params: {
+        select: '*',
+        order: 'created_at.desc',
+      },
+    });
     if (DEBUG) console.log('[adminSupabase] Fetched users:', data?.length);
     return data || [];
-  });
+  } catch (error) {
+    console.error('[adminSupabase] Error fetching users:', error);
+    return [];
+  }
 }
 
 /**
@@ -335,14 +412,8 @@ interface AdminAnalyticsRow {
  * Uses the get_admin_analytics() function which verifies admin role internally
  */
 export async function getAdminAnalytics(): Promise<AdminAnalytics> {
-  if (!supabase) throw new Error('Supabase not configured');
-
-  return withRetry(async () => {
-    const { data, error } = await supabase!
-      .rpc('get_admin_analytics')
-      .single<AdminAnalyticsRow>();
-
-    if (error) throw error;
+  try {
+    const data = await supabaseRpc<AdminAnalyticsRow>('get_admin_analytics');
     if (DEBUG) console.log('[adminSupabase] Fetched analytics:', data);
 
     return {
@@ -353,7 +424,17 @@ export async function getAdminAnalytics(): Promise<AdminAnalytics> {
       newUsers7d: data?.new_users_7d || 0,
       newMeditations7d: data?.new_meditations_7d || 0,
     };
-  });
+  } catch (error) {
+    console.error('[adminSupabase] Error fetching analytics:', error);
+    return {
+      totalUsers: 0,
+      totalMeditations: 0,
+      totalVoiceProfiles: 0,
+      totalAudioTags: 0,
+      newUsers7d: 0,
+      newMeditations7d: 0,
+    };
+  }
 }
 
 // ============================================================================
@@ -365,8 +446,6 @@ export async function getAdminAnalytics(): Promise<AdminAnalytics> {
  * Uses client-side cache (1 hour TTL) to reduce database queries by 95%
  */
 export async function getAllAudioTags(): Promise<AudioTagPreset[]> {
-  if (!supabase) throw new Error('Supabase not configured');
-
   // Check cache first
   const cached = getCachedAudioTags();
   if (cached) {
@@ -377,14 +456,13 @@ export async function getAllAudioTags(): Promise<AudioTagPreset[]> {
   // Cache miss - fetch from database
   if (DEBUG) console.log('[adminSupabase] Audio tags cache miss - fetching from database');
 
-  return withRetry(async () => {
-    const { data, error } = await supabase!
-      .from('audio_tag_presets')
-      .select('*')
-      .order('category')
-      .order('sort_order');
-
-    if (error) throw error;
+  try {
+    const data = await supabaseFetch<AudioTagPreset[]>('audio_tag_presets', {
+      params: {
+        select: '*',
+        order: 'category,sort_order',
+      },
+    });
 
     // Cache the results
     if (data) {
@@ -393,7 +471,10 @@ export async function getAllAudioTags(): Promise<AudioTagPreset[]> {
     }
 
     return data || [];
-  });
+  } catch (error) {
+    console.error('[adminSupabase] Error fetching audio tags:', error);
+    return [];
+  }
 }
 
 /**
