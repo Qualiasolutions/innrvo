@@ -37,14 +37,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Check user auth status
   const checkUser = useCallback(async () => {
+    console.log('[AuthContext] checkUser starting');
     setIsLoading(true);
     try {
       const currentUser = await getCurrentUser();
+      console.log('[AuthContext] checkUser got user:', currentUser?.id);
       setUser(currentUser);
     } catch (error) {
-      console.error('Failed to check user:', error);
+      console.error('[AuthContext] Failed to check user:', error);
       setUser(null);
     } finally {
+      console.log('[AuthContext] checkUser done, setting isLoading=false');
       setIsLoading(false);
     }
   }, []);
@@ -69,11 +72,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Set up auth listener
   useEffect(() => {
+    console.log('[AuthContext] Setting up auth, supabase exists:', !!supabase);
     checkUser();
 
-    if (!supabase) return;
+    if (!supabase) {
+      console.log('[AuthContext] No supabase client, skipping listener');
+      return;
+    }
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('[AuthContext] Auth state changed:', event, 'user:', session?.user?.id);
       setUser(session?.user ?? null);
       setIsLoading(false);
 
