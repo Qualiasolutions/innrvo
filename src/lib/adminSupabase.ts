@@ -483,10 +483,12 @@ export async function deleteAudioTag(id: string): Promise<void> {
  * Check if current user is an admin
  */
 export async function checkIsAdmin(): Promise<boolean> {
+  console.log('[checkIsAdmin] Starting check, supabase exists:', !!supabase);
   if (!supabase) return false;
 
   try {
     const { data: { user } } = await supabase.auth.getUser();
+    console.log('[checkIsAdmin] Got user:', user?.id);
     if (!user) return false;
 
     const { data, error } = await supabase
@@ -495,15 +497,19 @@ export async function checkIsAdmin(): Promise<boolean> {
       .eq('id', user.id)
       .single();
 
+    console.log('[checkIsAdmin] Query result:', { data, error: error?.message });
+
     if (error) {
-      if (DEBUG) console.log('[adminSupabase] Error checking admin status:', error);
+      console.error('[checkIsAdmin] Error checking admin status:', error);
       return false;
     }
 
-    return data?.role === 'ADMIN';
+    const isAdmin = data?.role === 'ADMIN';
+    console.log('[checkIsAdmin] Role check:', { role: data?.role, isAdmin });
+    return isAdmin;
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
-    if (DEBUG) console.log('[adminSupabase] Error checking admin status:', message);
+    console.error('[checkIsAdmin] Exception:', message);
     return false;
   }
 }

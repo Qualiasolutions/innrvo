@@ -105,17 +105,24 @@ const AdminPage: React.FC = () => {
 
   // Check admin access on mount
   useEffect(() => {
-    if (authLoading) return;
+    console.log('[AdminPage] Auth state:', { authLoading, hasUser: !!user, userId: user?.id });
+    if (authLoading) {
+      console.log('[AdminPage] Still loading auth, waiting...');
+      return;
+    }
 
     let isMounted = true;
 
     const verifyAdmin = async () => {
       if (!user) {
+        console.log('[AdminPage] No user, redirecting to home');
         navigate('/', { replace: true });
         return;
       }
 
+      console.log('[AdminPage] Checking admin status for user:', user.id);
       const adminStatus = await checkIsAdmin();
+      console.log('[AdminPage] Admin status result:', adminStatus);
 
       // Don't update state if component unmounted during async check
       if (!isMounted) return;
@@ -126,6 +133,7 @@ const AdminPage: React.FC = () => {
         return;
       }
 
+      console.log('[AdminPage] Admin verified, showing panel');
       setIsAdmin(true);
       setIsLoading(false);
     };
