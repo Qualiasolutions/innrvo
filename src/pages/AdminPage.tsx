@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, FileText, BarChart3, Tag, Trash2, Plus, X, Check, AlertCircle } from 'lucide-react';
+import { Users, FileText, BarChart3, Tag, Trash2, Plus, X, Check, AlertCircle, Activity, ScrollText, LayoutTemplate, Edit2, ChevronDown, ChevronRight } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import AppLayout from '../layouts/AppLayout';
 import GlassCard from '../../components/GlassCard';
@@ -18,12 +18,30 @@ import {
   updateAudioTag,
   deleteAudioTag,
   checkIsAdmin,
+  getAuditLogs,
+  getUserActivityStats,
+  getUserActivitySummary,
+  getTemplateCategories,
+  getTemplateSubgroups,
+  getAllTemplatesAdmin,
+  createTemplate,
+  updateTemplate,
+  deleteTemplate,
+  createTemplateCategory,
+  updateTemplateCategory,
+  createTemplateSubgroup,
   type AdminAnalytics,
   type AudioTagPreset,
+  type AuditLogEntry,
+  type UserActivityStats,
+  type UserActivitySummary,
+  type TemplateCategory,
+  type TemplateSubgroup,
+  type TemplateWithDetails,
 } from '../lib/adminSupabase';
 import type { User, MeditationHistory, VoiceProfile } from '../../lib/supabase';
 
-type AdminTab = 'analytics' | 'users' | 'content' | 'tags';
+type AdminTab = 'analytics' | 'users' | 'activity' | 'content' | 'templates' | 'tags' | 'audit';
 
 // Extend types to include joined user data
 interface MeditationWithUser extends MeditationHistory {
@@ -47,10 +65,18 @@ const AdminPage: React.FC = () => {
   const [voices, setVoices] = useState<VoiceProfileWithUser[]>([]);
   const [analytics, setAnalytics] = useState<AdminAnalytics | null>(null);
   const [audioTags, setAudioTags] = useState<AudioTagPreset[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
+  const [userActivity, setUserActivity] = useState<UserActivityStats[]>([]);
+  const [activitySummary, setActivitySummary] = useState<UserActivitySummary | null>(null);
+  const [templateCategories, setTemplateCategories] = useState<TemplateCategory[]>([]);
+  const [templateSubgroups, setTemplateSubgroups] = useState<TemplateSubgroup[]>([]);
+  const [templates, setTemplates] = useState<TemplateWithDetails[]>([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
 
   // UI state
   const [deleteConfirm, setDeleteConfirm] = useState<{
-    type: 'user' | 'meditation' | 'voice' | 'tag';
+    type: 'user' | 'meditation' | 'voice' | 'tag' | 'template';
     id: string;
     name: string;
   } | null>(null);
@@ -63,6 +89,18 @@ const AdminPage: React.FC = () => {
     tag_description: '',
     category: 'pauses',
     sort_order: 0,
+  });
+  const [editingTemplate, setEditingTemplate] = useState<TemplateWithDetails | null>(null);
+  const [showAddTemplate, setShowAddTemplate] = useState(false);
+  const [newTemplate, setNewTemplate] = useState({
+    title: '',
+    description: '',
+    prompt: '',
+    category_id: '',
+    subgroup_id: '',
+    display_order: 1,
+    is_active: true,
+    legacy_id: null as string | null,
   });
 
   // Check admin access on mount
@@ -127,6 +165,28 @@ const AdminPage: React.FC = () => {
             const tagsData = await getAllAudioTags();
             setAudioTags(tagsData);
             break;
+          case 'audit':
+            const logsData = await getAuditLogs(50, 0);
+            setAuditLogs(logsData);
+            break;
+          case 'activity':
+            const [activityData, summaryData] = await Promise.all([
+              getUserActivityStats(50, 0, 'last_activity', 'desc'),
+              getUserActivitySummary(),
+            ]);
+            setUserActivity(activityData);
+            setActivitySummary(summaryData);
+            break;
+          case 'templates':
+            const [categoriesData, subgroupsData, templatesData] = await Promise.all([
+              getTemplateCategories(),
+              getTemplateSubgroups(),
+              getAllTemplatesAdmin(),
+            ]);
+            setTemplateCategories(categoriesData);
+            setTemplateSubgroups(subgroupsData);
+            setTemplates(templatesData);
+            break;
         }
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : 'Failed to load data';
@@ -163,6 +223,10 @@ const AdminPage: React.FC = () => {
           await deleteAudioTag(deleteConfirm.id);
           setAudioTags(prev => prev.filter(t => t.id !== deleteConfirm.id));
           break;
+        case 'template':
+          await deleteTemplate(deleteConfirm.id);
+          setTemplates(prev => prev.filter(t => t.id !== deleteConfirm.id));
+          break;
       }
       setDeleteConfirm(null);
     } catch (err: unknown) {
@@ -174,6 +238,83 @@ const AdminPage: React.FC = () => {
       setIsDeleting(false);
     }
   }, [deleteConfirm, isDeleting]);
+
+  // Template handlers
+  const handleAddTemplate = async () => {
+    if (!newTemplate.title || !newTemplate.prompt || !newTemplate.category_id || !newTemplate.subgroup_id) {
+      setError('Title, prompt, category, and subgroup are required');
+      return;
+    }
+
+    try {
+      const created = await createTemplate({
+        title: newTemplate.title,
+        description: newTemplate.description || null,
+        prompt: newTemplate.prompt,
+        category_id: newTemplate.category_id,
+        subgroup_id: newTemplate.subgroup_id,
+        display_order: newTemplate.display_order,
+        is_active: newTemplate.is_active,
+        legacy_id: newTemplate.legacy_id,
+      });
+
+      // Find category and subgroup names
+      const category = templateCategories.find(c => c.id === created.category_id);
+      const subgroup = templateSubgroups.find(s => s.id === created.subgroup_id);
+
+      setTemplates(prev => [...prev, {
+        ...created,
+        category_name: category?.name,
+        subgroup_name: subgroup?.name,
+      }]);
+      setShowAddTemplate(false);
+      setNewTemplate({
+        title: '',
+        description: '',
+        prompt: '',
+        category_id: '',
+        subgroup_id: '',
+        display_order: 1,
+        is_active: true,
+        legacy_id: null,
+      });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to create template';
+      setError(message);
+    }
+  };
+
+  const handleUpdateTemplate = async () => {
+    if (!editingTemplate) return;
+
+    try {
+      await updateTemplate(editingTemplate.id, {
+        title: editingTemplate.title,
+        description: editingTemplate.description,
+        prompt: editingTemplate.prompt,
+        is_active: editingTemplate.is_active,
+      });
+      setTemplates(prev =>
+        prev.map(t => t.id === editingTemplate.id ? editingTemplate : t)
+      );
+      setEditingTemplate(null);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to update template';
+      setError(message);
+    }
+  };
+
+  const toggleCategoryExpanded = (categoryId: string) => {
+    setExpandedCategories(prev => {
+      const next = new Set(prev);
+      if (next.has(categoryId)) {
+        next.delete(categoryId);
+      } else {
+        next.add(categoryId);
+      }
+      return next;
+    });
+  };
 
   // Add tag handler
   const handleAddTag = async () => {
@@ -235,8 +376,11 @@ const AdminPage: React.FC = () => {
   const tabs = [
     { id: 'analytics' as AdminTab, label: 'Analytics', icon: BarChart3 },
     { id: 'users' as AdminTab, label: 'Users', icon: Users },
+    { id: 'activity' as AdminTab, label: 'Activity', icon: Activity },
     { id: 'content' as AdminTab, label: 'Content', icon: FileText },
-    { id: 'tags' as AdminTab, label: 'Audio Tags', icon: Tag },
+    { id: 'templates' as AdminTab, label: 'Templates', icon: LayoutTemplate },
+    { id: 'tags' as AdminTab, label: 'Tags', icon: Tag },
+    { id: 'audit' as AdminTab, label: 'Audit', icon: ScrollText },
   ];
 
   return (
@@ -651,6 +795,400 @@ const AdminPage: React.FC = () => {
 
             {audioTags.length === 0 && <EmptyState message="No audio tags found" />}
           </GlassCard>
+        )}
+
+        {/* Activity Tab */}
+        {activeTab === 'activity' && (
+          <div className="space-y-4 sm:space-y-6">
+            {/* Summary Cards */}
+            {activitySummary && (
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                <StatCard
+                  label="Active (7d)"
+                  value={activitySummary.total_active_7d}
+                  color="emerald"
+                />
+                <StatCard
+                  label="Active (30d)"
+                  value={activitySummary.total_active_30d}
+                  color="cyan"
+                />
+                <StatCard
+                  label="Meditations (7d)"
+                  value={activitySummary.total_meditations_7d}
+                  color="purple"
+                />
+                <StatCard
+                  label="Avg/User"
+                  value={Math.round(activitySummary.avg_meditations_per_user * 10) / 10}
+                  color="amber"
+                />
+              </div>
+            )}
+
+            {/* User Activity Table */}
+            <GlassCard className="!p-4 sm:!p-6 md:!p-8 !rounded-xl sm:!rounded-2xl">
+              <h2 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6">
+                User Activity ({userActivity.length})
+              </h2>
+              {userActivity.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left">
+                    <thead className="border-b border-white/10">
+                      <tr className="text-slate-400 text-xs sm:text-sm">
+                        <th className="pb-3 pr-4">Email</th>
+                        <th className="pb-3 pr-4 text-center">Meditations</th>
+                        <th className="pb-3 pr-4 text-center">Voices</th>
+                        <th className="pb-3 pr-4">Last Activity</th>
+                        <th className="pb-3">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {userActivity.map(u => (
+                        <tr key={u.user_id} className="border-b border-white/5 hover:bg-white/[0.02]">
+                          <td className="py-3 pr-4 text-white text-sm truncate max-w-[200px]">{u.email}</td>
+                          <td className="py-3 pr-4 text-center text-slate-300">{u.meditation_count}</td>
+                          <td className="py-3 pr-4 text-center text-slate-300">{u.voice_count}</td>
+                          <td className="py-3 pr-4 text-slate-400 text-xs sm:text-sm">
+                            {u.last_activity ? new Date(u.last_activity).toLocaleDateString() : 'Never'}
+                          </td>
+                          <td className="py-3">
+                            {u.is_active_7d ? (
+                              <span className="px-2 py-1 rounded text-xs bg-emerald-500/20 text-emerald-400">
+                                Active
+                              </span>
+                            ) : u.is_active_30d ? (
+                              <span className="px-2 py-1 rounded text-xs bg-amber-500/20 text-amber-400">
+                                30d
+                              </span>
+                            ) : (
+                              <span className="px-2 py-1 rounded text-xs bg-slate-500/20 text-slate-400">
+                                Inactive
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <EmptyState message="No user activity data" />
+              )}
+            </GlassCard>
+          </div>
+        )}
+
+        {/* Templates Tab */}
+        {activeTab === 'templates' && (
+          <GlassCard className="!p-4 sm:!p-6 md:!p-8 !rounded-xl sm:!rounded-2xl">
+            <div className="flex items-center justify-between mb-4 sm:mb-6 gap-3">
+              <h2 className="text-xl sm:text-2xl font-bold text-white">
+                Templates ({templates.length})
+              </h2>
+              <button
+                onClick={() => setShowAddTemplate(true)}
+                className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-cyan-500/20 text-cyan-400 rounded-lg hover:bg-cyan-500/30 transition-colors text-sm sm:text-base"
+              >
+                <Plus className="w-4 h-4" />
+                <span className="hidden xs:inline">Add Template</span>
+              </button>
+            </div>
+
+            {/* Add Template Form */}
+            {showAddTemplate && (
+              <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-white/[0.02] rounded-lg sm:rounded-xl border border-white/[0.06]">
+                <h3 className="text-base sm:text-lg font-medium text-white mb-3 sm:mb-4">New Template</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-3 sm:mb-4">
+                  <div>
+                    <label className="block text-slate-400 text-xs sm:text-sm mb-1">Title *</label>
+                    <input
+                      type="text"
+                      value={newTemplate.title}
+                      onChange={e => setNewTemplate(prev => ({ ...prev, title: e.target.value }))}
+                      placeholder="Template title"
+                      className="w-full px-3 py-2 bg-white/[0.02] border border-white/[0.1] rounded-lg text-white text-sm placeholder-slate-500 focus:border-cyan-500/50 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-400 text-xs sm:text-sm mb-1">Description</label>
+                    <input
+                      type="text"
+                      value={newTemplate.description}
+                      onChange={e => setNewTemplate(prev => ({ ...prev, description: e.target.value }))}
+                      placeholder="Brief description"
+                      className="w-full px-3 py-2 bg-white/[0.02] border border-white/[0.1] rounded-lg text-white text-sm placeholder-slate-500 focus:border-cyan-500/50 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-400 text-xs sm:text-sm mb-1">Category *</label>
+                    <select
+                      value={newTemplate.category_id}
+                      onChange={e => {
+                        setNewTemplate(prev => ({ ...prev, category_id: e.target.value, subgroup_id: '' }));
+                      }}
+                      className="w-full px-3 py-2 bg-white/[0.02] border border-white/[0.1] rounded-lg text-white text-sm focus:border-cyan-500/50 focus:outline-none"
+                    >
+                      <option value="">Select category</option>
+                      {templateCategories.filter(c => c.is_active).map(c => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-slate-400 text-xs sm:text-sm mb-1">Subgroup *</label>
+                    <select
+                      value={newTemplate.subgroup_id}
+                      onChange={e => setNewTemplate(prev => ({ ...prev, subgroup_id: e.target.value }))}
+                      className="w-full px-3 py-2 bg-white/[0.02] border border-white/[0.1] rounded-lg text-white text-sm focus:border-cyan-500/50 focus:outline-none"
+                      disabled={!newTemplate.category_id}
+                    >
+                      <option value="">Select subgroup</option>
+                      {templateSubgroups
+                        .filter(s => s.category_id === newTemplate.category_id && s.is_active)
+                        .map(s => (
+                          <option key={s.id} value={s.id}>{s.name}</option>
+                        ))}
+                    </select>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-slate-400 text-xs sm:text-sm mb-1">Prompt *</label>
+                    <textarea
+                      value={newTemplate.prompt}
+                      onChange={e => setNewTemplate(prev => ({ ...prev, prompt: e.target.value }))}
+                      placeholder="The prompt text that generates the meditation"
+                      rows={4}
+                      className="w-full px-3 py-2 bg-white/[0.02] border border-white/[0.1] rounded-lg text-white text-sm placeholder-slate-500 focus:border-cyan-500/50 focus:outline-none resize-none"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleAddTemplate}
+                    className="px-3 sm:px-4 py-2 bg-cyan-500/20 text-cyan-400 rounded-lg hover:bg-cyan-500/30 transition-colors text-sm"
+                  >
+                    Create Template
+                  </button>
+                  <button
+                    onClick={() => setShowAddTemplate(false)}
+                    className="px-3 sm:px-4 py-2 bg-white/[0.06] text-slate-300 rounded-lg hover:bg-white/[0.08] transition-colors text-sm"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Templates by Category (Collapsible) */}
+            {templateCategories.filter(c => c.is_active).map(category => {
+              const categoryTemplates = templates.filter(t => t.category_id === category.id);
+              const isExpanded = expandedCategories.has(category.id);
+
+              return (
+                <div key={category.id} className="mb-3 sm:mb-4 last:mb-0">
+                  <button
+                    onClick={() => toggleCategoryExpanded(category.id)}
+                    className="w-full flex items-center justify-between p-3 sm:p-4 bg-white/[0.02] rounded-lg sm:rounded-xl border border-white/[0.06] hover:bg-white/[0.04] transition-colors"
+                  >
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      {isExpanded ? (
+                        <ChevronDown className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400" />
+                      ) : (
+                        <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400" />
+                      )}
+                      <span className="text-white font-medium text-sm sm:text-base">{category.name}</span>
+                      <span className="text-slate-500 text-xs sm:text-sm">({categoryTemplates.length})</span>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded text-xs ${
+                      category.color === 'cyan' ? 'bg-cyan-500/20 text-cyan-400' :
+                      category.color === 'amber' ? 'bg-amber-500/20 text-amber-400' :
+                      category.color === 'violet' ? 'bg-violet-500/20 text-violet-400' :
+                      category.color === 'pink' ? 'bg-pink-500/20 text-pink-400' :
+                      category.color === 'orange' ? 'bg-orange-500/20 text-orange-400' :
+                      'bg-slate-500/20 text-slate-400'
+                    }`}>
+                      {category.icon || 'template'}
+                    </span>
+                  </button>
+
+                  {isExpanded && (
+                    <div className="mt-2 sm:mt-3 space-y-2 sm:space-y-3 pl-4 sm:pl-6">
+                      {categoryTemplates.map(template => (
+                        <div
+                          key={template.id}
+                          className={`p-3 sm:p-4 rounded-lg sm:rounded-xl border transition-colors ${
+                            template.is_active
+                              ? 'bg-white/[0.02] border-white/[0.06]'
+                              : 'bg-white/[0.01] border-white/[0.03] opacity-60'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2 sm:gap-4">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <p className="text-white font-medium text-sm sm:text-base">{template.title}</p>
+                                <span className="text-slate-500 text-xs">{template.subgroup_name}</span>
+                                {!template.is_active && (
+                                  <span className="px-1.5 py-0.5 rounded text-[9px] bg-slate-500/20 text-slate-400">
+                                    Inactive
+                                  </span>
+                                )}
+                              </div>
+                              {template.description && (
+                                <p className="text-slate-400 text-xs sm:text-sm mt-1 line-clamp-1">
+                                  {template.description}
+                                </p>
+                              )}
+                              <p className="text-slate-600 text-[10px] sm:text-xs mt-1">
+                                Uses: {template.usage_count}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
+                              <button
+                                onClick={() => setEditingTemplate(template)}
+                                className="text-slate-500 hover:text-cyan-400 p-1.5 sm:p-2 transition-colors"
+                                title="Edit template"
+                              >
+                                <Edit2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                              </button>
+                              <button
+                                onClick={() => setDeleteConfirm({
+                                  type: 'template',
+                                  id: template.id,
+                                  name: template.title
+                                })}
+                                className="text-slate-500 hover:text-red-400 p-1.5 sm:p-2 transition-colors"
+                                title="Delete template"
+                              >
+                                <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                      {categoryTemplates.length === 0 && (
+                        <p className="text-slate-500 text-sm py-4 text-center">No templates in this category</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            {templates.length === 0 && <EmptyState message="No templates found" />}
+          </GlassCard>
+        )}
+
+        {/* Audit Log Tab */}
+        {activeTab === 'audit' && (
+          <GlassCard className="!p-4 sm:!p-6 md:!p-8 !rounded-xl sm:!rounded-2xl">
+            <h2 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6">
+              Audit Log ({auditLogs.length})
+            </h2>
+            {auditLogs.length > 0 ? (
+              <div className="space-y-2 sm:space-y-3">
+                {auditLogs.map(log => (
+                  <div
+                    key={log.id}
+                    className="p-3 sm:p-4 bg-white/[0.02] rounded-lg sm:rounded-xl border border-white/[0.06]"
+                  >
+                    <div className="flex items-start justify-between gap-2 sm:gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                            log.operation === 'DELETE' || log.operation === 'ADMIN_DELETE'
+                              ? 'bg-red-500/20 text-red-400'
+                              : log.operation === 'INSERT'
+                              ? 'bg-emerald-500/20 text-emerald-400'
+                              : log.operation === 'UPDATE'
+                              ? 'bg-amber-500/20 text-amber-400'
+                              : 'bg-slate-500/20 text-slate-400'
+                          }`}>
+                            {log.operation}
+                          </span>
+                          <span className="text-white text-sm">{log.table_name}</span>
+                        </div>
+                        <p className="text-slate-400 text-xs sm:text-sm mt-1">
+                          by {log.admin_email || 'Unknown'}
+                        </p>
+                        {log.record_id && (
+                          <p className="text-slate-600 text-[10px] sm:text-xs mt-0.5">
+                            Record: {log.record_id.slice(0, 8)}...
+                          </p>
+                        )}
+                      </div>
+                      <span className="text-slate-500 text-xs whitespace-nowrap">
+                        {new Date(log.created_at).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <EmptyState message="No audit logs found" />
+            )}
+          </GlassCard>
+        )}
+
+        {/* Edit Template Modal */}
+        {editingTemplate && (
+          <div className="fixed inset-0 z-[200] bg-black/80 flex items-center justify-center p-3 sm:p-4">
+            <GlassCard className="max-w-2xl w-full !p-4 sm:!p-6 max-h-[90vh] overflow-y-auto">
+              <h3 className="text-lg sm:text-xl font-bold text-white mb-3 sm:mb-4">Edit Template</h3>
+              <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6">
+                <div>
+                  <label className="block text-slate-400 text-xs sm:text-sm mb-1">Title</label>
+                  <input
+                    type="text"
+                    value={editingTemplate.title}
+                    onChange={e => setEditingTemplate(prev => prev ? { ...prev, title: e.target.value } : null)}
+                    className="w-full px-3 py-2 bg-white/[0.02] border border-white/[0.1] rounded-lg text-white text-sm focus:border-cyan-500/50 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-400 text-xs sm:text-sm mb-1">Description</label>
+                  <input
+                    type="text"
+                    value={editingTemplate.description || ''}
+                    onChange={e => setEditingTemplate(prev => prev ? { ...prev, description: e.target.value } : null)}
+                    className="w-full px-3 py-2 bg-white/[0.02] border border-white/[0.1] rounded-lg text-white text-sm focus:border-cyan-500/50 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-400 text-xs sm:text-sm mb-1">Prompt</label>
+                  <textarea
+                    value={editingTemplate.prompt}
+                    onChange={e => setEditingTemplate(prev => prev ? { ...prev, prompt: e.target.value } : null)}
+                    rows={6}
+                    className="w-full px-3 py-2 bg-white/[0.02] border border-white/[0.1] rounded-lg text-white text-sm focus:border-cyan-500/50 focus:outline-none resize-none"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="edit-active"
+                    checked={editingTemplate.is_active}
+                    onChange={e => setEditingTemplate(prev => prev ? { ...prev, is_active: e.target.checked } : null)}
+                    className="w-4 h-4 rounded border-white/20 bg-white/5 text-cyan-500 focus:ring-cyan-500/30"
+                  />
+                  <label htmlFor="edit-active" className="text-slate-300 text-sm">Active</label>
+                </div>
+              </div>
+              <div className="flex gap-2 sm:gap-3">
+                <button
+                  onClick={() => setEditingTemplate(null)}
+                  className="flex-1 px-3 sm:px-4 py-2 bg-white/[0.06] text-white rounded-lg hover:bg-white/[0.08] transition-colors text-sm sm:text-base"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleUpdateTemplate}
+                  className="flex-1 px-3 sm:px-4 py-2 bg-cyan-500/20 text-cyan-400 rounded-lg hover:bg-cyan-500/30 transition-colors text-sm sm:text-base"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </GlassCard>
+          </div>
         )}
 
         {/* Delete Confirmation Modal */}

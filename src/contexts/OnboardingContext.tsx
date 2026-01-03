@@ -1,13 +1,10 @@
 import React, { createContext, useContext, useState, useCallback, useMemo, useEffect, useRef, ReactNode } from 'react';
-import { supabase } from '../../lib/supabase';
 import {
-  shouldShowOnboarding,
-  hasSeenOnboarding,
-  markOnboardingComplete,
-  markOnboardingSkipped,
-  resetOnboarding,
-  saveLastStep,
-} from '../lib/onboardingStorage';
+  supabase,
+  hasCompletedOnboarding,
+  markOnboardingCompleted,
+  resetOnboardingStatus,
+} from '../../lib/supabase';
 import { ONBOARDING_STEPS, type OnboardingStep } from '../components/Onboarding/steps';
 
 /**
@@ -61,14 +58,16 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
     });
 
     // Listen for auth changes
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       const newUserId = session?.user?.id;
       setUserId(newUserId);
 
       // Trigger onboarding after successful signup
       if (event === 'SIGNED_IN' && newUserId) {
-        // Check if this is a new user (hasn't seen onboarding before)
-        if (!hasSeenOnboarding(newUserId) && shouldShowOnboarding(newUserId)) {
+        // Check if user has completed onboarding (from database, not localStorage)
+        const completed = await hasCompletedOnboarding(newUserId);
+
+        if (!completed) {
           // Clear any existing timer
           if (timerRef.current) {
             clearTimeout(timerRef.current);
@@ -117,15 +116,14 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
     const nextIndex = currentStepIndex + 1;
 
     if (nextIndex >= ONBOARDING_STEPS.length) {
-      // Completed all steps
-      markOnboardingComplete(userId);
+      // Completed all steps - save to database
+      markOnboardingCompleted(userId);
       setIsActive(false);
       setCurrentStepIndex(0);
       return;
     }
 
     setCurrentStepIndex(nextIndex);
-    saveLastStep(nextIndex, userId);
 
     // Navigate to next step's route if different from current
     const nextStepData = ONBOARDING_STEPS[nextIndex];
@@ -141,7 +139,6 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
 
     const prevIndex = currentStepIndex - 1;
     setCurrentStepIndex(prevIndex);
-    saveLastStep(prevIndex, userId);
 
     // Navigate to previous step's route if different
     const prevStepData = ONBOARDING_STEPS[prevIndex];
@@ -150,36 +147,38 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
     if (prevStepData?.route && prevStepData.route !== currentStepData?.route) {
       setTargetRoute(prevStepData.route);
     }
-  }, [currentStepIndex, userId]);
+  }, [currentStepIndex]);
 
   const goToStep = useCallback((index: number) => {
     if (index < 0 || index >= ONBOARDING_STEPS.length) return;
 
     setCurrentStepIndex(index);
-    saveLastStep(index, userId);
 
     // Navigate to step's route
     const stepData = ONBOARDING_STEPS[index];
     if (stepData?.route) {
       setTargetRoute(stepData.route);
     }
-  }, [userId]);
+  }, []);
 
   const skipOnboarding = useCallback(() => {
-    markOnboardingSkipped(userId);
+    // Mark as completed in database (skipping counts as completed)
+    markOnboardingCompleted(userId);
     setIsActive(false);
     setCurrentStepIndex(0);
     setTargetRoute('/'); // Return to home
   }, [userId]);
 
   const completeOnboarding = useCallback(() => {
-    markOnboardingComplete(userId);
+    // Mark as completed in database
+    markOnboardingCompleted(userId);
     setIsActive(false);
     setCurrentStepIndex(0);
   }, [userId]);
 
   const restartOnboarding = useCallback(() => {
-    resetOnboarding(userId);
+    // Reset in database (for testing/restart)
+    resetOnboardingStatus(userId);
     setCurrentStepIndex(0);
     setIsActive(true);
 

@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import AppLayout from '../layouts/AppLayout';
 import { useApp } from '../contexts/AppContext';
 import GlassCard from '../../components/GlassCard';
-import { TEMPLATE_CATEGORIES, ICONS, TemplateCategory } from '../../constants';
+import { ICONS, TemplateCategory } from '../../constants';
+import { useTemplatesByCategory } from '../hooks/useTemplates';
+import { incrementTemplateUsage } from '../lib/adminSupabase';
 
 // Color configuration for each category
 const CATEGORY_COLORS: Record<string, {
@@ -72,15 +74,16 @@ const getCategoryIcon = (icon: TemplateCategory['icon'], className: string) => {
 
 const TemplatesPage: React.FC = () => {
   const navigate = useNavigate();
-  const { setScript, setEnhancedScript, setRestoredScript } = useApp();
+  const { setScript, setRestoredScript } = useApp();
+  const { categories: dbCategories, isLoading } = useTemplatesByCategory();
 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedSubgroup, setSelectedSubgroup] = useState<string | null>(null);
 
   // Get current category object
   const currentCategory = useMemo(() =>
-    TEMPLATE_CATEGORIES.find(c => c.id === selectedCategory),
-    [selectedCategory]
+    dbCategories.find(c => c.id === selectedCategory),
+    [dbCategories, selectedCategory]
   );
 
   // Get current subgroup object
@@ -91,11 +94,13 @@ const TemplatesPage: React.FC = () => {
 
   // Get color config for current category
   const currentColors = useMemo(() =>
-    currentCategory ? CATEGORY_COLORS[currentCategory.color] || CATEGORY_COLORS.cyan : null,
+    currentCategory ? CATEGORY_COLORS[currentCategory.color || 'cyan'] || CATEGORY_COLORS.cyan : null,
     [currentCategory]
   );
 
-  const handleSelectTemplate = (prompt: string) => {
+  const handleSelectTemplate = (templateId: string, prompt: string) => {
+    // Track usage (fire and forget)
+    incrementTemplateUsage(templateId);
     setScript(prompt);
     setRestoredScript(prompt);
     navigate('/');
@@ -103,10 +108,10 @@ const TemplatesPage: React.FC = () => {
 
   // Calculate total templates across all categories
   const totalTemplates = useMemo(() =>
-    TEMPLATE_CATEGORIES.reduce((sum, cat) =>
+    dbCategories.reduce((sum, cat) =>
       sum + cat.subgroups.reduce((subSum, sub) => subSum + sub.templates.length, 0), 0
     ),
-    []
+    [dbCategories]
   );
 
   return (
@@ -164,29 +169,35 @@ const TemplatesPage: React.FC = () => {
         {/* Level 1: Categories */}
         {!selectedCategory && (
           <div data-onboarding="templates-grid" className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {TEMPLATE_CATEGORIES.map(category => {
-              const colors = CATEGORY_COLORS[category.color] || CATEGORY_COLORS.cyan;
-              const templateCount = category.subgroups.reduce((sum, sub) => sum + sub.templates.length, 0);
+            {isLoading ? (
+              <div className="col-span-2 flex justify-center py-12">
+                <div className="w-8 h-8 border-2 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin" />
+              </div>
+            ) : (
+              dbCategories.map(category => {
+                const colors = CATEGORY_COLORS[category.color || 'cyan'] || CATEGORY_COLORS.cyan;
+                const templateCount = category.subgroups.reduce((sum, sub) => sum + sub.templates.length, 0);
 
-              return (
-                <GlassCard
-                  key={category.id}
-                  onClick={() => setSelectedCategory(category.id)}
-                  className={`!p-8 !rounded-3xl cursor-pointer border border-transparent transition-all hover:scale-[1.02] ${colors.hoverBorder}`}
-                >
-                  <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-4 ${colors.bg}`}>
-                    {getCategoryIcon(category.icon, 'w-8 h-8')}
-                  </div>
-                  <h4 className="text-2xl font-bold text-white mb-2">{category.name}</h4>
-                  <p className="text-slate-400 mb-4">{category.description}</p>
-                  <div className="flex items-center gap-4 text-xs text-slate-500">
-                    <span>{category.subgroups.length} subcategories</span>
-                    <span>•</span>
-                    <span className={colors.text}>{templateCount} templates</span>
-                  </div>
-                </GlassCard>
-              );
-            })}
+                return (
+                  <GlassCard
+                    key={category.id}
+                    onClick={() => setSelectedCategory(category.id)}
+                    className={`!p-8 !rounded-3xl cursor-pointer border border-transparent transition-all hover:scale-[1.02] ${colors.hoverBorder}`}
+                  >
+                    <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-4 ${colors.bg}`}>
+                      {getCategoryIcon(category.icon as TemplateCategory['icon'], 'w-8 h-8')}
+                    </div>
+                    <h4 className="text-2xl font-bold text-white mb-2">{category.name}</h4>
+                    <p className="text-slate-400 mb-4">{category.description}</p>
+                    <div className="flex items-center gap-4 text-xs text-slate-500">
+                      <span>{category.subgroups.length} subcategories</span>
+                      <span>•</span>
+                      <span className={colors.text}>{templateCount} templates</span>
+                    </div>
+                  </GlassCard>
+                );
+              })
+            )}
           </div>
         )}
 
@@ -194,7 +205,7 @@ const TemplatesPage: React.FC = () => {
         {selectedCategory && !selectedSubgroup && currentCategory && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {currentCategory.subgroups.map(subgroup => {
-              const colors = CATEGORY_COLORS[currentCategory.color] || CATEGORY_COLORS.cyan;
+              const colors = CATEGORY_COLORS[currentCategory.color || 'cyan'] || CATEGORY_COLORS.cyan;
 
               return (
                 <GlassCard
@@ -216,10 +227,10 @@ const TemplatesPage: React.FC = () => {
         {/* Level 3: Templates */}
         {selectedSubgroup && currentSubgroup && currentColors && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {currentSubgroup.templates.map((template, idx) => (
+            {currentSubgroup.templates.map((template) => (
               <GlassCard
-                key={idx}
-                onClick={() => handleSelectTemplate(template.prompt)}
+                key={template.id}
+                onClick={() => handleSelectTemplate(template.id, template.prompt)}
                 className={`!p-5 !rounded-xl cursor-pointer border border-transparent transition-all hover:scale-[1.01] ${currentColors.hoverBorder}`}
               >
                 <h6 className="text-base font-semibold text-white mb-2">{template.title}</h6>
@@ -236,10 +247,10 @@ const TemplatesPage: React.FC = () => {
         )}
 
         {/* Quick stats when no category selected */}
-        {!selectedCategory && (
+        {!selectedCategory && !isLoading && (
           <div className="flex justify-center gap-8 pt-4 text-center">
-            {TEMPLATE_CATEGORIES.map(cat => {
-              const colors = CATEGORY_COLORS[cat.color] || CATEGORY_COLORS.cyan;
+            {dbCategories.map(cat => {
+              const colors = CATEGORY_COLORS[cat.color || 'cyan'] || CATEGORY_COLORS.cyan;
               const templateCount = cat.subgroups.reduce((sum, sub) => sum + sub.templates.length, 0);
               return (
                 <div key={cat.id} className="text-xs">

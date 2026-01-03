@@ -363,6 +363,72 @@ export const getCurrentUserProfile = async (): Promise<User | null> => {
   return data;
 };
 
+// ============================================================================
+// Onboarding state (persisted in database, not localStorage)
+// ============================================================================
+
+/**
+ * Check if user has completed onboarding (stored in database)
+ * Returns true for users who have completed OR for existing users (default)
+ */
+export const hasCompletedOnboarding = async (userId?: string): Promise<boolean> => {
+  if (!supabase) return true; // Assume completed if no client
+
+  const targetUserId = userId || (await getCurrentUser())?.id;
+  if (!targetUserId) return true; // No user = no onboarding needed
+
+  const { data, error } = await supabase
+    .from('users')
+    .select('onboarding_completed')
+    .eq('id', targetUserId)
+    .single();
+
+  if (error) {
+    console.error('Error checking onboarding status:', error);
+    return true; // Default to completed on error
+  }
+
+  return data?.onboarding_completed ?? true;
+};
+
+/**
+ * Mark user's onboarding as completed in database
+ */
+export const markOnboardingCompleted = async (userId?: string): Promise<void> => {
+  if (!supabase) return;
+
+  const targetUserId = userId || (await getCurrentUser())?.id;
+  if (!targetUserId) return;
+
+  const { error } = await supabase
+    .from('users')
+    .update({ onboarding_completed: true })
+    .eq('id', targetUserId);
+
+  if (error) {
+    console.error('Error marking onboarding completed:', error);
+  }
+};
+
+/**
+ * Reset onboarding for a user (for testing/restart)
+ */
+export const resetOnboardingStatus = async (userId?: string): Promise<void> => {
+  if (!supabase) return;
+
+  const targetUserId = userId || (await getCurrentUser())?.id;
+  if (!targetUserId) return;
+
+  const { error } = await supabase
+    .from('users')
+    .update({ onboarding_completed: false })
+    .eq('id', targetUserId);
+
+  if (error) {
+    console.error('Error resetting onboarding:', error);
+  }
+};
+
 // Voice Profile operations
 export const createVoiceProfile = async (
   name: string,

@@ -72,6 +72,80 @@ export interface AudioTagPreset {
   updated_at: string;
 }
 
+export interface AuditLogEntry {
+  id: string;
+  table_name: string;
+  record_id: string | null;
+  operation: string;
+  admin_id: string;
+  admin_email: string | null;
+  target_user_id: string | null;
+  old_data: Record<string, unknown> | null;
+  new_data: Record<string, unknown> | null;
+  request_id: string | null;
+  created_at: string;
+}
+
+export interface UserActivityStats {
+  user_id: string;
+  email: string;
+  meditation_count: number;
+  voice_count: number;
+  last_activity: string | null;
+  is_active_7d: boolean;
+  is_active_30d: boolean;
+}
+
+export interface UserActivitySummary {
+  total_active_7d: number;
+  total_active_30d: number;
+  total_meditations_7d: number;
+  avg_meditations_per_user: number;
+}
+
+export interface TemplateCategory {
+  id: string;
+  name: string;
+  description: string | null;
+  icon: string | null;
+  color: string | null;
+  display_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TemplateSubgroup {
+  id: string;
+  category_id: string;
+  name: string;
+  description: string | null;
+  display_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Template {
+  id: string;
+  category_id: string;
+  subgroup_id: string;
+  legacy_id: string | null;
+  title: string;
+  description: string | null;
+  prompt: string;
+  display_order: number;
+  is_active: boolean;
+  usage_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TemplateWithDetails extends Template {
+  category_name?: string;
+  subgroup_name?: string;
+}
+
 // ============================================================================
 // User Management
 // ============================================================================
@@ -431,5 +505,356 @@ export async function checkIsAdmin(): Promise<boolean> {
     const message = error instanceof Error ? error.message : 'Unknown error';
     if (DEBUG) console.log('[adminSupabase] Error checking admin status:', message);
     return false;
+  }
+}
+
+// ============================================================================
+// Audit Logs
+// ============================================================================
+
+/**
+ * Get recent admin activity logs
+ */
+export async function getAuditLogs(
+  limit: number = 50,
+  offset: number = 0
+): Promise<AuditLogEntry[]> {
+  if (!supabase) throw new Error('Supabase not configured');
+
+  return withRetry(async () => {
+    const { data, error } = await supabase!
+      .rpc('get_recent_admin_activity', { p_limit: limit, p_offset: offset });
+
+    if (error) throw error;
+    if (DEBUG) console.log('[adminSupabase] Fetched audit logs:', data?.length);
+    return (data || []) as AuditLogEntry[];
+  });
+}
+
+// ============================================================================
+// User Activity
+// ============================================================================
+
+/**
+ * Get user activity statistics with sorting
+ */
+export async function getUserActivityStats(
+  limit: number = 50,
+  offset: number = 0,
+  sortBy: 'meditation_count' | 'voice_count' | 'last_activity' | 'email' = 'last_activity',
+  sortOrder: 'asc' | 'desc' = 'desc'
+): Promise<UserActivityStats[]> {
+  if (!supabase) throw new Error('Supabase not configured');
+
+  return withRetry(async () => {
+    const { data, error } = await supabase!
+      .rpc('get_user_activity_stats', {
+        p_limit: limit,
+        p_offset: offset,
+        p_sort_by: sortBy,
+        p_sort_order: sortOrder
+      });
+
+    if (error) throw error;
+    if (DEBUG) console.log('[adminSupabase] Fetched user activity stats:', data?.length);
+    return (data || []) as UserActivityStats[];
+  });
+}
+
+/**
+ * Get user activity summary metrics
+ */
+export async function getUserActivitySummary(): Promise<UserActivitySummary> {
+  if (!supabase) throw new Error('Supabase not configured');
+
+  return withRetry(async () => {
+    const { data, error } = await supabase!
+      .rpc('get_user_activity_summary')
+      .single();
+
+    if (error) throw error;
+    if (DEBUG) console.log('[adminSupabase] Fetched user activity summary:', data);
+    return data as UserActivitySummary;
+  });
+}
+
+// ============================================================================
+// Templates Management
+// ============================================================================
+
+/**
+ * Get all template categories
+ */
+export async function getTemplateCategories(): Promise<TemplateCategory[]> {
+  if (!supabase) throw new Error('Supabase not configured');
+
+  return withRetry(async () => {
+    const { data, error } = await supabase!
+      .from('template_categories')
+      .select('*')
+      .order('display_order');
+
+    if (error) throw error;
+    if (DEBUG) console.log('[adminSupabase] Fetched template categories:', data?.length);
+    return data || [];
+  });
+}
+
+/**
+ * Get all template subgroups, optionally filtered by category
+ */
+export async function getTemplateSubgroups(categoryId?: string): Promise<TemplateSubgroup[]> {
+  if (!supabase) throw new Error('Supabase not configured');
+
+  return withRetry(async () => {
+    let query = supabase!
+      .from('template_subgroups')
+      .select('*')
+      .order('display_order');
+
+    if (categoryId) {
+      query = query.eq('category_id', categoryId);
+    }
+
+    const { data, error } = await query;
+
+    if (error) throw error;
+    if (DEBUG) console.log('[adminSupabase] Fetched template subgroups:', data?.length);
+    return data || [];
+  });
+}
+
+/**
+ * Get all templates with category and subgroup names (admin view)
+ */
+export async function getAllTemplatesAdmin(): Promise<TemplateWithDetails[]> {
+  if (!supabase) throw new Error('Supabase not configured');
+
+  return withRetry(async () => {
+    const { data, error } = await supabase!
+      .from('templates')
+      .select(`
+        *,
+        template_categories!inner(name),
+        template_subgroups!inner(name)
+      `)
+      .order('category_id')
+      .order('subgroup_id')
+      .order('display_order');
+
+    if (error) throw error;
+
+    // Transform to flat structure with proper typing
+    interface RawTemplate extends Template {
+      template_categories: { name: string } | null;
+      template_subgroups: { name: string } | null;
+    }
+
+    const templates: TemplateWithDetails[] = (data || []).map((t: RawTemplate) => {
+      const { template_categories, template_subgroups, ...rest } = t;
+      return {
+        ...rest,
+        category_name: template_categories?.name,
+        subgroup_name: template_subgroups?.name,
+      };
+    });
+
+    if (DEBUG) console.log('[adminSupabase] Fetched all templates:', templates.length);
+    return templates;
+  });
+}
+
+/**
+ * Create a new template category
+ */
+export async function createTemplateCategory(
+  category: Omit<TemplateCategory, 'id' | 'created_at' | 'updated_at'>
+): Promise<TemplateCategory> {
+  if (!supabase) throw new Error('Supabase not configured');
+
+  return withRetry(async () => {
+    const { data, error } = await supabase!
+      .from('template_categories')
+      .insert(category)
+      .select()
+      .single();
+
+    if (error) throw error;
+    if (DEBUG) console.log('[adminSupabase] Created template category:', data);
+    return data;
+  });
+}
+
+/**
+ * Update a template category
+ */
+export async function updateTemplateCategory(
+  id: string,
+  updates: Partial<Pick<TemplateCategory, 'name' | 'description' | 'icon' | 'color' | 'display_order' | 'is_active'>>
+): Promise<void> {
+  if (!supabase) throw new Error('Supabase not configured');
+  if (!id) throw new Error('Category ID required');
+
+  return withRetry(async () => {
+    const { error } = await supabase!
+      .from('template_categories')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', id);
+
+    if (error) throw error;
+    if (DEBUG) console.log('[adminSupabase] Updated template category:', id);
+  });
+}
+
+/**
+ * Soft delete a template category (sets is_active to false)
+ */
+export async function deleteTemplateCategory(id: string): Promise<void> {
+  if (!supabase) throw new Error('Supabase not configured');
+  if (!id) throw new Error('Category ID required');
+
+  return withRetry(async () => {
+    const { error } = await supabase!
+      .from('template_categories')
+      .update({ is_active: false, updated_at: new Date().toISOString() })
+      .eq('id', id);
+
+    if (error) throw error;
+    if (DEBUG) console.log('[adminSupabase] Deactivated template category:', id);
+  });
+}
+
+/**
+ * Create a new template subgroup
+ */
+export async function createTemplateSubgroup(
+  subgroup: Omit<TemplateSubgroup, 'id' | 'created_at' | 'updated_at'>
+): Promise<TemplateSubgroup> {
+  if (!supabase) throw new Error('Supabase not configured');
+
+  return withRetry(async () => {
+    const { data, error } = await supabase!
+      .from('template_subgroups')
+      .insert(subgroup)
+      .select()
+      .single();
+
+    if (error) throw error;
+    if (DEBUG) console.log('[adminSupabase] Created template subgroup:', data);
+    return data;
+  });
+}
+
+/**
+ * Update a template subgroup
+ */
+export async function updateTemplateSubgroup(
+  id: string,
+  updates: Partial<Pick<TemplateSubgroup, 'name' | 'description' | 'display_order' | 'is_active'>>
+): Promise<void> {
+  if (!supabase) throw new Error('Supabase not configured');
+  if (!id) throw new Error('Subgroup ID required');
+
+  return withRetry(async () => {
+    const { error } = await supabase!
+      .from('template_subgroups')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', id);
+
+    if (error) throw error;
+    if (DEBUG) console.log('[adminSupabase] Updated template subgroup:', id);
+  });
+}
+
+/**
+ * Soft delete a template subgroup (sets is_active to false)
+ */
+export async function deleteTemplateSubgroup(id: string): Promise<void> {
+  if (!supabase) throw new Error('Supabase not configured');
+  if (!id) throw new Error('Subgroup ID required');
+
+  return withRetry(async () => {
+    const { error } = await supabase!
+      .from('template_subgroups')
+      .update({ is_active: false, updated_at: new Date().toISOString() })
+      .eq('id', id);
+
+    if (error) throw error;
+    if (DEBUG) console.log('[adminSupabase] Deactivated template subgroup:', id);
+  });
+}
+
+/**
+ * Create a new template
+ */
+export async function createTemplate(
+  template: Omit<Template, 'id' | 'usage_count' | 'created_at' | 'updated_at'>
+): Promise<Template> {
+  if (!supabase) throw new Error('Supabase not configured');
+
+  return withRetry(async () => {
+    const { data, error } = await supabase!
+      .from('templates')
+      .insert({ ...template, usage_count: 0 })
+      .select()
+      .single();
+
+    if (error) throw error;
+    if (DEBUG) console.log('[adminSupabase] Created template:', data);
+    return data;
+  });
+}
+
+/**
+ * Update a template
+ */
+export async function updateTemplate(
+  id: string,
+  updates: Partial<Pick<Template, 'title' | 'description' | 'prompt' | 'category_id' | 'subgroup_id' | 'display_order' | 'is_active'>>
+): Promise<void> {
+  if (!supabase) throw new Error('Supabase not configured');
+  if (!id) throw new Error('Template ID required');
+
+  return withRetry(async () => {
+    const { error } = await supabase!
+      .from('templates')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', id);
+
+    if (error) throw error;
+    if (DEBUG) console.log('[adminSupabase] Updated template:', id);
+  });
+}
+
+/**
+ * Soft delete a template (sets is_active to false)
+ */
+export async function deleteTemplate(id: string): Promise<void> {
+  if (!supabase) throw new Error('Supabase not configured');
+  if (!id) throw new Error('Template ID required');
+
+  return withRetry(async () => {
+    const { error } = await supabase!
+      .from('templates')
+      .update({ is_active: false, updated_at: new Date().toISOString() })
+      .eq('id', id);
+
+    if (error) throw error;
+    if (DEBUG) console.log('[adminSupabase] Deactivated template:', id);
+  });
+}
+
+/**
+ * Increment template usage count
+ */
+export async function incrementTemplateUsage(id: string): Promise<void> {
+  if (!supabase) throw new Error('Supabase not configured');
+  if (!id) throw new Error('Template ID required');
+
+  try {
+    const { error } = await supabase.rpc('increment_template_usage', { p_template_id: id });
+    if (error && DEBUG) console.warn('[adminSupabase] Failed to increment template usage:', error);
+  } catch (e) {
+    if (DEBUG) console.warn('[adminSupabase] Error incrementing template usage:', e);
   }
 }
