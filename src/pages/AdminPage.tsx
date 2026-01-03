@@ -128,7 +128,7 @@ const AdminPage: React.FC = () => {
       );
 
       try {
-        const adminStatus = await Promise.race([checkIsAdmin(), timeoutPromise]);
+        const adminStatus = await Promise.race([checkIsAdmin(user.id), timeoutPromise]);
         console.log('[AdminPage] Admin status result:', adminStatus);
 
         if (!isMounted) return;

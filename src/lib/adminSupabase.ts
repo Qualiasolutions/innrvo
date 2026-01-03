@@ -481,20 +481,32 @@ export async function deleteAudioTag(id: string): Promise<void> {
 
 /**
  * Check if current user is an admin
+ * @param userId - Optional user ID to check. If not provided, will try to get from auth.
  */
-export async function checkIsAdmin(): Promise<boolean> {
-  console.log('[checkIsAdmin] Starting check, supabase exists:', !!supabase);
+export async function checkIsAdmin(userId?: string): Promise<boolean> {
+  console.log('[checkIsAdmin] Starting check, supabase exists:', !!supabase, 'userId:', userId);
   if (!supabase) return false;
 
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    console.log('[checkIsAdmin] Got user:', user?.id);
-    if (!user) return false;
+    // Use provided userId or try to get from auth
+    let userIdToCheck = userId;
+    if (!userIdToCheck) {
+      console.log('[checkIsAdmin] No userId provided, calling getUser()...');
+      const { data: { user } } = await supabase.auth.getUser();
+      console.log('[checkIsAdmin] Got user:', user?.id);
+      userIdToCheck = user?.id;
+    }
 
+    if (!userIdToCheck) {
+      console.log('[checkIsAdmin] No user ID available');
+      return false;
+    }
+
+    console.log('[checkIsAdmin] Querying role for user:', userIdToCheck);
     const { data, error } = await supabase
       .from('users')
       .select('role')
-      .eq('id', user.id)
+      .eq('id', userIdToCheck)
       .single();
 
     console.log('[checkIsAdmin] Query result:', { data, error: error?.message });
