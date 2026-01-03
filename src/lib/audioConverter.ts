@@ -12,8 +12,9 @@ const DEBUG = import.meta.env?.DEV ?? false;
  * Why this matters for voice cloning:
  * - WebM uses Opus codec with lossy compression (poor for voice cloning)
  * - WAV is uncompressed PCM audio (preserves voice characteristics)
- * - 44.1kHz sample rate matches Fish Audio expected format (eliminates resampling overhead)
+ * - 44.1kHz sample rate matches ElevenLabs expected format
  * - Single channel (mono) is sufficient and reduces file size
+ * - Normalization targets ElevenLabs optimal levels (-18dB RMS, -3dB peak)
  *
  * @param blob - Input audio blob (WebM, MP4, etc.)
  * @returns Promise<Blob> - High-quality WAV blob suitable for voice cloning
@@ -21,7 +22,7 @@ const DEBUG = import.meta.env?.DEV ?? false;
 export async function convertToWAV(blob: Blob): Promise<Blob> {
   if (DEBUG) console.log('[convertToWAV] Starting conversion, input blob size:', blob.size, 'type:', blob.type);
 
-  // Create audio context - 44.1kHz matches Fish Audio expected rate (eliminates server resampling)
+  // Create audio context - 44.1kHz is standard high-quality sample rate for voice
   const audioContext = new AudioContext({ sampleRate: 44100 });
 
   try {
@@ -43,10 +44,9 @@ export async function convertToWAV(blob: Blob): Promise<Blob> {
       throw new Error('Audio decoding produced empty data');
     }
 
-    // Apply RMS normalization to ElevenLabs optimal levels
-    // ElevenLabs recommends: -23 to -18 dB RMS with -3dB peak
-    // 0.1 RMS ≈ -20dBFS (center of optimal range)
-    const channelData = normalizeRMS(monoData, 0.1);
+    // Apply normalization to ElevenLabs optimal levels
+    // Target: -18dB RMS (center of -23 to -18 dB range), -3dB peak limit
+    const channelData = normalizeToElevenLabsSpecs(monoData, -18, -3);
 
     // Create WAV file with optimal settings for voice cloning
     const wavBlob = encodeWAV(channelData, audioBuffer.sampleRate);
@@ -94,56 +94,120 @@ function mergeChannels(audioBuffer: AudioBuffer): Float32Array {
 }
 
 /**
- * Apply RMS normalization to audio samples
- * Normalizes audio to a target RMS level for consistent voice volume
+ * Utility: Convert dB to linear amplitude
+ */
+function dbToLinear(db: number): number {
+  return Math.pow(10, db / 20);
+}
+
+/**
+ * Utility: Convert linear amplitude to dB
+ */
+function linearToDb(linear: number): number {
+  if (linear <= 0) return -100;
+  return 20 * Math.log10(linear);
+}
+
+/**
+ * Apply RMS normalization to ElevenLabs optimal levels
+ *
+ * ElevenLabs IVC recommendations (from docs):
+ * - Target RMS: -18 dB (0.126 linear) - center of -23 to -18 dB optimal range
+ * - Peak limit: -3 dB (0.708 linear) - prevents distortion
+ * - Use soft-knee compression near peak limit for natural sound
  *
  * Why this matters for voice cloning:
- * - Ensures consistent audio levels across all recordings
- * - ElevenLabs recommends: -23 to -18 dB RMS with -3dB peak
- * - 0.1 RMS ≈ -20dBFS (center of optimal range)
+ * - Consistent audio levels improve voice clone quality
+ * - Proper peak limiting prevents "weird twist" artifacts
+ * - Soft-knee compression sounds more natural than hard clipping
  *
  * @param samples - Float32Array of audio samples
- * @param targetRMS - Target RMS level (default: 0.1 for ElevenLabs, -20 dBFS equivalent)
+ * @param targetRmsDb - Target RMS in dB (default: -18 for ElevenLabs optimal)
+ * @param peakLimitDb - Peak limit in dB (default: -3 per ElevenLabs recommendation)
  * @returns Float32Array - Normalized audio samples
  */
-function normalizeRMS(samples: Float32Array, targetRMS: number = 0.1): Float32Array {
-  // Calculate current RMS (Root Mean Square)
-  let sumSquares = 0;
-  for (let i = 0; i < samples.length; i++) {
-    sumSquares += samples[i] * samples[i];
-  }
-  const currentRMS = Math.sqrt(sumSquares / samples.length);
+function normalizeToElevenLabsSpecs(
+  samples: Float32Array,
+  targetRmsDb: number = -18,
+  peakLimitDb: number = -3
+): Float32Array {
+  // Convert dB targets to linear scale
+  const targetRms = dbToLinear(targetRmsDb); // -18dB = 0.126
+  const peakLimit = dbToLinear(peakLimitDb); // -3dB = 0.708
 
-  // If audio is too quiet (silence or near-silence), skip normalization
-  if (currentRMS < 0.0001) {
-    if (DEBUG) console.log('[normalizeRMS] Audio too quiet, skipping normalization');
+  // Calculate current RMS and peak
+  let sumSquares = 0;
+  let currentPeak = 0;
+  for (let i = 0; i < samples.length; i++) {
+    const abs = Math.abs(samples[i]);
+    sumSquares += samples[i] * samples[i];
+    if (abs > currentPeak) currentPeak = abs;
+  }
+  const currentRms = Math.sqrt(sumSquares / samples.length);
+
+  // If audio is too quiet (silence), skip normalization
+  if (currentRms < 0.0001) {
+    if (DEBUG) console.log('[normalizeToElevenLabsSpecs] Audio too quiet, skipping normalization');
     return samples;
   }
 
-  // Calculate gain factor
-  const gain = targetRMS / currentRMS;
+  // Calculate RMS-based gain
+  let gain = targetRms / currentRms;
 
-  // Apply gain with soft limiting to prevent clipping
+  // Check if gain would cause peaks to exceed limit
+  const projectedPeak = currentPeak * gain;
+  if (projectedPeak > peakLimit) {
+    // Reduce gain to respect peak limit
+    const oldGain = gain;
+    gain = peakLimit / currentPeak;
+    if (DEBUG) console.log(`[normalizeToElevenLabsSpecs] Gain limited by peak: ${oldGain.toFixed(2)}x -> ${gain.toFixed(2)}x`);
+  }
+
+  // Apply gain with soft-knee compression near peak limit
   const normalized = new Float32Array(samples.length);
-  let clippedSamples = 0;
+  const kneeStart = peakLimit * 0.85; // Start compression at 85% of peak limit
+  const kneeRange = peakLimit - kneeStart;
+  let compressedSamples = 0;
 
   for (let i = 0; i < samples.length; i++) {
     let sample = samples[i] * gain;
+    const abs = Math.abs(sample);
 
-    // Soft limiting using tanh for natural-sounding compression at peaks
-    if (Math.abs(sample) > 0.95) {
-      sample = Math.tanh(sample);
-      clippedSamples++;
+    // Soft-knee compression for samples approaching peak limit
+    if (abs > kneeStart) {
+      // Calculate how far into the knee region we are (0-1)
+      const excess = abs - kneeStart;
+      // Use exponential curve for natural-sounding compression
+      // ratio ~4:1 at the knee, approaches hard limit at peakLimit
+      const compressionRatio = 4;
+      const compressedExcess = kneeRange * (1 - Math.exp(-excess / kneeRange * compressionRatio));
+      const newAbs = kneeStart + compressedExcess;
+      sample = sample > 0 ? newAbs : -newAbs;
+      compressedSamples++;
+    }
+
+    // Hard limit as safety (should rarely trigger with soft knee)
+    if (Math.abs(sample) > peakLimit) {
+      sample = sample > 0 ? peakLimit : -peakLimit;
     }
 
     normalized[i] = sample;
   }
 
-  if (clippedSamples > 0) {
-    if (DEBUG) console.log(`[normalizeRMS] Applied soft limiting to ${clippedSamples} samples (${(clippedSamples / samples.length * 100).toFixed(2)}%)`);
+  const finalRms = Math.sqrt(normalized.reduce((sum, s) => sum + s * s, 0) / normalized.length);
+  const finalPeak = Math.max(...normalized.map(Math.abs));
+
+  if (DEBUG) {
+    console.log(`[normalizeToElevenLabsSpecs] Normalized:`, {
+      inputRms: `${linearToDb(currentRms).toFixed(1)}dB`,
+      inputPeak: `${linearToDb(currentPeak).toFixed(1)}dB`,
+      outputRms: `${linearToDb(finalRms).toFixed(1)}dB`,
+      outputPeak: `${linearToDb(finalPeak).toFixed(1)}dB`,
+      gain: `${gain.toFixed(2)}x`,
+      compressedSamples: `${compressedSamples} (${(compressedSamples / samples.length * 100).toFixed(2)}%)`,
+    });
   }
 
-  if (DEBUG) console.log(`[normalizeRMS] Normalized from RMS ${currentRMS.toFixed(4)} to ${targetRMS} (gain: ${gain.toFixed(2)}x)`);
   return normalized;
 }
 

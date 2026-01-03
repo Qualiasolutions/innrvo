@@ -1,11 +1,14 @@
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
+import { Play, Pause } from 'lucide-react';
 import {
   CloningStatus,
   CreditInfo,
   VoiceMetadata,
 } from '../types';
 import { AIVoiceInput } from './ui/ai-voice-input';
+import { VolumeBadge } from './ui/volume-meter';
+import { useAudioAnalyzer, type AudioLevelData } from '@/src/lib/audioAnalyzer';
 
 interface SimpleVoiceCloneProps {
   onClose: () => void;
@@ -36,6 +39,14 @@ const TIPS = [
   'Vary your tone slightly for expressiveness',
 ] as const;
 
+// Processing steps for enhanced progress feedback
+const CLONING_STEPS = [
+  { state: 'validating', label: 'Analyzing audio quality' },
+  { state: 'processing_audio', label: 'Optimizing for voice cloning' },
+  { state: 'uploading_to_elevenlabs', label: 'Creating voice clone' },
+  { state: 'saving_to_database', label: 'Saving your voice' },
+] as const;
+
 // Helper function to format duration
 const formatDuration = (seconds: number): string => {
   const mins = Math.floor(seconds / 60);
@@ -56,6 +67,14 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
   const [localError, setLocalError] = useState<string | null>(null);
   const [recordingDuration, setRecordingDuration] = useState(0);
 
+  // Audio preview state
+  const [isPlayingPreview, setIsPlayingPreview] = useState(false);
+  const [previewProgress, setPreviewProgress] = useState(0);
+  const audioPreviewRef = useRef<HTMLAudioElement | null>(null);
+  const previewUrlRef = useRef<string | null>(null);
+
+  // Audio analyzer for real-time level feedback
+  const { levelData, start: startAnalyzer, stop: stopAnalyzer } = useAudioAnalyzer();
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -99,6 +118,7 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
     }
   }, [cloningStatus.state, cloningStatus.voiceName, cloningStatus.message]);
 
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
@@ -106,8 +126,18 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
       }
+      stopAnalyzer();
+      // Cleanup audio preview
+      if (audioPreviewRef.current) {
+        audioPreviewRef.current.pause();
+        audioPreviewRef.current = null;
+      }
+      if (previewUrlRef.current) {
+        URL.revokeObjectURL(previewUrlRef.current);
+        previewUrlRef.current = null;
+      }
     };
-  }, []);
+  }, [stopAnalyzer]);
 
   const startRecording = useCallback(async () => {
     try {
@@ -124,6 +154,9 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
         }
       });
       streamRef.current = stream;
+
+      // Start audio analyzer for real-time level feedback
+      await startAnalyzer(stream);
 
       const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
         ? 'audio/webm;codecs=opus'
@@ -145,6 +178,7 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
         const blob = new Blob(chunksRef.current, { type: mimeType });
         setRecordedBlob(blob);
         stream.getTracks().forEach(track => track.stop());
+        stopAnalyzer();
 
         if (timerRef.current) {
           clearInterval(timerRef.current);
@@ -165,29 +199,31 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
         }
       }, MAX_RECORDING_SECONDS * 1000);
 
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('Recording error:', e);
-      if (e.name === 'NotAllowedError') {
+      const error = e as Error & { name?: string };
+      if (error.name === 'NotAllowedError') {
         setLocalError('Microphone access denied. Please allow microphone access.');
-      } else if (e.name === 'NotFoundError') {
+      } else if (error.name === 'NotFoundError') {
         setLocalError('No microphone found. Please connect a microphone.');
       } else {
-        setLocalError(e.message || 'Failed to start recording');
+        setLocalError(error.message || 'Failed to start recording');
       }
     }
-  }, []);
+  }, [startAnalyzer, stopAnalyzer]);
 
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current?.state === 'recording') {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
+      stopAnalyzer();
 
       if (autoStopRef.current) {
         clearTimeout(autoStopRef.current);
         autoStopRef.current = null;
       }
     }
-  }, []);
+  }, [stopAnalyzer]);
 
   const handleToggleRecording = useCallback((recording: boolean) => {
     if (recording) {
@@ -196,6 +232,36 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
       stopRecording();
     }
   }, [startRecording, stopRecording]);
+
+  // Audio preview controls
+  const togglePreview = useCallback(() => {
+    if (!recordedBlob) return;
+
+    if (isPlayingPreview) {
+      audioPreviewRef.current?.pause();
+      setIsPlayingPreview(false);
+    } else {
+      if (!audioPreviewRef.current) {
+        // Create new audio element
+        previewUrlRef.current = URL.createObjectURL(recordedBlob);
+        audioPreviewRef.current = new Audio(previewUrlRef.current);
+
+        audioPreviewRef.current.onended = () => {
+          setIsPlayingPreview(false);
+          setPreviewProgress(0);
+        };
+
+        audioPreviewRef.current.ontimeupdate = () => {
+          if (audioPreviewRef.current) {
+            const progress = (audioPreviewRef.current.currentTime / audioPreviewRef.current.duration) * 100;
+            setPreviewProgress(isNaN(progress) ? 0 : progress);
+          }
+        };
+      }
+      audioPreviewRef.current.play();
+      setIsPlayingPreview(true);
+    }
+  }, [recordedBlob, isPlayingPreview]);
 
   const handleCloneVoice = async () => {
     if (!recordedBlob) {
@@ -206,6 +272,12 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
     if (!creditInfo.canClone) {
       setLocalError(creditInfo.reason || 'Cannot clone voice at this time');
       return;
+    }
+
+    // Stop preview if playing
+    if (isPlayingPreview) {
+      audioPreviewRef.current?.pause();
+      setIsPlayingPreview(false);
     }
 
     const voiceName = profileName.trim() || `My Voice ${new Date().toLocaleDateString()}`;
@@ -225,6 +297,18 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
   };
 
   const resetRecording = () => {
+    // Stop and cleanup preview
+    if (audioPreviewRef.current) {
+      audioPreviewRef.current.pause();
+      audioPreviewRef.current = null;
+    }
+    if (previewUrlRef.current) {
+      URL.revokeObjectURL(previewUrlRef.current);
+      previewUrlRef.current = null;
+    }
+    setIsPlayingPreview(false);
+    setPreviewProgress(0);
+
     setRecordedBlob(null);
     setIsRecording(false);
     setRecordingDuration(0);
@@ -278,6 +362,11 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
     [recordedBlob]
   );
 
+  // Get current step index for progress display
+  const currentStepIndex = useMemo(() => {
+    return CLONING_STEPS.findIndex(s => s.state === cloningStatus.state);
+  }, [cloningStatus.state]);
+
   return (
     <div className="fixed inset-0 z-[80] bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950">
       {/* Header - Use less expensive blur */}
@@ -318,24 +407,50 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
           </div>
         )}
 
-        {/* Processing State */}
+        {/* Processing State - Enhanced with step progress */}
         {step === 'processing' && !isSuccess && (
           <div className="flex flex-col items-center justify-center min-h-full px-6 py-12">
-            <div className="relative w-24 h-24 mb-8" style={{ contain: 'layout paint' }}>
-              {/* Spinning ring - use GPU-accelerated transform */}
-              <div
-                className="absolute inset-0 rounded-full border-2 border-transparent border-t-cyan-500"
-                style={{ animation: 'spin 1s linear infinite', willChange: 'transform' }}
-              />
-              {/* Inner glow - static, no animation */}
-              <div className="absolute inset-3 rounded-full bg-gradient-to-br from-cyan-500/20 to-purple-500/20 flex items-center justify-center">
-                <svg className="w-8 h-8 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                </svg>
-              </div>
+            {/* Progress Steps */}
+            <div className="w-full max-w-xs mb-8">
+              {CLONING_STEPS.map((stepItem, i) => {
+                const isActive = stepItem.state === cloningStatus.state;
+                const isPast = currentStepIndex > i;
+
+                return (
+                  <div key={stepItem.state} className="flex items-center gap-3 mb-3">
+                    <div className={`
+                      w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium
+                      ${isActive ? 'bg-cyan-500/20 text-cyan-400' : ''}
+                      ${isPast ? 'bg-emerald-500/20 text-emerald-400' : ''}
+                      ${!isActive && !isPast ? 'bg-white/5 text-slate-500' : ''}
+                    `}>
+                      {isPast ? (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      ) : isActive ? (
+                        <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                      ) : (
+                        <span>{i + 1}</span>
+                      )}
+                    </div>
+                    <span className={`
+                      text-sm
+                      ${isActive ? 'text-white font-medium' : ''}
+                      ${isPast ? 'text-slate-400' : ''}
+                      ${!isActive && !isPast ? 'text-slate-600' : ''}
+                    `}>
+                      {stepItem.label}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
-            <p className="text-lg font-medium text-white mb-2">{statusMessage}</p>
-            <p className="text-slate-500 text-sm">This usually takes about 30 seconds</p>
+
+            {/* Current status */}
+            <p className="text-sm text-slate-500">
+              This usually takes about 30 seconds
+            </p>
 
             {/* Error in processing */}
             {error && (
@@ -379,16 +494,26 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
                       />
                     )}
 
-                    {/* Main recorder button */}
+                    {/* Main recorder button with real audio data */}
                     <div className="relative z-10">
                       <AIVoiceInput
                         isRecording={isRecording}
                         onToggle={handleToggleRecording}
                         visualizerBars={16}
+                        audioLevelData={levelData}
+                        hideTimer
+                        hideInstructions
                         className="scale-125"
                       />
                     </div>
                   </div>
+
+                  {/* Volume level badge - shows real-time feedback */}
+                  {isRecording && (
+                    <div className="mb-4">
+                      <VolumeBadge levelData={levelData} />
+                    </div>
+                  )}
 
                   {/* Timer & Quality */}
                   {isRecording && (
@@ -444,7 +569,7 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
                   )}
                 </>
               ) : (
-                /* Recording Complete */
+                /* Recording Complete - with Preview */
                 <div className="w-full max-w-sm text-center">
                   <div className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-4 ${canProceed ? 'bg-emerald-500/20' : 'bg-amber-500/20'}`}>
                     {canProceed ? (
@@ -460,10 +585,42 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
                   <h3 className={`text-lg font-semibold mb-1 ${canProceed ? 'text-emerald-400' : 'text-amber-400'}`}>
                     {canProceed ? 'Recording Complete!' : 'Recording Too Short'}
                   </h3>
-                  <p className="text-slate-400 text-sm mb-6">
+                  <p className="text-slate-400 text-sm mb-4">
                     {formatDuration(recordingDuration)} recorded
                     {!canProceed && ` - need ${MIN_RECORDING_SECONDS}s minimum`}
                   </p>
+
+                  {/* Audio Preview */}
+                  {canProceed && (
+                    <div className="mb-6 p-3 rounded-xl bg-white/5 border border-white/10">
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={togglePreview}
+                          className="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center text-cyan-400 hover:bg-cyan-500/30 transition-colors"
+                        >
+                          {isPlayingPreview ? (
+                            <Pause className="w-5 h-5" />
+                          ) : (
+                            <Play className="w-5 h-5 ml-0.5" />
+                          )}
+                        </button>
+                        <div className="flex-1">
+                          <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-cyan-400 transition-all duration-100"
+                              style={{ width: `${previewProgress}%` }}
+                            />
+                          </div>
+                        </div>
+                        <span className="text-xs text-slate-500 tabular-nums w-10 text-right">
+                          {formatDuration(Math.floor(recordingDuration * (previewProgress / 100)))}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-2">
+                        Listen to verify audio quality before cloning
+                      </p>
+                    </div>
+                  )}
 
                   <div className="flex gap-3">
                     <button
@@ -505,23 +662,38 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
               </p>
             </div>
 
-            {/* Recording info */}
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10">
-              <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
-                <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                </svg>
+            {/* Recording info with preview */}
+            <div className="p-3 rounded-xl bg-white/5 border border-white/10">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={togglePreview}
+                  className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0 text-emerald-400 hover:bg-emerald-500/30 transition-colors"
+                >
+                  {isPlayingPreview ? (
+                    <Pause className="w-5 h-5" />
+                  ) : (
+                    <Play className="w-5 h-5 ml-0.5" />
+                  )}
+                </button>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-sm font-medium text-white truncate">Recording ready</p>
+                    <p className="text-xs text-slate-500">{formatDuration(recordingDuration)} · {fileSizeDisplay}</p>
+                  </div>
+                  <div className="h-1 bg-white/10 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-emerald-400 transition-all duration-100"
+                      style={{ width: `${previewProgress}%` }}
+                    />
+                  </div>
+                </div>
+                <button
+                  onClick={resetRecording}
+                  className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 text-xs font-medium transition-all"
+                >
+                  Re-record
+                </button>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-white truncate">Recording ready</p>
-                <p className="text-xs text-slate-500">{formatDuration(recordingDuration)} · {fileSizeDisplay}</p>
-              </div>
-              <button
-                onClick={resetRecording}
-                className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 text-xs font-medium transition-all"
-              >
-                Re-record
-              </button>
             </div>
 
             {/* Error */}

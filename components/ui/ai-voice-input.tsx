@@ -1,6 +1,7 @@
 import { Mic } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { cn } from "@/lib/utils";
+import type { AudioLevelData } from "@/src/lib/audioAnalyzer";
 
 interface AIVoiceInputProps {
   onStart?: () => void;
@@ -11,6 +12,12 @@ interface AIVoiceInputProps {
   className?: string;
   isRecording?: boolean;
   onToggle?: (recording: boolean) => void;
+  /** Real-time audio level data from AudioAnalyzer */
+  audioLevelData?: AudioLevelData | null;
+  /** Hide the timer display */
+  hideTimer?: boolean;
+  /** Hide the instruction text */
+  hideInstructions?: boolean;
 }
 
 export function AIVoiceInput({
@@ -21,7 +28,10 @@ export function AIVoiceInput({
   demoInterval = 3000,
   className,
   isRecording: externalIsRecording,
-  onToggle
+  onToggle,
+  audioLevelData,
+  hideTimer = false,
+  hideInstructions = false,
 }: AIVoiceInputProps) {
   const [submitted, setSubmitted] = useState(false);
   const [time, setTime] = useState(0);
@@ -29,13 +39,33 @@ export function AIVoiceInput({
   const [isDemo, setIsDemo] = useState(demoMode);
   const prevRecordingRef = useRef<boolean>(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  
+
+  // Store demo bar heights to avoid re-computing every render
+  const [demoBarHeights, setDemoBarHeights] = useState<number[]>([]);
+
   // Use external recording state if provided, otherwise use internal state
   const isRecording = externalIsRecording !== undefined ? externalIsRecording : submitted;
 
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  // Generate demo bar heights for animation
+  useEffect(() => {
+    if (!isRecording || audioLevelData) return;
+
+    // Only use random heights for demo mode when no real audio data
+    const updateDemoHeights = () => {
+      setDemoBarHeights(
+        Array.from({ length: visualizerBars }, () => 20 + Math.random() * 80)
+      );
+    };
+
+    updateDemoHeights();
+    const interval = setInterval(updateDemoHeights, 100); // Update at ~10fps for demo
+
+    return () => clearInterval(interval);
+  }, [isRecording, audioLevelData, visualizerBars]);
 
   useEffect(() => {
     // Handle recording state changes
@@ -72,7 +102,7 @@ export function AIVoiceInput({
       }
       setTime(0);
     }
-    
+
     prevRecordingRef.current = isRecording;
 
     return () => {
@@ -124,6 +154,46 @@ export function AIVoiceInput({
     }
   };
 
+  /**
+   * Get bar height for visualizer
+   * Uses real audio data if available, otherwise falls back to demo animation
+   */
+  const getBarHeight = (index: number): number => {
+    if (!isRecording) return 4; // Idle state
+
+    // If we have real audio data, use frequency bins
+    if (audioLevelData?.frequencyBins) {
+      const bins = audioLevelData.frequencyBins;
+      // Map visualizer bar index to frequency bin index
+      // Use lower frequencies (first half) as they contain more voice info
+      const binIndex = Math.floor((index / visualizerBars) * (bins.length / 2));
+      const value = bins[binIndex] || 0;
+      // Scale from 0-255 to reasonable bar height (4-64%)
+      return 4 + (value / 255) * 60;
+    }
+
+    // Demo/fallback mode - use animated random heights
+    return demoBarHeights[index] || 20;
+  };
+
+  // Memoize bar heights to avoid recalculating every render
+  const barHeights = useMemo(() => {
+    if (!isRecording || !isClient) return null;
+    return Array.from({ length: visualizerBars }, (_, i) => getBarHeight(i));
+  }, [isRecording, isClient, audioLevelData?.frequencyBins, demoBarHeights, visualizerBars]);
+
+  // Determine visualizer color based on audio level
+  const visualizerColor = useMemo(() => {
+    if (!isRecording || !audioLevelData) return "bg-white/50";
+
+    if (audioLevelData.isClipping) return "bg-rose-400";
+    if (audioLevelData.isOptimal) return "bg-emerald-400";
+    if (audioLevelData.isGood) return "bg-cyan-400";
+    if (audioLevelData.isTooQuiet) return "bg-amber-400";
+
+    return "bg-white/50";
+  }, [isRecording, audioLevelData]);
+
   return (
     <div className={cn("w-full py-4", className)}>
       <div className="relative max-w-xl w-full mx-auto flex items-center flex-col gap-2">
@@ -146,7 +216,11 @@ export function AIVoiceInput({
             <div
               className="absolute inset-[-2px] rounded-full -z-10"
               style={{
-                background: 'linear-gradient(135deg, #22d3ee 0%, #06b6d4 50%, #ec4899 100%)',
+                background: audioLevelData?.isClipping
+                  ? 'linear-gradient(135deg, #f43f5e 0%, #ec4899 100%)'
+                  : audioLevelData?.isOptimal
+                  ? 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)'
+                  : 'linear-gradient(135deg, #22d3ee 0%, #06b6d4 50%, #ec4899 100%)',
               }}
             />
           )}
@@ -168,44 +242,47 @@ export function AIVoiceInput({
           )}
         </button>
 
-        <span
-          className={cn(
-            "font-mono text-sm transition-opacity duration-300 text-white/70",
-            !isRecording && "text-white/30"
-          )}
-        >
-          {formatTime(time)}
-        </span>
+        {!hideTimer && (
+          <span
+            className={cn(
+              "font-mono text-sm transition-opacity duration-300 text-white/70",
+              !isRecording && "text-white/30"
+            )}
+          >
+            {formatTime(time)}
+          </span>
+        )}
 
+        {/* Audio Visualizer */}
         <div className="h-4 w-64 flex items-center justify-center gap-0.5">
           {[...Array(visualizerBars)].map((_, i) => (
             <div
               key={i}
               className={cn(
-                "w-0.5 rounded-full transition-all duration-300",
-                isRecording
-                  ? "bg-white/50 animate-pulse"
-                  : "bg-white/10 h-1"
+                "w-0.5 rounded-full transition-all",
+                isRecording ? visualizerColor : "bg-white/10",
+                // Use faster transition for real audio data
+                audioLevelData ? "duration-75" : "duration-300"
               )}
-              style={
-                isRecording && isClient
-                  ? {
-                      height: `${20 + Math.random() * 80}%`,
-                      animationDelay: `${i * 0.05}s`,
-                    }
-                  : undefined
-              }
+              style={{
+                height: barHeights ? `${barHeights[i]}%` : '4px',
+              }}
             />
           ))}
         </div>
 
-        <p className="h-4 text-xs text-white/70">
-          {isRecording ? "Listening..." : "Click to speak"}
-        </p>
+        {!hideInstructions && (
+          <p className="h-4 text-xs text-white/70">
+            {isRecording
+              ? audioLevelData?.isClipping
+                ? "Too loud - move back"
+                : audioLevelData?.isTooQuiet
+                ? "Speak louder"
+                : "Listening..."
+              : "Click to speak"}
+          </p>
+        )}
       </div>
     </div>
   );
 }
-
-
-
