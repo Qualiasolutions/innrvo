@@ -121,21 +121,34 @@ const AdminPage: React.FC = () => {
       }
 
       console.log('[AdminPage] Checking admin status for user:', user.id);
-      const adminStatus = await checkIsAdmin();
-      console.log('[AdminPage] Admin status result:', adminStatus);
 
-      // Don't update state if component unmounted during async check
-      if (!isMounted) return;
+      // Add timeout to prevent infinite loading
+      const timeoutPromise = new Promise<boolean>((_, reject) =>
+        setTimeout(() => reject(new Error('Admin check timed out after 10s')), 10000)
+      );
 
-      if (!adminStatus) {
-        console.warn('[AdminPage] Access denied: User is not an admin');
-        navigate('/', { replace: true });
-        return;
+      try {
+        const adminStatus = await Promise.race([checkIsAdmin(), timeoutPromise]);
+        console.log('[AdminPage] Admin status result:', adminStatus);
+
+        if (!isMounted) return;
+
+        if (!adminStatus) {
+          console.warn('[AdminPage] Access denied: User is not an admin');
+          navigate('/', { replace: true });
+          return;
+        }
+
+        console.log('[AdminPage] Admin verified, showing panel');
+        setIsAdmin(true);
+        setIsLoading(false);
+      } catch (err) {
+        console.error('[AdminPage] Admin check failed:', err);
+        if (isMounted) {
+          setError('Failed to verify admin access. Please refresh the page.');
+          setIsLoading(false);
+        }
       }
-
-      console.log('[AdminPage] Admin verified, showing panel');
-      setIsAdmin(true);
-      setIsLoading(false);
     };
 
     verifyAdmin();
@@ -373,6 +386,23 @@ const AdminPage: React.FC = () => {
     return (
       <div className="fixed inset-0 z-[100] bg-[#020617] flex items-center justify-center">
         <ChronosLoader message="Verifying admin access..." />
+      </div>
+    );
+  }
+
+  // Show error if verification failed
+  if (!isAdmin && error) {
+    return (
+      <div className="fixed inset-0 z-[100] bg-[#020617] flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-400 mb-4">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 rounded-lg text-white"
+          >
+            Refresh Page
+          </button>
+        </div>
       </div>
     );
   }
