@@ -1,6 +1,5 @@
 import { lazy, Suspense, useEffect } from 'react';
 import { createBrowserRouter, RouterProvider, Outlet, ScrollRestoration, useLocation } from 'react-router-dom';
-import { ChronosLoader } from '@/components/ui/chronos-engine';
 
 // Lazy load all pages for code splitting
 const HomePage = lazy(() => import('./pages/HomePage'));
@@ -76,10 +75,10 @@ const usePrefetchAdjacent = () => {
   }, [location.pathname]);
 };
 
-// Loading spinner component - uses ChronosEngine for visual consistency
+// Simple loading spinner - minimal and fast
 const PageLoader = () => (
   <div className="fixed inset-0 z-[100] bg-[#020617] flex items-center justify-center">
-    <ChronosLoader message="Loading..." />
+    <div className="animate-spin rounded-full h-8 w-8 border-2 border-cyan-500 border-t-transparent" />
   </div>
 );
 

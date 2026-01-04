@@ -49,8 +49,8 @@ const PhoneIcon = () => (
   </svg>
 );
 
-// Chronos Engine import for agent avatar and loading states
-import { ChronosEngine, ChronosMiniLoader } from '@/components/ui/chronos-engine';
+// Chronos Engine import for agent avatar
+import { ChronosEngine } from '@/components/ui/chronos-engine';
 
 // ============================================================================
 // SUB-COMPONENTS
@@ -85,7 +85,7 @@ const MessageBubble = memo<MessageBubbleProps>(({ message, isLast }) => {
         `}
       >
         {message.isLoading ? (
-          <ChronosMiniLoader />
+          <span className="text-amber-400/60 text-sm">Thinking...</span>
         ) : (
           <div className="text-base leading-relaxed whitespace-pre-wrap">{message.content}</div>
         )}
