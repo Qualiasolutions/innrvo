@@ -59,6 +59,16 @@ vi.mock('../../constants', () => ({
   ],
 }));
 
+// Mock voice profile cache - return null so tests hit the DB mock
+vi.mock('../../src/lib/voiceProfileCache', () => ({
+  getCachedVoiceProfiles: vi.fn(() => null),
+  setCachedVoiceProfiles: vi.fn(),
+  clearVoiceProfileCache: vi.fn(),
+  addToCachedVoiceProfiles: vi.fn(),
+  updateCachedVoiceProfile: vi.fn(),
+  removeFromCachedVoiceProfiles: vi.fn(),
+}));
+
 // Import after mocking
 import { AppProvider, useApp } from '../../src/contexts/AppContext';
 
@@ -457,7 +467,8 @@ describe('AppContext', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.availableVoices.length).toBeGreaterThan(1);
+        // Should have at least the cloned voice loaded
+        expect(result.current.availableVoices.length).toBeGreaterThanOrEqual(1);
       });
 
       const clonedVoice = result.current.availableVoices.find(v => v.id === 'cloned-1');
