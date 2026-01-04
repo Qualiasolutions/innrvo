@@ -330,17 +330,34 @@ The "Harmonize" button (magic wand icon) in MeditationEditor's Status Row uses A
 
 ### Admin System
 
-Protected admin panel at `/admin` for content moderation and analytics. Hidden route (no UI navigation links).
+Protected admin panel at `/admin` for content moderation and analytics. Accessible via Shield icon in sidebar (admin-only).
 
 **Files:**
-- `src/pages/AdminPage.tsx` - Tab-based admin UI (~590 lines)
-- `src/lib/adminSupabase.ts` - Admin database functions (~290 lines)
+- `src/pages/AdminPage.tsx` - Tab-based admin UI
+- `src/lib/adminSupabase.ts` - Admin database functions with direct fetch
 - `supabase/migrations/20251229034644_admin_access.sql` - RLS policies and analytics function
+- `components/Sidebar.tsx` - Shield icon menu item (conditional on `isAdmin` prop)
+
+**CRITICAL: Auth Token Handling**
+
+All admin functions MUST use the user's JWT access token, not the anon key. The RLS policies check `auth.uid()` which is only set when using a valid user JWT.
+
+```typescript
+// CORRECT - use user's access token
+const accessToken = await getAccessToken();  // Gets session.access_token
+const authToken = accessToken || supabaseKey;
+headers: { 'Authorization': `Bearer ${authToken}` }
+
+// WRONG - anon key makes auth.uid() return null
+headers: { 'Authorization': `Bearer ${supabaseKey}` }  // RLS will block!
+```
+
+The `getAccessToken()` helper retrieves the user's JWT from `supabase.auth.getSession()`.
 
 **Access Control:**
 ```typescript
-// Check admin status on mount
-const isAdmin = await checkIsAdmin();
+// Check admin status on mount (passes user.id)
+const isAdmin = await checkIsAdmin(user.id);
 if (!isAdmin) navigate('/');
 ```
 
@@ -348,56 +365,62 @@ if (!isAdmin) navigate('/');
 
 | Function | Purpose |
 |----------|---------|
-| `checkIsAdmin()` | Verify current user has ADMIN role |
+| `checkIsAdmin(userId)` | Verify user has ADMIN role via RPC |
 | `getAllUsers()` | List all users (protected by RLS) |
 | `deleteUserAdmin(userId)` | Delete user and cascade data |
 | `getAllMeditations(limit)` | List all meditations with user email |
 | `deleteMeditationAdmin(id)` | Delete any meditation |
 | `getAllVoiceProfiles(limit)` | List all voice profiles with user email |
 | `deleteVoiceProfileAdmin(id)` | Soft delete (set status = ARCHIVED) |
-| `getAdminAnalytics()` | Get aggregated counts via RPC |
-| `getAllAudioTags()` | List all audio tag presets |
+| `getAdminAnalytics(userId)` | Get aggregated counts via RPC (cached) |
+| `getRecentSignups(limit)` | Recent user signups for dashboard |
+| `getRecentMeditations(limit)` | Recent meditations for dashboard |
+| `getTemplateStats()` | Template usage statistics |
+| `getAllAudioTags()` | List all audio tag presets (cached) |
 | `createAudioTag(tag)` | Create new audio tag preset |
 | `updateAudioTag(id, updates)` | Update tag label/category/order |
 | `deleteAudioTag(id)` | Soft delete (set is_active = false) |
+| `getAllTemplatesAdmin()` | List all templates with category/subgroup |
+| `getUserActivityStats()` | User activity metrics |
+| `getAuditLogs()` | Admin action audit trail |
+
+**Analytics Cache:**
+
+Analytics use a `admin_analytics_cache` table for performance. The cache auto-refreshes every 5 minutes via `refresh_admin_analytics()` function. Manual refresh:
+```sql
+SELECT refresh_admin_analytics();
+```
 
 **RLS Policies (Migration 20251229034644):**
 
-All admin policies use this pattern:
+All admin policies use the `is_admin()` function which checks `auth.uid()`:
 ```sql
 CREATE POLICY "Admins can view all X"
   ON table_name FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM users
-      WHERE users.id = (SELECT auth.uid())
-      AND users.role = 'ADMIN'
-    )
-  );
+  USING (is_admin());
+
+-- is_admin() function:
+SELECT EXISTS (
+  SELECT 1 FROM users
+  WHERE id = auth.uid() AND role = 'ADMIN'
+);
 ```
 
 Tables with admin policies: `users`, `meditation_history`, `voice_profiles`, `audio_tag_presets`
-
-**Analytics Function:**
-```sql
--- SECURITY DEFINER ensures admin check runs with elevated privileges
-CREATE OR REPLACE FUNCTION get_admin_analytics()
-RETURNS TABLE (total_users, total_meditations, ...)
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-```
 
 **Setting Admin Role:**
 ```sql
 UPDATE users SET role = 'ADMIN' WHERE email = 'admin@example.com';
 ```
 
-**UI Structure (4 tabs):**
-1. **Analytics** - Total counts, 7-day trends
+**UI Structure (7 tabs):**
+1. **Analytics** - Rich dashboard with counts, trends, recent activity
 2. **Users** - User list with delete action (non-admins only)
-3. **Content** - Meditations and voice profiles with delete actions
-4. **Audio Tags** - CRUD for audio tag presets with category grouping
+3. **Activity** - User activity stats and engagement metrics
+4. **Content** - Meditations and voice profiles with delete actions
+5. **Templates** - Template management with categories/subgroups
+6. **Tags** - CRUD for audio tag presets with category grouping
+7. **Audit** - Admin action audit log
 
 ### Onboarding System
 
@@ -932,7 +955,7 @@ See `docs/MONITORING.md` for setup instructions. Key monitoring layers:
 | Issue | Cause | Solution |
 |-------|-------|----------|
 | 401 "Missing authorization header" on edge functions | JWT verification enabled | Deploy with `--no-verify-jwt` flag |
-| 404 on lazy-loaded chunks after deploy | Browser cached old bundle hashes | Hard refresh (Ctrl+Shift+R) |
+| 404 on lazy-loaded chunks after deploy | Browser cached old bundle hashes | Hard refresh (Ctrl+Shift+R); also add no-cache headers for index.html |
 | Edge function timeout | Long TTS generation (>120s) | Check `edgeFunctions.ts` timeout config |
 | Voice cloning fails silently | Legacy Fish Audio/Chatterbox voice | Re-clone with ElevenLabs (check `needsReclone()`) |
 | Chat responses robotic | Using `gemini-script` instead of `gemini-chat` | Ensure `geminiService.chat()` for conversation |
@@ -942,6 +965,8 @@ See `docs/MONITORING.md` for setup instructions. Key monitoring layers:
 | Session persists after "Remember Me" unchecked | Old localStorage data | Call `clearAuthStorage()` on sign out |
 | TypeScript errors in edge functions | Using `npx tsc` instead of Deno | Edge functions use Deno - run `supabase functions serve` to check |
 | Tests fail with import errors | Test file outside `tests/` | Tests must be in `tests/` directory (excluded from tsconfig) |
+| Admin panel shows 0 users/empty data | Using anon key instead of user JWT | Use `getAccessToken()` for Authorization header, not anon key |
+| Admin analytics stale after data changes | Cache not refreshed | Run `SELECT refresh_admin_analytics();` in Supabase SQL editor |
 
 ## Stack Research
 
