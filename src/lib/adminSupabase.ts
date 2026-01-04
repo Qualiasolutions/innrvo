@@ -905,194 +905,314 @@ export async function getAllTemplatesAdmin(useCache: boolean = true): Promise<Te
 
 /**
  * Create a new template category
+ * Uses direct fetch for proper JWT authentication
  */
 export async function createTemplateCategory(
   category: Omit<TemplateCategory, 'id' | 'created_at' | 'updated_at'>
 ): Promise<TemplateCategory> {
-  if (!supabase) throw new Error('Supabase not configured');
+  const { url, key } = getSupabaseConfig();
+  if (!url || !key) throw new Error('Supabase not configured');
 
-  return withRetry(async () => {
-    const { data, error } = await supabase!
-      .from('template_categories')
-      .insert(category)
-      .select()
-      .single();
+  const accessToken = await getAccessToken();
+  const authToken = accessToken || key;
 
-    if (error) throw error;
-    if (DEBUG) console.log('[adminSupabase] Created template category:', data);
-    return data;
+  const response = await fetch(`${url}/rest/v1/template_categories`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': key,
+      'Authorization': `Bearer ${authToken}`,
+      'Prefer': 'return=representation',
+    },
+    body: JSON.stringify(category),
   });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to create category: ${response.status} - ${errorText}`);
+  }
+
+  const data = await response.json();
+  invalidateTemplateCaches();
+  if (DEBUG) console.log('[adminSupabase] Created template category:', data);
+  return Array.isArray(data) ? data[0] : data;
 }
 
 /**
  * Update a template category
+ * Uses direct fetch for proper JWT authentication
  */
 export async function updateTemplateCategory(
   id: string,
   updates: Partial<Pick<TemplateCategory, 'name' | 'description' | 'icon' | 'color' | 'display_order' | 'is_active'>>
 ): Promise<void> {
-  if (!supabase) throw new Error('Supabase not configured');
   if (!id) throw new Error('Category ID required');
 
-  return withRetry(async () => {
-    const { error } = await supabase!
-      .from('template_categories')
-      .update({ ...updates, updated_at: new Date().toISOString() })
-      .eq('id', id);
+  const { url, key } = getSupabaseConfig();
+  if (!url || !key) throw new Error('Supabase not configured');
 
-    if (error) throw error;
-    if (DEBUG) console.log('[adminSupabase] Updated template category:', id);
+  const accessToken = await getAccessToken();
+  const authToken = accessToken || key;
+
+  const response = await fetch(`${url}/rest/v1/template_categories?id=eq.${id}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': key,
+      'Authorization': `Bearer ${authToken}`,
+      'Prefer': 'return=minimal',
+    },
+    body: JSON.stringify({ ...updates, updated_at: new Date().toISOString() }),
   });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to update category: ${response.status} - ${errorText}`);
+  }
+
+  invalidateTemplateCaches();
+  if (DEBUG) console.log('[adminSupabase] Updated template category:', id);
 }
 
 /**
  * Soft delete a template category (sets is_active to false)
+ * Uses direct fetch for proper JWT authentication
  */
 export async function deleteTemplateCategory(id: string): Promise<void> {
-  if (!supabase) throw new Error('Supabase not configured');
   if (!id) throw new Error('Category ID required');
 
-  return withRetry(async () => {
-    const { error } = await supabase!
-      .from('template_categories')
-      .update({ is_active: false, updated_at: new Date().toISOString() })
-      .eq('id', id);
+  const { url, key } = getSupabaseConfig();
+  if (!url || !key) throw new Error('Supabase not configured');
 
-    if (error) throw error;
-    if (DEBUG) console.log('[adminSupabase] Deactivated template category:', id);
+  const accessToken = await getAccessToken();
+  const authToken = accessToken || key;
+
+  const response = await fetch(`${url}/rest/v1/template_categories?id=eq.${id}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': key,
+      'Authorization': `Bearer ${authToken}`,
+      'Prefer': 'return=minimal',
+    },
+    body: JSON.stringify({ is_active: false, updated_at: new Date().toISOString() }),
   });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to delete category: ${response.status} - ${errorText}`);
+  }
+
+  invalidateTemplateCaches();
+  if (DEBUG) console.log('[adminSupabase] Deactivated template category:', id);
 }
 
 /**
  * Create a new template subgroup
+ * Uses direct fetch for proper JWT authentication
  */
 export async function createTemplateSubgroup(
   subgroup: Omit<TemplateSubgroup, 'id' | 'created_at' | 'updated_at'>
 ): Promise<TemplateSubgroup> {
-  if (!supabase) throw new Error('Supabase not configured');
+  const { url, key } = getSupabaseConfig();
+  if (!url || !key) throw new Error('Supabase not configured');
 
-  return withRetry(async () => {
-    const { data, error } = await supabase!
-      .from('template_subgroups')
-      .insert(subgroup)
-      .select()
-      .single();
+  const accessToken = await getAccessToken();
+  const authToken = accessToken || key;
 
-    if (error) throw error;
-    if (DEBUG) console.log('[adminSupabase] Created template subgroup:', data);
-    return data;
+  const response = await fetch(`${url}/rest/v1/template_subgroups`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': key,
+      'Authorization': `Bearer ${authToken}`,
+      'Prefer': 'return=representation',
+    },
+    body: JSON.stringify(subgroup),
   });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to create subgroup: ${response.status} - ${errorText}`);
+  }
+
+  const data = await response.json();
+  invalidateTemplateCaches();
+  if (DEBUG) console.log('[adminSupabase] Created template subgroup:', data);
+  return Array.isArray(data) ? data[0] : data;
 }
 
 /**
  * Update a template subgroup
+ * Uses direct fetch for proper JWT authentication
  */
 export async function updateTemplateSubgroup(
   id: string,
   updates: Partial<Pick<TemplateSubgroup, 'name' | 'description' | 'display_order' | 'is_active'>>
 ): Promise<void> {
-  if (!supabase) throw new Error('Supabase not configured');
   if (!id) throw new Error('Subgroup ID required');
 
-  return withRetry(async () => {
-    const { error } = await supabase!
-      .from('template_subgroups')
-      .update({ ...updates, updated_at: new Date().toISOString() })
-      .eq('id', id);
+  const { url, key } = getSupabaseConfig();
+  if (!url || !key) throw new Error('Supabase not configured');
 
-    if (error) throw error;
-    if (DEBUG) console.log('[adminSupabase] Updated template subgroup:', id);
+  const accessToken = await getAccessToken();
+  const authToken = accessToken || key;
+
+  const response = await fetch(`${url}/rest/v1/template_subgroups?id=eq.${id}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': key,
+      'Authorization': `Bearer ${authToken}`,
+      'Prefer': 'return=minimal',
+    },
+    body: JSON.stringify({ ...updates, updated_at: new Date().toISOString() }),
   });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to update subgroup: ${response.status} - ${errorText}`);
+  }
+
+  invalidateTemplateCaches();
+  if (DEBUG) console.log('[adminSupabase] Updated template subgroup:', id);
 }
 
 /**
  * Soft delete a template subgroup (sets is_active to false)
+ * Uses direct fetch for proper JWT authentication
  */
 export async function deleteTemplateSubgroup(id: string): Promise<void> {
-  if (!supabase) throw new Error('Supabase not configured');
   if (!id) throw new Error('Subgroup ID required');
 
-  return withRetry(async () => {
-    const { error } = await supabase!
-      .from('template_subgroups')
-      .update({ is_active: false, updated_at: new Date().toISOString() })
-      .eq('id', id);
+  const { url, key } = getSupabaseConfig();
+  if (!url || !key) throw new Error('Supabase not configured');
 
-    if (error) throw error;
-    if (DEBUG) console.log('[adminSupabase] Deactivated template subgroup:', id);
+  const accessToken = await getAccessToken();
+  const authToken = accessToken || key;
+
+  const response = await fetch(`${url}/rest/v1/template_subgroups?id=eq.${id}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': key,
+      'Authorization': `Bearer ${authToken}`,
+      'Prefer': 'return=minimal',
+    },
+    body: JSON.stringify({ is_active: false, updated_at: new Date().toISOString() }),
   });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to delete subgroup: ${response.status} - ${errorText}`);
+  }
+
+  invalidateTemplateCaches();
+  if (DEBUG) console.log('[adminSupabase] Deactivated template subgroup:', id);
 }
 
 /**
  * Create a new template
+ * Uses supabaseFetch for proper JWT authentication
  */
 export async function createTemplate(
   template: Omit<Template, 'id' | 'usage_count' | 'created_at' | 'updated_at'>
 ): Promise<Template> {
-  if (!supabase) throw new Error('Supabase not configured');
+  const { url, key } = getSupabaseConfig();
+  if (!url || !key) throw new Error('Supabase not configured');
 
-  return withRetry(async () => {
-    const { data, error } = await supabase!
-      .from('templates')
-      .insert({ ...template, usage_count: 0 })
-      .select()
-      .single();
+  const accessToken = await getAccessToken();
+  const authToken = accessToken || key;
 
-    if (error) throw error;
-
-    // Invalidate template caches
-    invalidateTemplateCaches();
-
-    if (DEBUG) console.log('[adminSupabase] Created template:', data);
-    return data;
+  const response = await fetch(`${url}/rest/v1/templates`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': key,
+      'Authorization': `Bearer ${authToken}`,
+      'Prefer': 'return=representation',
+    },
+    body: JSON.stringify({ ...template, usage_count: 0 }),
   });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to create template: ${response.status} - ${errorText}`);
+  }
+
+  const data = await response.json();
+  invalidateTemplateCaches();
+  if (DEBUG) console.log('[adminSupabase] Created template:', data);
+  return Array.isArray(data) ? data[0] : data;
 }
 
 /**
  * Update a template
+ * Uses supabaseFetch for proper JWT authentication
  */
 export async function updateTemplate(
   id: string,
   updates: Partial<Pick<Template, 'title' | 'description' | 'prompt' | 'category_id' | 'subgroup_id' | 'display_order' | 'is_active'>>
 ): Promise<void> {
-  if (!supabase) throw new Error('Supabase not configured');
   if (!id) throw new Error('Template ID required');
 
-  return withRetry(async () => {
-    const { error } = await supabase!
-      .from('templates')
-      .update({ ...updates, updated_at: new Date().toISOString() })
-      .eq('id', id);
+  const { url, key } = getSupabaseConfig();
+  if (!url || !key) throw new Error('Supabase not configured');
 
-    if (error) throw error;
+  const accessToken = await getAccessToken();
+  const authToken = accessToken || key;
 
-    // Invalidate template caches
-    invalidateTemplateCaches();
-
-    if (DEBUG) console.log('[adminSupabase] Updated template:', id);
+  const response = await fetch(`${url}/rest/v1/templates?id=eq.${id}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': key,
+      'Authorization': `Bearer ${authToken}`,
+      'Prefer': 'return=minimal',
+    },
+    body: JSON.stringify({ ...updates, updated_at: new Date().toISOString() }),
   });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to update template: ${response.status} - ${errorText}`);
+  }
+
+  invalidateTemplateCaches();
+  if (DEBUG) console.log('[adminSupabase] Updated template:', id);
 }
 
 /**
  * Soft delete a template (sets is_active to false)
+ * Uses supabaseFetch for proper JWT authentication
  */
 export async function deleteTemplate(id: string): Promise<void> {
-  if (!supabase) throw new Error('Supabase not configured');
   if (!id) throw new Error('Template ID required');
 
-  return withRetry(async () => {
-    const { error } = await supabase!
-      .from('templates')
-      .update({ is_active: false, updated_at: new Date().toISOString() })
-      .eq('id', id);
+  const { url, key } = getSupabaseConfig();
+  if (!url || !key) throw new Error('Supabase not configured');
 
-    if (error) throw error;
+  const accessToken = await getAccessToken();
+  const authToken = accessToken || key;
 
-    // Invalidate template caches
-    invalidateTemplateCaches();
-
-    if (DEBUG) console.log('[adminSupabase] Deactivated template:', id);
+  const response = await fetch(`${url}/rest/v1/templates?id=eq.${id}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': key,
+      'Authorization': `Bearer ${authToken}`,
+      'Prefer': 'return=minimal',
+    },
+    body: JSON.stringify({ is_active: false, updated_at: new Date().toISOString() }),
   });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to delete template: ${response.status} - ${errorText}`);
+  }
+
+  invalidateTemplateCaches();
+  if (DEBUG) console.log('[adminSupabase] Deactivated template:', id);
 }
 
 /**
@@ -1168,11 +1288,11 @@ export async function getRecentMeditations(limit: number = 5): Promise<RecentMed
       id: string;
       prompt: string;
       created_at: string;
-      category: string | null;
+      content_category: string | null;
       users: { email: string } | null;
     }>>('meditation_history', {
       params: {
-        select: 'id,prompt,created_at,category,users(email)',
+        select: 'id,prompt,created_at,content_category,users(email)',
         order: 'created_at.desc',
         limit: limit.toString(),
       },
@@ -1185,7 +1305,7 @@ export async function getRecentMeditations(limit: number = 5): Promise<RecentMed
       prompt: m.prompt,
       user_email: m.users?.email || null,
       created_at: m.created_at,
-      category: m.category,
+      category: m.content_category,
     }));
   } catch (error) {
     console.error('[adminSupabase] Error fetching recent meditations:', error);
