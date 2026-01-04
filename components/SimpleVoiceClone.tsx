@@ -54,11 +54,13 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
   const [localError, setLocalError] = useState<string | null>(null);
   const [recordingDuration, setRecordingDuration] = useState(0);
 
-  // Audio preview state
+  // Audio preview state - optimized for smooth playback
   const [isPlayingPreview, setIsPlayingPreview] = useState(false);
   const [previewProgress, setPreviewProgress] = useState(0);
+  const [audioDuration, setAudioDuration] = useState(0);
   const audioPreviewRef = useRef<HTMLAudioElement | null>(null);
   const previewUrlRef = useRef<string | null>(null);
+  const rafRef = useRef<number | null>(null);
 
   // Audio analyzer for real-time level feedback
   const { levelData, start: startAnalyzer, stop: stopAnalyzer } = useAudioAnalyzer();
@@ -112,6 +114,7 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
       if (autoStopRef.current) clearTimeout(autoStopRef.current);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
       }
@@ -127,6 +130,46 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
       }
     };
   }, [stopAnalyzer]);
+
+  // Pre-initialize audio element when blob is available (not on first click)
+  useEffect(() => {
+    if (recordedBlob && !audioPreviewRef.current) {
+      previewUrlRef.current = URL.createObjectURL(recordedBlob);
+      const audio = new Audio(previewUrlRef.current);
+      audio.preload = 'metadata';
+
+      audio.onloadedmetadata = () => {
+        setAudioDuration(audio.duration);
+      };
+
+      audio.onended = () => {
+        setIsPlayingPreview(false);
+        setPreviewProgress(0);
+        if (rafRef.current) {
+          cancelAnimationFrame(rafRef.current);
+          rafRef.current = null;
+        }
+      };
+
+      audioPreviewRef.current = audio;
+    }
+
+    // Cleanup when blob changes or is cleared
+    return () => {
+      if (!recordedBlob && audioPreviewRef.current) {
+        audioPreviewRef.current.pause();
+        audioPreviewRef.current = null;
+        if (previewUrlRef.current) {
+          URL.revokeObjectURL(previewUrlRef.current);
+          previewUrlRef.current = null;
+        }
+        if (rafRef.current) {
+          cancelAnimationFrame(rafRef.current);
+          rafRef.current = null;
+        }
+      }
+    };
+  }, [recordedBlob]);
 
   const startRecording = useCallback(async () => {
     try {
@@ -222,35 +265,38 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
     }
   }, [startRecording, stopRecording]);
 
-  // Audio preview controls
+  // Smooth progress update using requestAnimationFrame (60fps instead of 4fps ontimeupdate)
+  const updateProgress = useCallback(() => {
+    if (audioPreviewRef.current && !audioPreviewRef.current.paused) {
+      const progress = (audioPreviewRef.current.currentTime / audioPreviewRef.current.duration) * 100;
+      setPreviewProgress(isNaN(progress) ? 0 : progress);
+      rafRef.current = requestAnimationFrame(updateProgress);
+    }
+  }, []);
+
+  // Audio preview controls - optimized for instant response
   const togglePreview = useCallback(() => {
-    if (!recordedBlob) return;
+    if (!recordedBlob || !audioPreviewRef.current) return;
 
     if (isPlayingPreview) {
-      audioPreviewRef.current?.pause();
+      // Instant visual feedback before audio pauses
       setIsPlayingPreview(false);
-    } else {
-      if (!audioPreviewRef.current) {
-        // Create new audio element
-        previewUrlRef.current = URL.createObjectURL(recordedBlob);
-        audioPreviewRef.current = new Audio(previewUrlRef.current);
-
-        audioPreviewRef.current.onended = () => {
-          setIsPlayingPreview(false);
-          setPreviewProgress(0);
-        };
-
-        audioPreviewRef.current.ontimeupdate = () => {
-          if (audioPreviewRef.current) {
-            const progress = (audioPreviewRef.current.currentTime / audioPreviewRef.current.duration) * 100;
-            setPreviewProgress(isNaN(progress) ? 0 : progress);
-          }
-        };
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
       }
-      audioPreviewRef.current.play();
+      audioPreviewRef.current.pause();
+    } else {
+      // Instant visual feedback before audio plays
       setIsPlayingPreview(true);
+      audioPreviewRef.current.play().then(() => {
+        rafRef.current = requestAnimationFrame(updateProgress);
+      }).catch((e) => {
+        console.error('Audio play failed:', e);
+        setIsPlayingPreview(false);
+      });
     }
-  }, [recordedBlob, isPlayingPreview]);
+  }, [recordedBlob, isPlayingPreview, updateProgress]);
 
   const handleCloneVoice = async () => {
     if (!recordedBlob) {
@@ -286,7 +332,12 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
     await onRecordingComplete(recordedBlob, voiceName, metadata);
   };
 
-  const resetRecording = () => {
+  const resetRecording = useCallback(() => {
+    // Stop animation frame first
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
     // Stop and cleanup preview
     if (audioPreviewRef.current) {
       audioPreviewRef.current.pause();
@@ -298,13 +349,14 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
     }
     setIsPlayingPreview(false);
     setPreviewProgress(0);
+    setAudioDuration(0);
 
     setRecordedBlob(null);
     setIsRecording(false);
     setRecordingDuration(0);
     setLocalError(null);
     setStep('record');
-  };
+  }, []);
 
   // Memoize status message
   const statusMessage = useMemo(() => {
@@ -561,7 +613,11 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
                       <div className="flex items-center gap-3">
                         <button
                           onClick={togglePreview}
-                          className="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center text-cyan-400 hover:bg-cyan-500/30 transition-colors"
+                          className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors active:scale-95 ${
+                            isPlayingPreview
+                              ? 'bg-cyan-500/30 text-cyan-300'
+                              : 'bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30'
+                          }`}
                         >
                           {isPlayingPreview ? (
                             <Pause className="w-5 h-5" />
@@ -572,13 +628,16 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
                         <div className="flex-1">
                           <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
                             <div
-                              className="h-full bg-cyan-400 transition-all duration-100"
-                              style={{ width: `${previewProgress}%` }}
+                              className="h-full bg-cyan-400 origin-left"
+                              style={{
+                                transform: `scaleX(${previewProgress / 100})`,
+                                willChange: isPlayingPreview ? 'transform' : 'auto',
+                              }}
                             />
                           </div>
                         </div>
                         <span className="text-xs text-slate-500 tabular-nums w-10 text-right">
-                          {formatDuration(Math.floor(recordingDuration * (previewProgress / 100)))}
+                          {formatDuration(Math.floor((audioDuration || recordingDuration) * (previewProgress / 100)))}
                         </span>
                       </div>
                       <p className="text-xs text-slate-500 mt-2">
@@ -632,7 +691,11 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
               <div className="flex items-center gap-3">
                 <button
                   onClick={togglePreview}
-                  className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0 text-emerald-400 hover:bg-emerald-500/30 transition-colors"
+                  className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-colors active:scale-95 ${
+                    isPlayingPreview
+                      ? 'bg-emerald-500/30 text-emerald-300'
+                      : 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30'
+                  }`}
                 >
                   {isPlayingPreview ? (
                     <Pause className="w-5 h-5" />
@@ -647,14 +710,17 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
                   </div>
                   <div className="h-1 bg-white/10 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-emerald-400 transition-all duration-100"
-                      style={{ width: `${previewProgress}%` }}
+                      className="h-full bg-emerald-400 origin-left"
+                      style={{
+                        transform: `scaleX(${previewProgress / 100})`,
+                        willChange: isPlayingPreview ? 'transform' : 'auto',
+                      }}
                     />
                   </div>
                 </div>
                 <button
                   onClick={resetRecording}
-                  className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 text-xs font-medium transition-all"
+                  className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 text-xs font-medium transition-colors active:scale-95"
                 >
                   Re-record
                 </button>
