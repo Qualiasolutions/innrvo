@@ -58,11 +58,12 @@ interface UseVoiceCloningReturn {
   resetCloningState: () => void;
 }
 
+// Credits are disabled - default to unlimited access for all users
 const DEFAULT_CREDIT_INFO: CreditInfo = {
-  canClone: false,
-  creditsRemaining: 0,
-  clonesRemaining: 0,
-  cloneCost: 5000,
+  canClone: true,
+  creditsRemaining: 999999999,
+  clonesRemaining: 999999,
+  cloneCost: 0,
 };
 
 export function useVoiceCloning(
@@ -134,12 +135,13 @@ export function useVoiceCloning(
       onCreditInfoUpdated?.(info);
     } catch (error) {
       console.error('Failed to fetch credit info:', error);
+      // Credits are disabled - allow cloning even if credit check fails
       const info: CreditInfo = {
-        canClone: false,
-        creditsRemaining: 0,
-        clonesRemaining: 0,
-        cloneCost: 5000,
-        reason: 'Failed to check credits',
+        canClone: true,
+        creditsRemaining: 999999999,
+        clonesRemaining: 999999,
+        cloneCost: 0,
+        reason: undefined,
       };
       setCreditInfo(info);
     }

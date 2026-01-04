@@ -135,11 +135,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // Cloning state
   const [cloningStatus, setCloningStatus] = useState<CloningStatus>({ state: 'idle' });
+  // Credits are disabled - default to unlimited access for all users
   const [creditInfo, setCreditInfo] = useState<CreditInfo>({
-    canClone: false,
-    creditsRemaining: 0,
-    clonesRemaining: 0,
-    cloneCost: 5000,
+    canClone: true,
+    creditsRemaining: 999999999,
+    clonesRemaining: 999999,
+    cloneCost: 0,
   });
 
   // Audio state

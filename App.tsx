@@ -139,11 +139,12 @@ const App: React.FC = () => {
 
   // Cloning states
   const [cloningStatus, setCloningStatus] = useState<CloningStatus>({ state: 'idle' });
+  // Credits are disabled - default to unlimited access for all users
   const [creditInfo, setCreditInfo] = useState<CreditInfo>({
-    canClone: false,
-    creditsRemaining: 0,
-    clonesRemaining: 0,
-    cloneCost: 5000,
+    canClone: true,
+    creditsRemaining: 999999999,
+    clonesRemaining: 999999,
+    cloneCost: 0,
   });
 
   // Admin state
@@ -769,12 +770,13 @@ const App: React.FC = () => {
       });
     } catch (error) {
       console.error('Failed to fetch credit info:', error);
+      // Credits are disabled - allow cloning even if credit check fails
       setCreditInfo({
-        canClone: false,
-        creditsRemaining: 0,
-        clonesRemaining: 0,
-        cloneCost: 5000,
-        reason: 'Failed to check credits',
+        canClone: true,
+        creditsRemaining: 999999999,
+        clonesRemaining: 999999,
+        cloneCost: 0,
+        reason: undefined,
       });
     }
   }, [user]);
