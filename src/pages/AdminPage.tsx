@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, FileText, BarChart3, Tag, Trash2, Plus, X, Check, AlertCircle, Activity, ScrollText, LayoutTemplate, Edit2, ChevronDown, ChevronRight } from 'lucide-react';
+import { Users, FileText, BarChart3, Tag, Trash2, Plus, X, Check, AlertCircle, Activity, ScrollText, LayoutTemplate, Edit2, ChevronDown, ChevronRight, RefreshCw } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import AppLayout from '../layouts/AppLayout';
 import GlassCard from '../../components/GlassCard';
@@ -45,6 +45,7 @@ import {
   type RecentMeditation,
   type TemplateStats,
 } from '../lib/adminSupabase';
+import { clearAllAdminCache } from '../lib/adminDataCache';
 import type { User, MeditationHistory, VoiceProfile } from '../../lib/supabase';
 
 type AdminTab = 'analytics' | 'users' | 'activity' | 'content' | 'templates' | 'tags' | 'audit';
@@ -67,6 +68,9 @@ const AdminPage: React.FC = () => {
 
   // Data state
   const [users, setUsers] = useState<User[]>([]);
+  const [usersTotal, setUsersTotal] = useState(0);
+  const [usersHasMore, setUsersHasMore] = useState(false);
+  const [usersLoading, setUsersLoading] = useState(false);
   const [meditations, setMeditations] = useState<MeditationWithUser[]>([]);
   const [voices, setVoices] = useState<VoiceProfileWithUser[]>([]);
   const [analytics, setAnalytics] = useState<AdminAnalytics | null>(null);
@@ -178,8 +182,10 @@ const AdminPage: React.FC = () => {
       try {
         switch (activeTab) {
           case 'users':
-            const usersData = await getAllUsers();
+            const { users: usersData, total, hasMore } = await getAllUsers(100, 0);
             setUsers(usersData);
+            setUsersTotal(total);
+            setUsersHasMore(hasMore);
             break;
           case 'content':
             const [meditationsData, voicesData] = await Promise.all([
@@ -358,6 +364,33 @@ const AdminPage: React.FC = () => {
     });
   };
 
+  // Load more users (pagination)
+  const handleLoadMoreUsers = async () => {
+    if (usersLoading || !usersHasMore) return;
+
+    setUsersLoading(true);
+    try {
+      const { users: moreUsers, hasMore } = await getAllUsers(100, users.length, false);
+      setUsers(prev => [...prev, ...moreUsers]);
+      setUsersHasMore(hasMore);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to load more users';
+      setError(message);
+    } finally {
+      setUsersLoading(false);
+    }
+  };
+
+  // Refresh current tab data (bypass cache)
+  const handleRefreshData = async () => {
+    // Clear all admin caches and reload current tab
+    clearAllAdminCache();
+    // Trigger reload by changing activeTab temporarily (this triggers the useEffect)
+    const currentTab = activeTab;
+    setActiveTab('analytics'); // Dummy switch
+    setTimeout(() => setActiveTab(currentTab), 0);
+  };
+
   // Add tag handler
   const handleAddTag = async () => {
     if (!newTag.tag_key || !newTag.tag_label) {
@@ -446,12 +479,22 @@ const AdminPage: React.FC = () => {
     <AppLayout showBackButton backTo="/">
       <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-8 pt-16 sm:pt-20 max-w-7xl">
         {/* Header */}
-        <div className="mb-6 sm:mb-8">
-          <div className="inline-block px-3 sm:px-4 py-1 rounded-full bg-purple-500/10 text-purple-400 text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.3em] sm:tracking-[0.4em] mb-3 sm:mb-4">
-            Admin Panel
+        <div className="mb-6 sm:mb-8 flex items-start justify-between">
+          <div>
+            <div className="inline-block px-3 sm:px-4 py-1 rounded-full bg-purple-500/10 text-purple-400 text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.3em] sm:tracking-[0.4em] mb-3 sm:mb-4">
+              Admin Panel
+            </div>
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-1 sm:mb-2">System Management</h1>
+            <p className="text-slate-400 text-sm sm:text-base">Manage users, content, and system settings</p>
           </div>
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-1 sm:mb-2">System Management</h1>
-          <p className="text-slate-400 text-sm sm:text-base">Manage users, content, and system settings</p>
+          <button
+            onClick={handleRefreshData}
+            className="flex items-center gap-2 px-3 py-2 bg-white/[0.02] text-slate-400 rounded-lg hover:bg-white/[0.04] hover:text-white border border-white/[0.06] transition-colors"
+            title="Refresh data (bypass cache)"
+          >
+            <RefreshCw className="w-4 h-4" />
+            <span className="hidden sm:inline text-sm">Refresh</span>
+          </button>
         </div>
 
         {/* Error Banner */}
@@ -642,7 +685,16 @@ const AdminPage: React.FC = () => {
 
         {activeTab === 'users' && (
           <GlassCard className="!p-4 sm:!p-6 md:!p-8 !rounded-xl sm:!rounded-2xl">
-            <h2 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6">Users ({users.length})</h2>
+            <div className="flex items-center justify-between mb-4 sm:mb-6">
+              <h2 className="text-xl sm:text-2xl font-bold text-white">
+                Users ({users.length}{usersTotal > users.length ? ` of ${usersTotal}` : ''})
+              </h2>
+              {usersTotal > users.length && (
+                <span className="text-slate-500 text-sm">
+                  Showing first {users.length}
+                </span>
+              )}
+            </div>
             {users.length > 0 ? (
               <>
                 {/* Desktop Table View */}
@@ -725,6 +777,26 @@ const AdminPage: React.FC = () => {
                     </div>
                   ))}
                 </div>
+
+                {/* Load More Button */}
+                {usersHasMore && (
+                  <div className="mt-4 flex justify-center">
+                    <button
+                      onClick={handleLoadMoreUsers}
+                      disabled={usersLoading}
+                      className="flex items-center gap-2 px-6 py-2 bg-cyan-500/20 text-cyan-400 rounded-lg hover:bg-cyan-500/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {usersLoading ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin" />
+                          Loading...
+                        </>
+                      ) : (
+                        <>Load More</>
+                      )}
+                    </button>
+                  </div>
+                )}
               </>
             ) : (
               <EmptyState message="No users found" />
@@ -1402,7 +1474,7 @@ const AdminPage: React.FC = () => {
   );
 };
 
-// Helper component for analytics stat cards
+// Helper component for analytics stat cards - memoized to prevent unnecessary re-renders
 interface StatCardProps {
   label: string;
   value: number;
@@ -1410,7 +1482,7 @@ interface StatCardProps {
   color?: 'cyan' | 'emerald' | 'purple' | 'amber';
 }
 
-const StatCard: React.FC<StatCardProps> = ({ label, value, subtext, color = 'cyan' }) => {
+const StatCard = memo<StatCardProps>(({ label, value, subtext, color = 'cyan' }) => {
   const colorClasses = {
     cyan: 'text-cyan-400',
     emerald: 'text-emerald-400',
@@ -1427,13 +1499,17 @@ const StatCard: React.FC<StatCardProps> = ({ label, value, subtext, color = 'cya
       {subtext && <p className="text-emerald-400 text-[10px] sm:text-xs md:text-sm mt-0.5 sm:mt-1">{subtext}</p>}
     </div>
   );
-};
+});
 
-// Helper component for empty states
-const EmptyState: React.FC<{ message: string }> = ({ message }) => (
+StatCard.displayName = 'StatCard';
+
+// Helper component for empty states - memoized
+const EmptyState = memo<{ message: string }>(({ message }) => (
   <div className="text-center py-12">
     <p className="text-slate-500">{message}</p>
   </div>
-);
+));
+
+EmptyState.displayName = 'EmptyState';
 
 export default AdminPage;

@@ -5,6 +5,15 @@
 
 import { supabase, withRetry, User, VoiceProfile, MeditationHistory } from '../../lib/supabase';
 import { getCachedAudioTags, setCachedAudioTags, clearAudioTagCache } from './audioTagCache';
+import {
+  getCached,
+  setCache,
+  CACHE_KEYS,
+  invalidateUserCaches,
+  invalidateMeditationCaches,
+  invalidateVoiceProfileCaches,
+  invalidateTemplateCaches,
+} from './adminDataCache';
 
 const DEBUG = import.meta.env?.DEV ?? false;
 
@@ -242,21 +251,65 @@ export interface TemplateWithDetails extends Template {
 // ============================================================================
 
 /**
- * Get all users (admin only - protected by RLS)
+ * Get users with pagination (admin only - protected by RLS)
+ * Uses client-side caching with 5-minute TTL
  */
-export async function getAllUsers(): Promise<User[]> {
+export async function getAllUsers(
+  limit: number = 100,
+  offset: number = 0,
+  useCache: boolean = true
+): Promise<{ users: User[]; total: number; hasMore: boolean }> {
+  // Only cache first page requests
+  const cacheKey = offset === 0 ? CACHE_KEYS.USERS : null;
+
+  if (useCache && cacheKey) {
+    const cached = getCached<{ users: User[]; total: number; hasMore: boolean }>(cacheKey);
+    if (cached) return cached;
+  }
+
   try {
+    // Fetch users with pagination - only select needed columns
     const data = await supabaseFetch<User[]>('users', {
       params: {
-        select: '*',
+        select: 'id,email,first_name,last_name,role,tier,created_at',
         order: 'created_at.desc',
+        limit: limit.toString(),
+        offset: offset.toString(),
       },
     });
-    if (DEBUG) console.log('[adminSupabase] Fetched users:', data?.length);
-    return data || [];
+
+    // Get total count for pagination UI (only on first page load)
+    let total = data?.length || 0;
+    if (offset === 0) {
+      try {
+        const countData = await supabaseFetch<Array<{ count: number }>>('users', {
+          params: {
+            select: 'count',
+          },
+        });
+        total = countData?.[0]?.count || data?.length || 0;
+      } catch {
+        // Fallback to fetched length if count fails
+        total = data?.length || 0;
+      }
+    }
+
+    const result = {
+      users: data || [],
+      total,
+      hasMore: (data?.length || 0) === limit,
+    };
+
+    // Cache first page results
+    if (cacheKey) {
+      setCache(cacheKey, result);
+    }
+
+    if (DEBUG) console.log('[adminSupabase] Fetched users:', data?.length, 'total:', total);
+    return result;
   } catch (error) {
     console.error('[adminSupabase] Error fetching users:', error);
-    return [];
+    return { users: [], total: 0, hasMore: false };
   }
 }
 
@@ -286,6 +339,9 @@ export async function deleteUserAdmin(userId: string): Promise<void> {
     // Log the admin action
     await logAdminAction('users', userId, 'ADMIN_DELETE', userId, userData || undefined);
 
+    // Invalidate user-related caches
+    invalidateUserCaches();
+
     if (DEBUG) console.log('[adminSupabase] Deleted user:', userId);
   });
 }
@@ -296,9 +352,19 @@ export async function deleteUserAdmin(userId: string): Promise<void> {
 
 /**
  * Get all meditations across all users (admin only - protected by RLS)
+ * Uses client-side caching with 5-minute TTL
  */
-export async function getAllMeditations(limit: number = 100): Promise<MeditationHistory[]> {
+export async function getAllMeditations(
+  limit: number = 100,
+  useCache: boolean = true
+): Promise<MeditationHistory[]> {
   if (!supabase) throw new Error('Supabase not configured');
+
+  // Check cache first
+  if (useCache) {
+    const cached = getCached<MeditationHistory[]>(CACHE_KEYS.MEDITATIONS);
+    if (cached) return cached;
+  }
 
   return withRetry(async () => {
     const { data, error } = await supabase!
@@ -308,6 +374,12 @@ export async function getAllMeditations(limit: number = 100): Promise<Meditation
       .limit(limit);
 
     if (error) throw error;
+
+    // Cache the results
+    if (data) {
+      setCache(CACHE_KEYS.MEDITATIONS, data);
+    }
+
     if (DEBUG) console.log('[adminSupabase] Fetched meditations:', data?.length);
     return data || [];
   });
@@ -344,15 +416,28 @@ export async function deleteMeditationAdmin(meditationId: string): Promise<void>
       meditationData || undefined
     );
 
+    // Invalidate meditation-related caches
+    invalidateMeditationCaches();
+
     if (DEBUG) console.log('[adminSupabase] Deleted meditation:', meditationId);
   });
 }
 
 /**
  * Get all voice profiles across all users (admin only - protected by RLS)
+ * Uses client-side caching with 5-minute TTL
  */
-export async function getAllVoiceProfiles(limit: number = 100): Promise<VoiceProfile[]> {
+export async function getAllVoiceProfiles(
+  limit: number = 100,
+  useCache: boolean = true
+): Promise<VoiceProfile[]> {
   if (!supabase) throw new Error('Supabase not configured');
+
+  // Check cache first
+  if (useCache) {
+    const cached = getCached<VoiceProfile[]>(CACHE_KEYS.VOICE_PROFILES);
+    if (cached) return cached;
+  }
 
   return withRetry(async () => {
     const { data, error } = await supabase!
@@ -363,6 +448,12 @@ export async function getAllVoiceProfiles(limit: number = 100): Promise<VoicePro
       .limit(limit);
 
     if (error) throw error;
+
+    // Cache the results
+    if (data) {
+      setCache(CACHE_KEYS.VOICE_PROFILES, data);
+    }
+
     if (DEBUG) console.log('[adminSupabase] Fetched voice profiles:', data?.length);
     return data || [];
   });
@@ -404,6 +495,9 @@ export async function deleteVoiceProfileAdmin(profileId: string): Promise<void> 
       { status: 'ARCHIVED' }
     );
 
+    // Invalidate voice profile caches
+    invalidateVoiceProfileCaches();
+
     if (DEBUG) console.log('[adminSupabase] Archived voice profile:', profileId);
   });
 }
@@ -425,9 +519,16 @@ interface AdminAnalyticsRow {
 /**
  * Get admin analytics (aggregated counts)
  * Uses the get_admin_analytics() function which verifies admin role internally
+ * Uses client-side caching with 5-minute TTL
  * @param userId - User ID to verify admin status (required for consistent auth)
  */
-export async function getAdminAnalytics(userId?: string): Promise<AdminAnalytics> {
+export async function getAdminAnalytics(userId?: string, useCache: boolean = true): Promise<AdminAnalytics> {
+  // Check cache first
+  if (useCache) {
+    const cached = getCached<AdminAnalytics>(CACHE_KEYS.ANALYTICS);
+    if (cached) return cached;
+  }
+
   try {
     // Pass user_id to the function for consistent auth (like check_is_admin)
     const data = await supabaseRpc<AdminAnalyticsRow>('get_admin_analytics',
@@ -435,7 +536,7 @@ export async function getAdminAnalytics(userId?: string): Promise<AdminAnalytics
     );
     if (DEBUG) console.log('[adminSupabase] Fetched analytics:', data);
 
-    return {
+    const result = {
       totalUsers: data?.total_users || 0,
       totalMeditations: data?.total_meditations || 0,
       totalVoiceProfiles: data?.total_voice_profiles || 0,
@@ -443,6 +544,11 @@ export async function getAdminAnalytics(userId?: string): Promise<AdminAnalytics
       newUsers7d: data?.new_users_7d || 0,
       newMeditations7d: data?.new_meditations_7d || 0,
     };
+
+    // Cache the results
+    setCache(CACHE_KEYS.ANALYTICS, result);
+
+    return result;
   } catch (error) {
     console.error('[adminSupabase] Error fetching analytics:', error);
     return {
@@ -748,9 +854,16 @@ export async function getTemplateSubgroups(categoryId?: string): Promise<Templat
 
 /**
  * Get all templates with category and subgroup names (admin view)
+ * Uses client-side caching with 5-minute TTL
  */
-export async function getAllTemplatesAdmin(): Promise<TemplateWithDetails[]> {
+export async function getAllTemplatesAdmin(useCache: boolean = true): Promise<TemplateWithDetails[]> {
   if (!supabase) throw new Error('Supabase not configured');
+
+  // Check cache first
+  if (useCache) {
+    const cached = getCached<TemplateWithDetails[]>(CACHE_KEYS.TEMPLATES);
+    if (cached) return cached;
+  }
 
   return withRetry(async () => {
     const { data, error } = await supabase!
@@ -762,7 +875,8 @@ export async function getAllTemplatesAdmin(): Promise<TemplateWithDetails[]> {
       `)
       .order('category_id')
       .order('subgroup_id')
-      .order('display_order');
+      .order('display_order')
+      .limit(500); // Add reasonable limit
 
     if (error) throw error;
 
@@ -780,6 +894,9 @@ export async function getAllTemplatesAdmin(): Promise<TemplateWithDetails[]> {
         subgroup_name: template_subgroups?.name,
       };
     });
+
+    // Cache the results
+    setCache(CACHE_KEYS.TEMPLATES, templates);
 
     if (DEBUG) console.log('[adminSupabase] Fetched all templates:', templates.length);
     return templates;
@@ -922,6 +1039,10 @@ export async function createTemplate(
       .single();
 
     if (error) throw error;
+
+    // Invalidate template caches
+    invalidateTemplateCaches();
+
     if (DEBUG) console.log('[adminSupabase] Created template:', data);
     return data;
   });
@@ -944,6 +1065,10 @@ export async function updateTemplate(
       .eq('id', id);
 
     if (error) throw error;
+
+    // Invalidate template caches
+    invalidateTemplateCaches();
+
     if (DEBUG) console.log('[adminSupabase] Updated template:', id);
   });
 }
@@ -962,6 +1087,10 @@ export async function deleteTemplate(id: string): Promise<void> {
       .eq('id', id);
 
     if (error) throw error;
+
+    // Invalidate template caches
+    invalidateTemplateCaches();
+
     if (DEBUG) console.log('[adminSupabase] Deactivated template:', id);
   });
 }
@@ -1064,10 +1193,60 @@ export async function getRecentMeditations(limit: number = 5): Promise<RecentMed
   }
 }
 
+// Type for the RPC function return
+interface TemplateStatsRow {
+  total_templates: number;
+  active_templates: number;
+  total_categories: number;
+  most_used_category: string | null;
+  most_used_category_count: number;
+}
+
 /**
  * Get template statistics for admin dashboard
+ * Uses server-side RPC function for efficient calculation
+ * Uses client-side caching with 5-minute TTL
  */
-export async function getTemplateStats(): Promise<TemplateStats> {
+export async function getTemplateStats(useCache: boolean = true): Promise<TemplateStats> {
+  // Check cache first
+  if (useCache) {
+    const cached = getCached<TemplateStats>(CACHE_KEYS.TEMPLATE_STATS);
+    if (cached) return cached;
+  }
+
+  try {
+    // Try the new RPC function first (server-side calculation)
+    const data = await supabaseRpc<TemplateStatsRow>('get_template_stats');
+
+    if (data) {
+      const result = {
+        totalTemplates: data.total_templates || 0,
+        activeTemplates: data.active_templates || 0,
+        totalCategories: data.total_categories || 0,
+        mostUsedCategory: data.most_used_category,
+        mostUsedCategoryCount: data.most_used_category_count || 0,
+      };
+
+      // Cache the results
+      setCache(CACHE_KEYS.TEMPLATE_STATS, result);
+
+      if (DEBUG) console.log('[adminSupabase] Template stats (RPC):', result);
+      return result;
+    }
+
+    // Fallback to client-side calculation if RPC doesn't exist yet
+    return await getTemplateStatsLegacy();
+  } catch (error) {
+    // Fallback to legacy implementation if RPC fails
+    if (DEBUG) console.log('[adminSupabase] RPC failed, using legacy stats:', error);
+    return await getTemplateStatsLegacy();
+  }
+}
+
+/**
+ * Legacy client-side template stats calculation (fallback)
+ */
+async function getTemplateStatsLegacy(): Promise<TemplateStats> {
   try {
     // Get all templates
     const templates = await supabaseFetch<Array<{
@@ -1121,21 +1300,19 @@ export async function getTemplateStats(): Promise<TemplateStats> {
       ? categoryList.find(c => c.id === mostUsedCategoryId)?.name || null
       : null;
 
-    if (DEBUG) console.log('[adminSupabase] Template stats:', {
-      totalTemplates,
-      activeTemplates,
-      totalCategories,
-      mostUsedCategory,
-      mostUsedCategoryCount,
-    });
-
-    return {
+    const result = {
       totalTemplates,
       activeTemplates,
       totalCategories,
       mostUsedCategory,
       mostUsedCategoryCount,
     };
+
+    // Cache the results
+    setCache(CACHE_KEYS.TEMPLATE_STATS, result);
+
+    if (DEBUG) console.log('[adminSupabase] Template stats (legacy):', result);
+    return result;
   } catch (error) {
     console.error('[adminSupabase] Error fetching template stats:', error);
     return {
