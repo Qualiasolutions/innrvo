@@ -18,6 +18,8 @@ interface AIVoiceInputProps {
   hideTimer?: boolean;
   /** Hide the instruction text */
   hideInstructions?: boolean;
+  /** Disable the 30-second auto-stop (for voice cloning which needs 60+ seconds) */
+  disableAutoStop?: boolean;
 }
 
 export function AIVoiceInput({
@@ -32,6 +34,7 @@ export function AIVoiceInput({
   audioLevelData,
   hideTimer = false,
   hideInstructions = false,
+  disableAutoStop = false,
 }: AIVoiceInputProps) {
   const [submitted, setSubmitted] = useState(false);
   const [time, setTime] = useState(0);
@@ -79,8 +82,8 @@ export function AIVoiceInput({
       intervalRef.current = setInterval(() => {
         setTime((t) => {
           const newTime = t + 1;
-          // Auto-stop at 30 seconds
-          if (newTime >= 30 && externalIsRecording !== undefined) {
+          // Auto-stop at 30 seconds (unless disabled for voice cloning)
+          if (newTime >= 30 && externalIsRecording !== undefined && !disableAutoStop) {
             onToggle?.(false);
           }
           return newTime;

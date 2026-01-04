@@ -26,20 +26,6 @@ const MAX_RECORDING_SECONDS = 120; // ElevenLabs: "avoid exceeding 3 minutes"
 
 type Step = 'record' | 'describe' | 'processing';
 
-// Sample script for consistent, natural recording
-const SAMPLE_SCRIPT = `Welcome to this moment of calm. Take a slow, deep breath in... and gently release.
-Feel the tension melting away from your shoulders. With each breath, you become more relaxed, more at peace.
-Allow your thoughts to drift like clouds across a clear blue sky. There is nowhere else you need to be.
-Nothing else you need to do. Just breathe, relax, and be present in this peaceful moment.`;
-
-// Tips for recording - based on ElevenLabs best practices
-const TIPS = [
-  'Read the script naturally, like telling a story',
-  'Keep your volume and pace consistent',
-  'Stay close to your microphone in a quiet space',
-  'Vary your tone slightly for expressiveness',
-] as const;
-
 // Processing steps for enhanced progress feedback
 const CLONING_STEPS = [
   { state: 'validating', label: 'Analyzing audio quality' },
@@ -507,6 +493,7 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
                         audioLevelData={levelData}
                         hideTimer
                         hideInstructions
+                        disableAutoStop
                         className="scale-125"
                       />
                     </div>
@@ -545,32 +532,6 @@ export const SimpleVoiceClone: React.FC<SimpleVoiceCloneProps> = ({
                         : `Record 1-2 minutes for best quality`}
                     </p>
                   </div>
-
-                  {/* Sample Script & Tips - only show when not recording */}
-                  {!isRecording && (
-                    <div className="mt-6 w-full max-w-sm space-y-4">
-                      {/* Sample Script */}
-                      <div className="p-4 rounded-xl bg-cyan-500/5 border border-cyan-500/20">
-                        <p className="text-xs font-medium text-cyan-400 uppercase tracking-wider mb-2">Read This Script</p>
-                        <p className="text-sm text-slate-300 leading-relaxed whitespace-pre-line">
-                          {SAMPLE_SCRIPT}
-                        </p>
-                      </div>
-
-                      {/* Tips */}
-                      <div className="space-y-2">
-                        <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">Quick Tips</p>
-                        {TIPS.map((tip, i) => (
-                          <div key={i} className="flex items-center gap-2 text-slate-500 text-sm">
-                            <svg className="w-4 h-4 text-cyan-500/70 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                            </svg>
-                            {tip}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </>
               ) : (
                 /* Recording Complete - with Preview */
