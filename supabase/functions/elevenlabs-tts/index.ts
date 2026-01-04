@@ -35,10 +35,11 @@ interface ElevenLabsTTSRequest {
   voiceId: string;  // Voice profile ID (UUID) or ElevenLabs voice ID directly
   elevenLabsVoiceId?: string;  // Direct ElevenLabs voice ID (for preset voices)
   options?: {
-    stability?: number;      // 0-1, default 0.6
+    stability?: number;      // 0-1, default 0.5
     similarityBoost?: number; // 0-1, default 0.75
-    style?: number;          // 0-1, default 0.3
+    style?: number;          // 0-1, default 0.0 (keep at 0 per ElevenLabs docs)
     useSpeakerBoost?: boolean;
+    modelId?: 'eleven_multilingual_v2' | 'eleven_turbo_v2_5'; // Model selection
   };
 }
 
@@ -181,12 +182,12 @@ async function runElevenLabsTTS(
       },
       body: JSON.stringify({
         text: preparedText,
-        model_id: 'eleven_multilingual_v2',
+        model_id: options?.modelId ?? 'eleven_multilingual_v2',
         voice_settings: {
-          stability: options?.stability ?? 0.6,
+          stability: options?.stability ?? 0.5,           // ElevenLabs recommends 0.5 for balanced output
           similarity_boost: options?.similarityBoost ?? 0.75,
-          style: options?.style ?? 0.3,
-          use_speaker_boost: options?.useSpeakerBoost ?? true,
+          style: options?.style ?? 0.0,                   // Critical: Keep at 0.0 per ElevenLabs docs
+          use_speaker_boost: options?.useSpeakerBoost ?? false, // Only enable if similarity issues
         },
       }),
     }

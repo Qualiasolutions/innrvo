@@ -487,3 +487,148 @@ export function getLevelZoneInfo(zone: LevelZone): {
       };
   }
 }
+
+// ============================================================================
+// Comprehensive Audio Quality Validation for Voice Cloning
+// ============================================================================
+
+export interface AudioQualityReport {
+  /** Whether audio passes minimum requirements */
+  valid: boolean;
+  /** Quality score 0-100 */
+  score: number;
+  /** Duration in seconds */
+  duration: number;
+  /** Critical issues that prevent cloning */
+  issues: string[];
+  /** Non-critical warnings for improvement */
+  warnings: string[];
+  /** Detailed metrics */
+  metrics: {
+    rmsDb: number;
+    peakDb: number;
+    clippingPercent: number;
+    silencePercent: number;
+  };
+}
+
+/**
+ * Comprehensive audio quality check before voice cloning upload
+ *
+ * Validates audio against ElevenLabs IVC requirements:
+ * - Duration: 60-180 seconds (optimal: 60-120s)
+ * - RMS level: -23 to -18 dB (optimal range)
+ * - Peak: below -3 dB (no clipping)
+ * - Silence: less than 50% dead air
+ *
+ * @param blob - Audio blob to validate
+ * @returns AudioQualityReport with score, issues, and warnings
+ */
+export async function validateAudioQuality(blob: Blob): Promise<AudioQualityReport> {
+  const issues: string[] = [];
+  const warnings: string[] = [];
+  let score = 100;
+
+  const audioContext = new AudioContext({ sampleRate: 44100 });
+
+  try {
+    const arrayBuffer = await blob.arrayBuffer();
+    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+    const samples = audioBuffer.getChannelData(0);
+    const duration = audioBuffer.duration;
+
+    // ========================================================================
+    // Check 1: Duration (ElevenLabs IVC: 60s minimum, optimal 60-120s)
+    // ========================================================================
+    if (duration < 60) {
+      issues.push(`Recording too short (${duration.toFixed(0)}s). Need at least 60 seconds.`);
+      score -= 40;
+    } else if (duration > 180) {
+      warnings.push(`Recording longer than optimal (${duration.toFixed(0)}s). 60-120s is ideal for IVC.`);
+      score -= 10;
+    } else if (duration > 120) {
+      warnings.push(`Recording is ${duration.toFixed(0)}s. 60-120s is optimal.`);
+      score -= 5;
+    }
+
+    // ========================================================================
+    // Check 2: RMS level (ElevenLabs optimal: -23 to -18 dB)
+    // ========================================================================
+    const rms = calculateRMS(samples);
+    const rmsDb = linearToDb(rms);
+
+    if (rmsDb < -35) {
+      issues.push(`Audio too quiet (${rmsDb.toFixed(1)}dB). Aim for -23 to -18 dB.`);
+      score -= 30;
+    } else if (rmsDb < -30) {
+      warnings.push(`Audio is quiet (${rmsDb.toFixed(1)}dB). Optimal is -23 to -18 dB.`);
+      score -= 15;
+    } else if (rmsDb < -23) {
+      warnings.push(`Audio level ${rmsDb.toFixed(1)}dB is acceptable but below optimal (-23 to -18 dB).`);
+      score -= 5;
+    } else if (rmsDb > -10) {
+      issues.push(`Audio too loud (${rmsDb.toFixed(1)}dB). Risk of distortion.`);
+      score -= 25;
+    } else if (rmsDb > -18) {
+      // Slightly above optimal range - minor warning
+      warnings.push(`Audio level ${rmsDb.toFixed(1)}dB is slightly above optimal (-23 to -18 dB).`);
+      score -= 3;
+    }
+
+    // ========================================================================
+    // Check 3: Peak / Clipping detection
+    // ========================================================================
+    const peak = calculatePeak(samples);
+    const peakDb = linearToDb(peak);
+
+    let clippedSamples = 0;
+    for (let i = 0; i < samples.length; i++) {
+      if (Math.abs(samples[i]) > 0.99) clippedSamples++;
+    }
+    const clippingPercent = (clippedSamples / samples.length) * 100;
+
+    if (clippingPercent > 1) {
+      issues.push(`Significant clipping detected (${clippingPercent.toFixed(2)}%). Record at lower volume.`);
+      score -= 25;
+    } else if (clippingPercent > 0.1) {
+      warnings.push(`Minor clipping detected (${clippingPercent.toFixed(2)}%). Consider recording at slightly lower volume.`);
+      score -= 10;
+    } else if (peakDb > -3) {
+      warnings.push(`Peak level ${peakDb.toFixed(1)}dB is close to clipping. Keep peaks below -3dB.`);
+      score -= 5;
+    }
+
+    // ========================================================================
+    // Check 4: Silence ratio (too much dead air wastes training data)
+    // ========================================================================
+    let silentSamples = 0;
+    for (let i = 0; i < samples.length; i++) {
+      if (Math.abs(samples[i]) < 0.001) silentSamples++;
+    }
+    const silencePercent = (silentSamples / samples.length) * 100;
+
+    if (silencePercent > 60) {
+      warnings.push(`${silencePercent.toFixed(0)}% silence detected. More continuous speech recommended.`);
+      score -= 15;
+    } else if (silencePercent > 40) {
+      warnings.push(`${silencePercent.toFixed(0)}% silence detected. Try to minimize pauses.`);
+      score -= 5;
+    }
+
+    return {
+      valid: issues.length === 0,
+      score: Math.max(0, Math.min(100, score)),
+      duration,
+      issues,
+      warnings,
+      metrics: {
+        rmsDb,
+        peakDb,
+        clippingPercent,
+        silencePercent,
+      },
+    };
+  } finally {
+    await audioContext.close();
+  }
+}

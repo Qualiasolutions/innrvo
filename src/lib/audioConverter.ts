@@ -44,9 +44,22 @@ export async function convertToWAV(blob: Blob): Promise<Blob> {
       throw new Error('Audio decoding produced empty data');
     }
 
-    // Apply normalization to ElevenLabs optimal levels
+    // ========================================================================
+    // Audio preprocessing pipeline for optimal voice cloning quality
+    // Order matters: filter → trim → normalize
+    // ========================================================================
+
+    // Step 1: Apply high-pass filter to remove low-frequency rumble (80Hz cutoff)
+    // Removes AC hum, traffic noise, HVAC rumble while preserving voice
+    const filteredData = applyHighPassFilter(monoData, audioBuffer.sampleRate, 80);
+
+    // Step 2: Trim silence from start/end (keeps 300ms buffer)
+    // Removes dead air that wastes voice clone training data
+    const trimmedData = trimSilence(filteredData, 0.01, 300, audioBuffer.sampleRate);
+
+    // Step 3: Normalize to ElevenLabs optimal levels
     // Target: -18dB RMS (center of -23 to -18 dB range), -3dB peak limit
-    const channelData = normalizeToElevenLabsSpecs(monoData, -18, -3);
+    const channelData = normalizeToElevenLabsSpecs(trimmedData, -18, -3);
 
     // Create WAV file with optimal settings for voice cloning
     const wavBlob = encodeWAV(channelData, audioBuffer.sampleRate);
@@ -209,6 +222,98 @@ function normalizeToElevenLabsSpecs(
   }
 
   return normalized;
+}
+
+/**
+ * Apply high-pass filter to remove low-frequency rumble
+ * Common in home recordings (AC hum ~60Hz, traffic rumble, HVAC noise)
+ *
+ * Uses a simple first-order RC high-pass filter.
+ * Cutoff of 80Hz removes rumble while preserving voice fundamentals (typically 85-255Hz)
+ *
+ * @param samples - Float32Array of audio samples
+ * @param sampleRate - Sample rate in Hz
+ * @param cutoffHz - Cutoff frequency (default: 80Hz)
+ * @returns Float32Array - Filtered audio samples
+ */
+function applyHighPassFilter(
+  samples: Float32Array,
+  sampleRate: number,
+  cutoffHz: number = 80
+): Float32Array {
+  // RC time constant for the filter
+  const rc = 1.0 / (2.0 * Math.PI * cutoffHz);
+  const dt = 1.0 / sampleRate;
+  const alpha = rc / (rc + dt);
+
+  const filtered = new Float32Array(samples.length);
+  filtered[0] = samples[0];
+
+  // Apply first-order high-pass filter
+  for (let i = 1; i < samples.length; i++) {
+    filtered[i] = alpha * (filtered[i - 1] + samples[i] - samples[i - 1]);
+  }
+
+  if (DEBUG) {
+    console.log(`[applyHighPassFilter] Applied ${cutoffHz}Hz high-pass filter`);
+  }
+
+  return filtered;
+}
+
+/**
+ * Trim silence from start and end of audio
+ * Keeps a small buffer for natural feel, removes dead air that wastes clone training
+ *
+ * @param samples - Float32Array of audio samples
+ * @param threshold - Amplitude threshold to consider as silence (default: 0.01)
+ * @param bufferMs - Buffer to keep at start/end in ms (default: 300ms)
+ * @param sampleRate - Sample rate in Hz
+ * @returns Float32Array - Trimmed audio samples
+ */
+function trimSilence(
+  samples: Float32Array,
+  threshold: number = 0.01,
+  bufferMs: number = 300,
+  sampleRate: number = 44100
+): Float32Array {
+  const bufferSamples = Math.floor((bufferMs / 1000) * sampleRate);
+
+  let start = 0;
+  let end = samples.length - 1;
+
+  // Find first non-silent sample
+  for (let i = 0; i < samples.length; i++) {
+    if (Math.abs(samples[i]) > threshold) {
+      start = Math.max(0, i - bufferSamples);
+      break;
+    }
+  }
+
+  // Find last non-silent sample
+  for (let i = samples.length - 1; i >= 0; i--) {
+    if (Math.abs(samples[i]) > threshold) {
+      end = Math.min(samples.length - 1, i + bufferSamples);
+      break;
+    }
+  }
+
+  // Don't trim if we'd remove too much (>50% of audio)
+  const trimmedLength = end - start + 1;
+  if (trimmedLength < samples.length * 0.5) {
+    if (DEBUG) {
+      console.log(`[trimSilence] Skipped - would remove >50% of audio`);
+    }
+    return samples;
+  }
+
+  if (DEBUG) {
+    const trimmedStart = start / sampleRate;
+    const trimmedEnd = (samples.length - end) / sampleRate;
+    console.log(`[trimSilence] Trimmed ${trimmedStart.toFixed(2)}s from start, ${trimmedEnd.toFixed(2)}s from end`);
+  }
+
+  return samples.slice(start, end + 1);
 }
 
 /**

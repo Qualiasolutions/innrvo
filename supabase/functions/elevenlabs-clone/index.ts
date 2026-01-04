@@ -80,7 +80,8 @@ async function createElevenLabsVoiceClone(
   description: string,
   removeBackgroundNoise: boolean,
   apiKey: string,
-  log: ReturnType<typeof createLogger>
+  log: ReturnType<typeof createLogger>,
+  metadata?: ElevenLabsCloneRequest['metadata']
 ): Promise<string> {
   log.info('Creating ElevenLabs voice clone', {
     name: voiceName,
@@ -96,6 +97,22 @@ async function createElevenLabsVoiceClone(
 
   if (description) {
     formData.append('description', description);
+  }
+
+  // Add voice labels from metadata for better clone accuracy
+  // ElevenLabs uses these to optimize the voice model
+  if (metadata) {
+    const labels: Record<string, string> = {};
+    if (metadata.gender) labels.gender = metadata.gender;
+    if (metadata.accent) labels.accent = metadata.accent;
+    if (metadata.ageRange) labels.age = metadata.ageRange;
+    if (metadata.descriptive) labels.description = metadata.descriptive;
+    if (metadata.useCase) labels['use case'] = metadata.useCase;
+
+    if (Object.keys(labels).length > 0) {
+      formData.append('labels', JSON.stringify(labels));
+      log.info('Adding voice labels', { labels });
+    }
   }
 
   // Add timeout protection to prevent hanging requests
@@ -270,7 +287,8 @@ serve(async (req) => {
       simpleDescription,
       removeBackgroundNoise ?? true,  // Default to noise removal for cleaner clones
       ELEVENLABS_API_KEY!,
-      log
+      log,
+      metadata  // Pass metadata for voice labels
     );
 
     // Run both operations in parallel
