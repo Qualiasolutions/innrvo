@@ -82,6 +82,78 @@ const QUICK_PROMPTS = [
   { label: "Create a meditation", icon: "sparkle" },
 ] as const;
 
+// Dynamic creation messages based on meditation type and context
+const CREATION_MESSAGES: Record<string, string[]> = {
+  guided_visualization: [
+    "Crafting a visualization journey for you...",
+    "Building your inner landscape...",
+    "Creating something peaceful for your mind's eye...",
+    "Designing a calming scene just for you...",
+  ],
+  body_scan: [
+    "Preparing a body awareness practice...",
+    "Setting up a gentle body scan...",
+    "Creating a journey through sensation...",
+  ],
+  breath_awareness: [
+    "Crafting a breathing practice...",
+    "Building a breath-centered experience...",
+    "Creating something to anchor you in the present...",
+  ],
+  loving_kindness: [
+    "Preparing a compassion practice...",
+    "Creating space for kindness...",
+    "Building a heart-centered meditation...",
+  ],
+  sleep: [
+    "Preparing something to ease you into rest...",
+    "Creating a gentle path to sleep...",
+    "Building a calming journey for tonight...",
+  ],
+  anxiety: [
+    "Creating something to help settle your mind...",
+    "Building a practice to ease the tension...",
+    "Preparing something calming for you...",
+  ],
+  stress: [
+    "Crafting a release for you...",
+    "Creating space for relief...",
+    "Building something to help you decompress...",
+  ],
+  default: [
+    "Working on something for you...",
+    "Creating your meditation...",
+    "Preparing something special...",
+    "Building your practice...",
+    "Putting this together for you...",
+  ],
+};
+
+function getCreationMessage(meditationType?: string, emotionalState?: string): string {
+  // Try meditation type first
+  const typeKey = meditationType?.toLowerCase().replace(' ', '_') || '';
+  let messages = CREATION_MESSAGES[typeKey];
+
+  // Fall back to emotional state mapping
+  if (!messages && emotionalState) {
+    const stateKey = emotionalState.toLowerCase();
+    if (stateKey.includes('anxious') || stateKey.includes('anxiety')) {
+      messages = CREATION_MESSAGES.anxiety;
+    } else if (stateKey.includes('stress')) {
+      messages = CREATION_MESSAGES.stress;
+    } else if (stateKey.includes('sleep') || stateKey.includes('tired')) {
+      messages = CREATION_MESSAGES.sleep;
+    }
+  }
+
+  // Default fallback
+  if (!messages) {
+    messages = CREATION_MESSAGES.default;
+  }
+
+  return messages[Math.floor(Math.random() * messages.length)];
+}
+
 // ============================================================================
 // HOOK IMPLEMENTATION
 // ============================================================================
@@ -250,11 +322,12 @@ export function useMeditationAgent(options: UseMeditationAgentOptions = {}): Use
           // Normal flow - generate script via AI
           // Show brief transition message instead of agent's full response
           // (which might contain meditation text from AI not following instructions)
+          const creationMessage = getCreationMessage(response.meditationType, response.emotionalState);
           setMessages(prev => prev.map(msg =>
             msg.id === loadingId
               ? {
                   ...msg,
-                  content: `Creating your personalized ${(response.meditationType || 'guided').replace('_', ' ')} meditation...`,
+                  content: creationMessage,
                   isLoading: false,
                 }
               : msg

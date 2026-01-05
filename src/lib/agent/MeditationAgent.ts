@@ -1370,11 +1370,16 @@ Guide:`;
 // ============================================================================
 
 export const GREETING_MESSAGES = [
-  "Hey. What's on your mind today?",
-  "Hi there. How are you doing?",
-  "Hello. What brings you here?",
-  "Hey. How can I help?",
-  "Hi. What's going on?",
+  "Hey there.",
+  "Hi.",
+  "Hello.",
+  "Hey.",
+  "Good to see you.",
+  "Welcome back.",
+  "I'm here.",
+  "Ready when you are.",
+  "Take your time.",
+  "Breathe. I'm listening.",
 ];
 
 export function getRandomGreeting(): string {
