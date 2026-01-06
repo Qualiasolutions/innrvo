@@ -29,6 +29,7 @@ const DEFAULT_RETRY_OPTIONS: Required<RetryOptions> = {
   baseDelayMs: 500,
   maxDelayMs: 5000,
   retryableErrors: [
+    // Network errors
     'network_error',
     'PGRST301', // Connection error
     'ETIMEDOUT',
@@ -37,6 +38,14 @@ const DEFAULT_RETRY_OPTIONS: Required<RetryOptions> = {
     'fetch failed',
     'Failed to fetch',
     'NetworkError',
+    // Auth errors (token expired, needs refresh)
+    'JWT expired',
+    'PGRST_JWT_EXPIRED',
+    'invalid JWT',
+    'JWT claim',
+    'token is expired',
+    '401', // Unauthorized - often means token expired
+    'Unauthorized',
   ],
 };
 

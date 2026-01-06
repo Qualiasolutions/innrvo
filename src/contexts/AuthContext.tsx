@@ -70,19 +70,27 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [user]);
 
-  // Set up auth listener
+  // Set up auth listener - onAuthStateChange is the single source of truth
+  // This fires immediately on mount with INITIAL_SESSION event
   useEffect(() => {
     console.log('[AuthContext] Setting up auth, supabase exists:', !!supabase);
-    checkUser();
 
     if (!supabase) {
       console.log('[AuthContext] No supabase client, skipping listener');
+      setIsLoading(false);
       return;
     }
 
+    // onAuthStateChange fires INITIAL_SESSION immediately on setup
+    // This is the recommended way to get the initial session (Supabase v2+)
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('[AuthContext] Auth state changed:', event, 'user:', session?.user?.id);
+
+      // Only update user state, let the listener be the source of truth
       setUser(session?.user ?? null);
+
+      // Mark loading complete after INITIAL_SESSION or any auth event
+      // This ensures we wait for Supabase to validate/refresh the token
       setIsLoading(false);
 
       // Clear voice profiles on logout
@@ -92,8 +100,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
     });
 
+    // Fallback timeout in case onAuthStateChange doesn't fire
+    // (shouldn't happen, but prevents infinite loading)
+    const fallbackTimeout = setTimeout(() => {
+      console.log('[AuthContext] Fallback timeout - checking user manually');
+      checkUser();
+    }, 3000);
+
     return () => {
       authListener?.subscription.unsubscribe();
+      clearTimeout(fallbackTimeout);
     };
   }, [checkUser]);
 

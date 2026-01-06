@@ -30,27 +30,45 @@ interface ChatHistoryProviderProps {
 }
 
 export function ChatHistoryProvider({ children }: ChatHistoryProviderProps) {
-  const { user } = useAuth();
+  const { user, isLoading: isAuthLoading } = useAuth();
   const [chatHistory, setChatHistory] = useState<ConversationSummary[]>([]);
   const [isLoadingChatHistory, setIsLoadingChatHistory] = useState(false);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
 
+  // Track if we're currently loading to prevent duplicate calls
+  const isLoadingRef = React.useRef(false);
+
   // Load chat history from database
   const refreshChatHistory = useCallback(async () => {
+    console.log('[ChatHistory] refreshChatHistory called, user:', user?.id, 'isLoadingRef:', isLoadingRef.current);
+
     if (!user) {
+      console.log('[ChatHistory] No user, clearing history');
       setChatHistory([]);
       return;
     }
 
+    // Prevent duplicate concurrent calls
+    if (isLoadingRef.current) {
+      console.log('[ChatHistory] Already loading, skipping');
+      return;
+    }
+
+    isLoadingRef.current = true;
     setIsLoadingChatHistory(true);
+    console.log('[ChatHistory] Starting to load history...');
     try {
-      const history = await conversationStore.loadConversationHistory(20);
+      // Pass userId directly - query has its own timeout to prevent hanging
+      const history = await conversationStore.loadConversationHistory(20, user.id);
+      console.log('[ChatHistory] Loaded history:', history.length, 'items');
       setChatHistory(history);
     } catch (error) {
-      console.error('Error loading chat history:', error);
+      console.error('[ChatHistory] Error loading chat history:', error);
       setChatHistory([]);
     } finally {
+      console.log('[ChatHistory] Done loading, setting isLoadingChatHistory=false');
       setIsLoadingChatHistory(false);
+      isLoadingRef.current = false;
     }
   }, [user]);
 
@@ -101,14 +119,20 @@ export function ChatHistoryProvider({ children }: ChatHistoryProviderProps) {
   }, [refreshChatHistory]);
 
   // Auto-refresh when user changes
+  // Note: We intentionally only depend on user.id to prevent re-renders when user object reference changes
+  const userId = user?.id;
   useEffect(() => {
-    if (user) {
+    if (userId) {
+      console.log('[ChatHistory] User changed, refreshing for:', userId);
       refreshChatHistory();
-    } else {
+    } else if (!isAuthLoading) {
+      // Only clear when auth is done loading and there's no user
+      console.log('[ChatHistory] No user and auth done, clearing history');
       setChatHistory([]);
       setSelectedConversationId(null);
     }
-  }, [user, refreshChatHistory]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, isAuthLoading]); // Only re-run when user ID or auth loading state changes
 
   const value = useMemo<ChatHistoryContextValue>(() => ({
     chatHistory,

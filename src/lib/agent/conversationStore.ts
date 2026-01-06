@@ -337,36 +337,78 @@ export class ConversationStore {
 
   /**
    * Load conversation history from Supabase
+   * @param limit - Number of conversations to load
+   * @param userId - Optional user ID to use directly (avoids re-fetching auth)
    */
-  async loadConversationHistory(limit: number = 10): Promise<ConversationSummary[]> {
-    if (!supabase) return [];
+  async loadConversationHistory(limit: number = 10, userId?: string): Promise<ConversationSummary[]> {
+    console.log('[conversationStore] loadConversationHistory called, limit:', limit, 'userId:', userId, 'supabase:', !!supabase);
+    if (!supabase) {
+      console.log('[conversationStore] No supabase, returning empty');
+      return [];
+    }
 
     try {
-      const user = await getCurrentUser();
-      if (!user) return [];
+      // Use provided userId or fallback to getCurrentUser
+      let resolvedUserId = userId;
+      if (!resolvedUserId) {
+        console.log('[conversationStore] No userId provided, getting current user...');
+        const user = await getCurrentUser();
+        console.log('[conversationStore] Got user:', user?.id);
+        resolvedUserId = user?.id;
+      }
 
-      const { data, error } = await supabase
-        .from('agent_conversations')
-        .select('id, summary, messages, session_state, created_at')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(limit);
-
-      if (error) {
-        console.error('Error loading conversation history:', error);
+      if (!resolvedUserId) {
+        console.log('[conversationStore] No user, returning empty');
         return [];
       }
 
-      return (data || []).map(item => ({
-        id: item.id,
-        preview: item.summary || this.extractPreview(item.messages),
-        messageCount: item.messages?.length || 0,
-        createdAt: new Date(item.created_at),
-        mood: item.session_state?.currentMood,
-        hasScript: !!item.session_state?.lastMeditationScript,
-      }));
+      console.log('[conversationStore] Making Supabase query for user:', resolvedUserId);
+
+      // Use AbortController with timeout to properly cancel hanging requests
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        console.log('[conversationStore] Query timeout - aborting');
+        controller.abort();
+      }, 8000);
+
+      try {
+        const { data, error } = await supabase
+          .from('agent_conversations')
+          .select('id, summary, messages, session_state, created_at')
+          .eq('user_id', resolvedUserId)
+          .order('created_at', { ascending: false })
+          .limit(limit)
+          .abortSignal(controller.signal);
+
+        clearTimeout(timeoutId);
+        console.log('[conversationStore] Query complete, error:', error?.message, 'data length:', data?.length);
+
+        if (error) {
+          console.error('[conversationStore] Error loading conversation history:', error);
+          return [];
+        }
+
+        const result = (data || []).map(item => ({
+          id: item.id,
+          preview: item.summary || this.extractPreview(item.messages),
+          messageCount: item.messages?.length || 0,
+          createdAt: new Date(item.created_at),
+          mood: item.session_state?.currentMood,
+          hasScript: !!item.session_state?.lastMeditationScript,
+        }));
+        console.log('[conversationStore] Returning', result.length, 'conversations');
+        return result;
+      } catch (queryError) {
+        clearTimeout(timeoutId);
+        if (queryError instanceof Error && queryError.name === 'AbortError') {
+          console.error('[conversationStore] Query was aborted (timeout)');
+        } else {
+          console.error('[conversationStore] Query error:', queryError);
+        }
+        return [];
+      }
     } catch (error) {
-      console.error('Error loading conversation history:', error);
+      console.error('[conversationStore] Error loading conversation history:', error);
       return [];
     }
   }

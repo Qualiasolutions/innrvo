@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useCallback, useMemo, ReactNode, Dispatch, SetStateAction } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo, useEffect, ReactNode, Dispatch, SetStateAction } from 'react';
 import { getMeditationHistoryPaginated, MeditationHistory, getCurrentUser } from '../../lib/supabase';
+import { useAuth } from './AuthContext';
 import {
   getCachedHistory,
   setCachedHistory,
@@ -32,6 +33,9 @@ interface LibraryContextValue {
 const LibraryContext = createContext<LibraryContextValue | undefined>(undefined);
 
 export const LibraryProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  // Get user from AuthContext - single source of truth for auth state
+  const { user, isLoading: isAuthLoading } = useAuth();
+
   const [meditationHistory, setMeditationHistory] = useState<MeditationHistory[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [historyPage, setHistoryPage] = useState(0);
@@ -40,12 +44,19 @@ export const LibraryProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   // Refresh history from beginning (with cache support)
   const refreshHistory = useCallback(async (forceRefresh = false) => {
-    // Get current user for cache key
-    const user = await getCurrentUser();
+    // Use user from AuthContext - don't call getCurrentUser() independently
     const userId = user?.id;
 
+    // Can't load without a user
+    if (!userId) {
+      console.log('[LibraryContext] No user, clearing history');
+      setMeditationHistory([]);
+      setHasMoreHistory(false);
+      return;
+    }
+
     // Try cache first (unless force refresh)
-    if (!forceRefresh && userId) {
+    if (!forceRefresh) {
       const cached = getCachedHistory(userId, undefined, 20);
       if (cached) {
         setMeditationHistory(cached.data as MeditationHistory[]);
@@ -59,20 +70,20 @@ export const LibraryProvider: React.FC<{ children: ReactNode }> = ({ children })
     setIsLoadingHistory(true);
     setHistoryPage(0);
     try {
+      console.log('[LibraryContext] Loading history for user:', userId);
       const result = await getMeditationHistoryPaginated(0, 20);
       setMeditationHistory(result.data);
       setHasMoreHistory(result.hasMore);
 
       // Update cache
-      if (userId) {
-        setCachedHistory(userId, result.data, result.hasMore, undefined, 20);
-      }
+      setCachedHistory(userId, result.data, result.hasMore, undefined, 20);
     } catch (err) {
-      console.error('Failed to load history:', err);
+      console.error('[LibraryContext] Failed to load history:', err);
+      // Don't clear data on error - keep showing what we had
     } finally {
       setIsLoadingHistory(false);
     }
-  }, []);
+  }, [user?.id]);
 
   // Load more history (pagination) - doesn't use cache for simplicity
   const loadMoreHistory = useCallback(async () => {
@@ -92,25 +103,22 @@ export const LibraryProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
   }, [historyPage, hasMoreHistory, isLoadingMore]);
 
-  // Cache management functions
-  const invalidateCache = useCallback(async () => {
-    const user = await getCurrentUser();
+  // Cache management functions - use user from context
+  const invalidateCache = useCallback(() => {
     if (user?.id) {
       clearHistoryCache(user.id);
     }
-  }, []);
+  }, [user?.id]);
 
-  const addToCache = useCallback(async (meditation: MeditationHistory) => {
-    const user = await getCurrentUser();
+  const addToCache = useCallback((meditation: MeditationHistory) => {
     if (user?.id) {
       prependToHistoryCache(user.id, meditation);
       // Also update local state immediately
       setMeditationHistory(prev => [meditation, ...prev]);
     }
-  }, []);
+  }, [user?.id]);
 
-  const updateInCache = useCallback(async (id: string, updates: Partial<MeditationHistory>) => {
-    const user = await getCurrentUser();
+  const updateInCache = useCallback((id: string, updates: Partial<MeditationHistory>) => {
     if (user?.id) {
       updateInHistoryCache(user.id, id, updates);
       // Also update local state immediately
@@ -118,16 +126,33 @@ export const LibraryProvider: React.FC<{ children: ReactNode }> = ({ children })
         prev.map(m => m.id === id ? { ...m, ...updates } : m)
       );
     }
-  }, []);
+  }, [user?.id]);
 
-  const removeFromCache = useCallback(async (id: string) => {
-    const user = await getCurrentUser();
+  const removeFromCache = useCallback((id: string) => {
     if (user?.id) {
       removeFromHistoryCache(user.id, id);
       // Also update local state immediately
       setMeditationHistory(prev => prev.filter(m => m.id !== id));
     }
-  }, []);
+  }, [user?.id]);
+
+  // Clear history when user logs out, refresh when user changes
+  // Note: We intentionally only depend on user.id to prevent re-renders when user object reference changes
+  const userId = user?.id;
+  useEffect(() => {
+    if (userId) {
+      // User is logged in - refresh history (will use cache if available)
+      console.log('[LibraryContext] User changed, refreshing history for:', userId);
+      refreshHistory();
+    } else if (!isAuthLoading) {
+      // User logged out and auth is not loading - clear history
+      console.log('[LibraryContext] No user, clearing history');
+      setMeditationHistory([]);
+      setHasMoreHistory(false);
+      setHistoryPage(0);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, isAuthLoading]); // Only re-run when user ID changes or auth loading state changes
 
   // Memoize to prevent unnecessary re-renders
   const value = useMemo<LibraryContextValue>(() => ({
