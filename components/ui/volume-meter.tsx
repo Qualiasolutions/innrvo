@@ -251,26 +251,72 @@ export function VolumeIndicator({
 
 /**
  * Volume level badge - shows zone label with color
+ * Uses zone stabilization to prevent rapid twitching
  */
 interface VolumeBadgeProps {
   levelData: AudioLevelData | null;
   className?: string;
+  /** Minimum time (ms) a zone must be held before switching (default: 400ms) */
+  stabilizationMs?: number;
 }
 
-export function VolumeBadge({ levelData, className }: VolumeBadgeProps) {
-  const zone = getLevelZone(levelData);
-  const zoneInfo = getLevelZoneInfo(zone);
+import { useState, useEffect, useRef } from 'react';
+
+export function VolumeBadge({ levelData, className, stabilizationMs = 400 }: VolumeBadgeProps) {
+  const rawZone = getLevelZone(levelData);
+  const [stableZone, setStableZone] = useState<ReturnType<typeof getLevelZone>>(rawZone);
+  const pendingZoneRef = useRef<ReturnType<typeof getLevelZone>>(rawZone);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    // If raw zone matches stable zone, no change needed
+    if (rawZone === stableZone) {
+      pendingZoneRef.current = rawZone;
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+      return;
+    }
+
+    // If raw zone is different from pending, reset the timer
+    if (rawZone !== pendingZoneRef.current) {
+      pendingZoneRef.current = rawZone;
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+      // Start timer to stabilize to this new zone
+      timerRef.current = setTimeout(() => {
+        setStableZone(pendingZoneRef.current);
+        timerRef.current = null;
+      }, stabilizationMs);
+    }
+
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, [rawZone, stableZone, stabilizationMs]);
+
+  const zoneInfo = getLevelZoneInfo(stableZone);
 
   return (
     <div
       className={cn(
-        "inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium",
-        "bg-white/5 border border-white/10",
+        "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold",
+        "bg-white/5 border border-white/10 backdrop-blur-sm",
+        "transition-all duration-300",
         className
       )}
     >
-      <div className={cn("w-1.5 h-1.5 rounded-full", zoneInfo.bgColor)} />
-      <span className={zoneInfo.color}>{zoneInfo.label}</span>
+      <div className={cn(
+        "w-2 h-2 rounded-full transition-colors duration-300",
+        zoneInfo.bgColor
+      )} />
+      <span className={cn("transition-colors duration-300", zoneInfo.color)}>
+        {zoneInfo.label}
+      </span>
     </div>
   );
 }

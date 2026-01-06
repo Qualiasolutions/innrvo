@@ -202,46 +202,78 @@ export function AIVoiceInput({
       <div className="relative max-w-xl w-full mx-auto flex items-center flex-col gap-2">
         <button
           className={cn(
-            "group relative w-20 h-20 rounded-full flex items-center justify-center transition-all",
+            "group relative w-24 h-24 rounded-full flex items-center justify-center transition-all duration-300",
             isRecording
-              ? "bg-gradient-to-br from-cyan-500/30 to-teal-500/20 hover:from-cyan-500/40 hover:to-teal-500/30 active:scale-95"
-              : "bg-white/5 border-2 border-white/30 hover:border-white/50 hover:bg-white/10 hover:scale-105 active:scale-95"
+              ? "active:scale-95"
+              : "hover:scale-105 active:scale-95"
           )}
-          style={isRecording ? {
-            border: '2px solid transparent',
-            backgroundClip: 'padding-box',
-          } : undefined}
           type="button"
           onClick={handleClick}
         >
-          {/* Gradient border for recording state */}
+          {/* Outer glow ring */}
           {isRecording && (
             <div
-              className="absolute inset-[-2px] rounded-full -z-10"
+              className="absolute inset-[-8px] rounded-full opacity-30 blur-xl transition-all duration-500"
               style={{
                 background: audioLevelData?.isClipping
-                  ? 'linear-gradient(135deg, #f43f5e 0%, #ec4899 100%)'
+                  ? 'radial-gradient(circle, #f43f5e 0%, transparent 70%)'
                   : audioLevelData?.isOptimal
-                  ? 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)'
-                  : 'linear-gradient(135deg, #22d3ee 0%, #06b6d4 50%, #ec4899 100%)',
+                  ? 'radial-gradient(circle, #10b981 0%, transparent 70%)'
+                  : 'radial-gradient(circle, #06b6d4 0%, transparent 70%)',
               }}
             />
           )}
-          {isRecording ? (
-            <div className="flex flex-col items-center gap-1">
-              <div
-                className="w-6 h-6 rounded-sm bg-white cursor-pointer pointer-events-auto"
-              />
-              <span className="text-[10px] text-white/80 font-bold uppercase tracking-wider">Stop</span>
-            </div>
-          ) : (
-            <Mic className="w-6 h-6 text-white/70" />
-          )}
-          {isRecording && (
-            <div className="absolute inset-0 rounded-full border-2 border-cyan-400/50 animate-pulse" />
-          )}
+
+          {/* Main button background */}
+          <div
+            className={cn(
+              "absolute inset-0 rounded-full transition-all duration-300",
+              isRecording
+                ? "bg-gradient-to-br from-slate-800 to-slate-900"
+                : "bg-gradient-to-br from-slate-800/80 to-slate-900/80 border border-white/10"
+            )}
+          />
+
+          {/* Gradient border ring */}
+          <div
+            className={cn(
+              "absolute inset-0 rounded-full transition-all duration-300",
+              isRecording ? "opacity-100" : "opacity-0"
+            )}
+            style={{
+              background: audioLevelData?.isClipping
+                ? 'linear-gradient(135deg, #f43f5e 0%, #ec4899 100%)'
+                : audioLevelData?.isOptimal
+                ? 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)'
+                : audioLevelData?.isGood
+                ? 'linear-gradient(135deg, #06b6d4 0%, #0ea5e9 100%)'
+                : 'linear-gradient(135deg, #f59e0b 0%, #f97316 100%)',
+              padding: '2px',
+              WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+              WebkitMaskComposite: 'xor',
+              maskComposite: 'exclude',
+            }}
+          />
+
+          {/* Inner content */}
+          <div className="relative z-10 flex flex-col items-center justify-center gap-1">
+            {isRecording ? (
+              <>
+                <div className="w-5 h-5 rounded bg-white shadow-lg" />
+                <span className="text-[10px] text-white/90 font-bold uppercase tracking-wider">Stop</span>
+              </>
+            ) : (
+              <div className="flex flex-col items-center gap-1.5">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-500 to-teal-500 flex items-center justify-center shadow-lg shadow-cyan-500/25">
+                  <Mic className="w-5 h-5 text-white" />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Subtle pulse animation */}
           {!isRecording && (
-            <div className="absolute inset-0 rounded-full border-2 border-white/20 animate-pulse" />
+            <div className="absolute inset-0 rounded-full border border-cyan-500/30 animate-[pulse_2s_ease-in-out_infinite]" />
           )}
         </button>
 
