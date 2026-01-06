@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef, memo } from 'react';
+import React, { useEffect, useState, useCallback, useRef, memo, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { m, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ChevronUp, Star, Trash2, RotateCcw } from 'lucide-react';
@@ -8,6 +8,25 @@ import AppLayout from '../layouts/AppLayout';
 import GlassCard from '../../components/GlassCard';
 import AudioPreview from '../../components/ui/AudioPreview';
 import { getMeditationAudioSignedUrl, toggleMeditationFavorite, deleteMeditationHistory, MeditationHistory } from '../../lib/supabase';
+
+// Animation variants for staggered meditation cards
+const listContainerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.06, delayChildren: 0.05 }
+  }
+};
+
+const listItemVariants = {
+  hidden: { opacity: 0, y: 16, scale: 0.98 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { type: 'spring', stiffness: 350, damping: 28 }
+  }
+};
 
 /**
  * MeditationAudioCard - Individual meditation card with audio preview
@@ -68,8 +87,8 @@ const MeditationAudioCard: React.FC<MeditationAudioCardProps> = memo(({
 
   return (
     <GlassCard
-      className={`!p-0 !rounded-xl overflow-hidden transition-all duration-300 ${
-        isActive ? 'ring-1 ring-emerald-500/30' : ''
+      className={`!p-0 !rounded-xl overflow-hidden transition-all duration-300 hover:shadow-[0_8px_32px_rgba(0,0,0,0.25)] ${
+        isActive ? 'ring-1 ring-emerald-500/30 shadow-[0_0_24px_rgba(16,185,129,0.1)]' : 'hover:border-white/10'
       }`}
       hover={false}
     >
@@ -414,20 +433,20 @@ const LibraryPage: React.FC = () => {
             <div className="flex justify-center gap-2 mb-8">
               <button
                 onClick={() => setLibraryTab('all')}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
                   libraryTab === 'all'
-                    ? 'bg-emerald-500/20 text-emerald-400'
-                    : 'bg-white/5 text-slate-400 hover:text-white'
+                    ? 'bg-emerald-500/20 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.15)]'
+                    : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'
                 }`}
               >
                 My Audios
               </button>
               <button
                 onClick={() => setLibraryTab('favorites')}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
                   libraryTab === 'favorites'
-                    ? 'bg-amber-500/20 text-amber-400'
-                    : 'bg-white/5 text-slate-400 hover:text-white'
+                    ? 'bg-amber-500/20 text-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.15)]'
+                    : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'
                 }`}
               >
                 Favorites
@@ -459,30 +478,41 @@ const LibraryPage: React.FC = () => {
                 {/* With Audio */}
                 {meditationsWithAudio.length > 0 && (
                   <div>
-                    <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <m.h3
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-4 flex items-center gap-2"
+                    >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
                       </svg>
                       Saved with Audio ({meditationsWithAudio.length})
-                    </h3>
-                    <div className="grid gap-4">
+                    </m.h3>
+                    <m.div
+                      className="grid gap-4"
+                      variants={listContainerVariants}
+                      initial="hidden"
+                      animate="visible"
+                    >
                       {meditationsWithAudio.map((meditation) => (
-                        <MeditationAudioCard
-                          key={meditation.id}
-                          meditation={meditation}
-                          isActive={activePreviewId === meditation.id}
-                          isExpanded={expandedCardId === meditation.id}
-                          signedUrl={signedUrls[meditation.id]}
-                          onGetSignedUrl={() => getSignedUrl(meditation)}
-                          onPlay={() => handlePreviewPlay(meditation.id)}
-                          onEnded={() => handlePreviewEnded(meditation.id)}
-                          onToggleFavorite={() => handleToggleFavorite(meditation.id)}
-                          onDelete={() => handleDeleteMeditation(meditation.id)}
-                          onToggleExpand={() => toggleExpandedCard(meditation.id)}
-                          stopOthers={activePreviewId !== null && activePreviewId !== meditation.id}
-                        />
+                        <m.div key={meditation.id} variants={listItemVariants}>
+                          <MeditationAudioCard
+                            meditation={meditation}
+                            isActive={activePreviewId === meditation.id}
+                            isExpanded={expandedCardId === meditation.id}
+                            signedUrl={signedUrls[meditation.id]}
+                            onGetSignedUrl={() => getSignedUrl(meditation)}
+                            onPlay={() => handlePreviewPlay(meditation.id)}
+                            onEnded={() => handlePreviewEnded(meditation.id)}
+                            onToggleFavorite={() => handleToggleFavorite(meditation.id)}
+                            onDelete={() => handleDeleteMeditation(meditation.id)}
+                            onToggleExpand={() => toggleExpandedCard(meditation.id)}
+                            stopOthers={activePreviewId !== null && activePreviewId !== meditation.id}
+                          />
+                        </m.div>
                       ))}
-                    </div>
+                    </m.div>
                   </div>
                 )}
 

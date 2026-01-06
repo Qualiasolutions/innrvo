@@ -29,10 +29,14 @@ const IS_MOBILE = typeof window !== 'undefined' && (
   /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
 );
 
-// Reduced particles on mobile for 60fps performance (20 -> 8)
-const PARTICLE_COUNT = IS_MOBILE ? 8 : 20;
-const ORBIT_PARTICLE_COUNT = IS_MOBILE ? 8 : 14;
-const SHOOTING_STAR_COUNT_MOBILE = IS_MOBILE ? 4 : 8;
+// Low-power mode detection for additional optimization
+const PREFERS_REDUCED_MOTION = typeof window !== 'undefined' &&
+  window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+// Optimized particle counts for smooth 60fps - reduced on mobile and when reduced motion preferred
+const PARTICLE_COUNT = PREFERS_REDUCED_MOTION ? 4 : (IS_MOBILE ? 6 : 16);
+const ORBIT_PARTICLE_COUNT = PREFERS_REDUCED_MOTION ? 4 : (IS_MOBILE ? 6 : 12);
+const SHOOTING_STAR_COUNT_MOBILE = PREFERS_REDUCED_MOTION ? 2 : (IS_MOBILE ? 3 : 6);
 
 interface MeditationPlayerProps {
   // Playback control
@@ -209,9 +213,9 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
           <div className="flex items-center justify-center gap-6 sm:gap-8">
             <m.button
               whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
+              whileTap={{ scale: 0.9 }}
               onClick={() => onSkip(-15)}
-              className="relative flex h-12 w-12 sm:h-12 sm:w-12 items-center justify-center text-white/60 transition-colors hover:text-white/90"
+              className="relative flex h-12 w-12 sm:h-12 sm:w-12 items-center justify-center text-white/60 transition-all duration-200 hover:text-white/90 hover:bg-white/5 rounded-full active:bg-white/10"
               aria-label="Skip back 15 seconds"
             >
               <RotateCcw className="h-6 w-6" />
@@ -220,18 +224,22 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
 
             <m.button
               whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              whileTap={{ scale: 0.92 }}
               onClick={onPlayPause}
-              className="flex h-16 w-16 sm:h-18 sm:w-18 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-sm transition-all hover:bg-white/20"
+              className={`flex h-16 w-16 sm:h-18 sm:w-18 items-center justify-center rounded-full text-white backdrop-blur-sm transition-all duration-200 ${
+                isPlaying
+                  ? 'bg-white/15 shadow-[0_0_30px_rgba(34,211,238,0.2)]'
+                  : 'bg-white/10 hover:bg-white/20 hover:shadow-[0_0_25px_rgba(34,211,238,0.15)]'
+              }`}
               aria-label={isPlaying ? 'Pause' : 'Play'}
             >
               <AnimatePresence mode="wait">
                 {isPlaying ? (
-                  <m.div key="pause" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
+                  <m.div key="pause" initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }} transition={{ duration: 0.15 }}>
                     <Pause className="h-7 w-7 fill-white" />
                   </m.div>
                 ) : (
-                  <m.div key="play" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
+                  <m.div key="play" initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }} transition={{ duration: 0.15 }}>
                     <Play className="ml-1 h-7 w-7 fill-white" />
                   </m.div>
                 )}
@@ -240,9 +248,9 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
 
             <m.button
               whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
+              whileTap={{ scale: 0.9 }}
               onClick={() => onSkip(15)}
-              className="relative flex h-12 w-12 sm:h-12 sm:w-12 items-center justify-center text-white/60 transition-colors hover:text-white/90"
+              className="relative flex h-12 w-12 sm:h-12 sm:w-12 items-center justify-center text-white/60 transition-all duration-200 hover:text-white/90 hover:bg-white/5 rounded-full active:bg-white/10"
               aria-label="Skip forward 15 seconds"
             >
               <RotateCw className="h-6 w-6" />

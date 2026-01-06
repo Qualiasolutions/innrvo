@@ -138,7 +138,7 @@ const Icons = {
   )
 };
 
-// Menu item component
+// Menu item component with enhanced hover effects
 const MenuItem = memo(({
   icon: Icon,
   label,
@@ -152,17 +152,17 @@ const MenuItem = memo(({
   isActive?: boolean;
   variant?: 'default' | 'danger' | 'accent' | 'admin';
 }) => {
-  const baseStyles = "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-150";
+  const baseStyles = "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200 hover:translate-x-0.5";
   const variantStyles = {
-    default: `text-slate-300 hover:text-white hover:bg-white/[0.06] ${isActive ? 'bg-white/[0.08] text-white' : ''}`,
-    danger: 'text-slate-400 hover:text-rose-400 hover:bg-rose-500/[0.06]',
-    accent: 'text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/[0.08]',
-    admin: 'text-purple-400 hover:text-purple-300 hover:bg-purple-500/[0.08]'
+    default: `text-slate-300 hover:text-white hover:bg-white/[0.06] hover:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] ${isActive ? 'bg-white/[0.08] text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]' : ''}`,
+    danger: 'text-slate-400 hover:text-rose-400 hover:bg-rose-500/[0.08] hover:shadow-[inset_0_0_0_1px_rgba(244,63,94,0.1)]',
+    accent: 'text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/[0.1] hover:shadow-[inset_0_0_0_1px_rgba(34,211,238,0.15)]',
+    admin: 'text-purple-400 hover:text-purple-300 hover:bg-purple-500/[0.1] hover:shadow-[inset_0_0_0_1px_rgba(168,85,247,0.15)]'
   };
 
   return (
     <button onClick={onClick} className={`${baseStyles} ${variantStyles[variant]}`}>
-      <Icon />
+      <span className="transition-transform duration-200 group-hover:scale-110"><Icon /></span>
       <span>{label}</span>
     </button>
   );
@@ -170,7 +170,7 @@ const MenuItem = memo(({
 
 MenuItem.displayName = 'MenuItem';
 
-// Chat history item component
+// Chat history item component with enhanced interactions
 const ChatItem = memo(({
   item,
   onClick,
@@ -185,17 +185,19 @@ const ChatItem = memo(({
     variants={listItemVariants}
     initial="hidden"
     animate="visible"
+    whileHover={{ x: 2 }}
+    whileTap={{ scale: 0.98 }}
     onClick={onClick}
-    className="group w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-all duration-150 hover:bg-white/[0.04]"
+    className="group w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-all duration-200 hover:bg-white/[0.04] hover:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.03)]"
   >
-    <span className="flex-shrink-0 text-slate-500 group-hover:text-cyan-400 transition-colors">
+    <span className="flex-shrink-0 text-slate-500 group-hover:text-cyan-400 transition-colors duration-200">
       <Icons.Chat />
     </span>
-    <span className="flex-1 text-[13px] text-slate-400 group-hover:text-slate-200 truncate transition-colors">
+    <span className="flex-1 text-[13px] text-slate-400 group-hover:text-slate-200 truncate transition-colors duration-200">
       {item.preview}
     </span>
     {item.mood && (
-      <span className="flex-shrink-0 text-[9px] px-1.5 py-0.5 rounded-md bg-purple-500/10 text-purple-400/80 font-medium uppercase tracking-wide">
+      <span className="flex-shrink-0 text-[9px] px-1.5 py-0.5 rounded-md bg-purple-500/10 text-purple-400/80 font-medium uppercase tracking-wide border border-purple-500/10">
         {item.mood}
       </span>
     )}
@@ -283,9 +285,9 @@ export const Sidebar = memo(({
               <div className="px-3 py-3">
                 <button
                   onClick={handleNewChat}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-white/[0.08] bg-white/[0.02] text-slate-200 text-[13px] font-medium hover:bg-white/[0.06] hover:border-cyan-500/20 hover:text-white transition-all duration-150"
+                  className="group w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-white/[0.08] bg-white/[0.02] text-slate-200 text-[13px] font-medium hover:bg-white/[0.06] hover:border-cyan-500/30 hover:text-white hover:shadow-[0_0_20px_rgba(34,211,238,0.1)] active:scale-[0.98] transition-all duration-200"
                 >
-                  <Icons.NewChat />
+                  <span className="transition-transform duration-200 group-hover:rotate-90"><Icons.NewChat /></span>
                   <span>New chat</span>
                 </button>
               </div>

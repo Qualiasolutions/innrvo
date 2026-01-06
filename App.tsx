@@ -60,17 +60,56 @@ import { throttleLeading } from './src/utils/debounce';
 import { supabase, signOut, createVoiceProfile, getUserVoiceProfiles, getVoiceProfileById, VoiceProfile as DBVoiceProfile, createVoiceClone, saveMeditationHistory, deleteMeditationHistory, MeditationHistory, updateAudioTagPreferences, AudioTagPreference, getMeditationAudioSignedUrl, toggleMeditationFavorite } from './lib/supabase';
 import { checkIsAdmin } from './src/lib/adminSupabase';
 
-// Rotating taglines - one shown randomly per session
-const TAGLINES = [
+// Time-aware taglines for more personalized greeting experience
+const getTimeOfDay = (): 'morning' | 'afternoon' | 'evening' | 'night' => {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour < 12) return 'morning';
+  if (hour >= 12 && hour < 17) return 'afternoon';
+  if (hour >= 17 && hour < 21) return 'evening';
+  return 'night';
+};
+
+const TAGLINES_BY_TIME = {
+  morning: [
+    { main: 'Start your day', highlight: 'mindfully', sub: 'How are you feeling this morning?' },
+    { main: 'Good morning.', highlight: 'Breathe deep.', sub: 'What would help you begin today?' },
+    { main: 'A fresh start', highlight: 'awaits', sub: 'Tell us what you need.' },
+  ],
+  afternoon: [
+    { main: 'Take a moment', highlight: 'to reset', sub: 'What do you need right now?' },
+    { main: 'Pause.', highlight: 'Breathe.', sub: 'Describe how you feel.' },
+    { main: 'Find your', highlight: 'center', sub: 'Tell us what you seek.' },
+  ],
+  evening: [
+    { main: 'Unwind', highlight: 'your mind', sub: 'How was your day?' },
+    { main: 'Let the day', highlight: 'fade away', sub: 'What would bring you peace?' },
+    { main: 'Time to', highlight: 'decompress', sub: 'Tell us what you need.' },
+  ],
+  night: [
+    { main: 'Quiet your', highlight: 'thoughts', sub: 'Prepare for restful sleep.' },
+    { main: 'Drift into', highlight: 'tranquility', sub: 'What would help you relax?' },
+    { main: 'Peace', highlight: 'before sleep', sub: 'Tell us how you feel.' },
+  ],
+};
+
+// Universal taglines (fallback and variety)
+const UNIVERSAL_TAGLINES = [
   { main: 'Meditation,', highlight: 'made for you', sub: 'Just describe how you feel.' },
-  { main: 'Your calm,', highlight: 'on demand', sub: 'Tell us what you need.' },
-  { main: 'Wellness,', highlight: 'personalized', sub: 'Say what you are feeling.' },
   { main: 'Your moment of', highlight: 'calm', sub: 'Describe it. We create it.' },
-  { main: 'Rest,', highlight: 'reimagined', sub: 'Just tell us what you need.' },
   { main: 'Designed', highlight: 'around you', sub: 'Describe your state of mind.' },
   { main: 'Your personal', highlight: 'sanctuary', sub: 'Say how you are feeling.' },
   { main: 'Peace,', highlight: 'on your terms', sub: 'Tell us what you seek.' },
 ];
+
+// Get a contextual tagline based on time of day
+const getTagline = () => {
+  const timeOfDay = getTimeOfDay();
+  const timeTaglines = TAGLINES_BY_TIME[timeOfDay];
+  // 70% chance to use time-specific tagline, 30% universal for variety
+  const useTimeSpecific = Math.random() < 0.7;
+  const pool = useTimeSpecific ? timeTaglines : UNIVERSAL_TAGLINES;
+  return pool[Math.floor(Math.random() * pool.length)];
+};
 
 const App: React.FC = () => {
   const navigate = useNavigate();
@@ -132,7 +171,7 @@ const App: React.FC = () => {
   // UI-specific state (not shared across components)
   const [isLoading, setIsLoading] = useState(true);
   const [currentView, setCurrentView] = useState<View>(View.HOME);
-  const [tagline] = useState(() => TAGLINES[Math.floor(Math.random() * TAGLINES.length)]);
+  const [tagline] = useState(() => getTagline());
   const [isExtending, setIsExtending] = useState(false);
   const [availableVoices, setAvailableVoices] = useState<VoiceProfile[]>(VOICE_PROFILES);
   const [selectedVoice, setSelectedVoice] = useState<VoiceProfile | null>(null);

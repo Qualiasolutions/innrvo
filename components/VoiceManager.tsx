@@ -1,8 +1,28 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { m, AnimatePresence } from 'framer-motion';
 import { getUserVoiceProfiles, deleteVoiceProfile, updateVoiceProfile, VoiceProfile } from '../lib/supabase';
 import { ICONS } from '../constants';
 import GlassCard from './GlassCard';
 import Starfield from './Starfield';
+
+// Animation variants for staggered voice cards
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.08, delayChildren: 0.1 }
+  }
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 20, scale: 0.95 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { type: 'spring', stiffness: 300, damping: 24 }
+  }
+};
 
 interface VoiceManagerProps {
   isOpen: boolean;
@@ -124,27 +144,35 @@ const VoiceManager: React.FC<VoiceManagerProps> = ({
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+          <m.div
+            className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6"
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+          >
             {[1, 2, 3, 4].map((i) => (
-              <div
+              <m.div
                 key={i}
-                className={`glass rounded-3xl p-6 animate-in fade-in stagger-${i}`}
+                variants={cardVariants}
+                className="glass rounded-3xl p-6 overflow-hidden relative"
               >
+                {/* Shimmer effect */}
+                <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/5 to-transparent" />
                 <div className="flex items-start justify-between mb-4">
-                  <div className="skeleton h-6 w-32"></div>
-                  <div className="skeleton h-5 w-16 rounded-full"></div>
+                  <div className="h-6 w-32 rounded-lg bg-white/10 animate-pulse" />
+                  <div className="h-5 w-16 rounded-full bg-white/10 animate-pulse" />
                 </div>
-                <div className="skeleton h-4 w-48 mb-3"></div>
+                <div className="h-4 w-48 rounded bg-white/10 animate-pulse mb-3" />
                 <div className="flex items-center justify-between">
-                  <div className="skeleton h-3 w-24"></div>
+                  <div className="h-3 w-24 rounded bg-white/10 animate-pulse" />
                   <div className="flex gap-2">
-                    <div className="skeleton h-8 w-12 rounded-lg"></div>
-                    <div className="skeleton h-8 w-8 rounded-lg"></div>
+                    <div className="h-8 w-12 rounded-lg bg-white/10 animate-pulse" />
+                    <div className="h-8 w-8 rounded-lg bg-white/10 animate-pulse" />
                   </div>
                 </div>
-              </div>
+              </m.div>
             ))}
-          </div>
+          </m.div>
         ) : voices.length === 0 ? (
           <GlassCard className="text-center py-16">
             <ICONS.Waveform className="w-12 h-12 mx-auto mb-4 text-slate-600" />
@@ -162,115 +190,128 @@ const VoiceManager: React.FC<VoiceManagerProps> = ({
             </button>
           </GlassCard>
         ) : (
-          <div data-onboarding="voice-list" className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+          <m.div
+            data-onboarding="voice-list"
+            className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6"
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+          >
             {voices.map((voice) => (
-              <GlassCard
+              <m.div
                 key={voice.id}
-                className={`!p-6 border ${
-                  currentVoiceId === voice.id
-                    ? 'border-cyan-500/30 bg-cyan-500/5'
-                    : 'border-transparent'
-                }`}
+                variants={cardVariants}
+                whileHover={{ scale: 1.02, y: -2 }}
+                whileTap={{ scale: 0.98 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 25 }}
               >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1">
-                    {editingId === voice.id ? (
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="text"
-                          value={editName}
-                          onChange={(e) => setEditName(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') handleRename(voice.id);
-                            if (e.key === 'Escape') {
+                <GlassCard
+                  className={`!p-6 border transition-all duration-300 ${
+                    currentVoiceId === voice.id
+                      ? 'border-cyan-500/40 bg-cyan-500/5 shadow-[0_0_30px_rgba(34,211,238,0.1)]'
+                      : 'border-transparent hover:border-white/10 hover:shadow-[0_8px_32px_rgba(0,0,0,0.2)]'
+                  }`}
+                >
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex-1">
+                      {editingId === voice.id ? (
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={editName}
+                            onChange={(e) => setEditName(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleRename(voice.id);
+                              if (e.key === 'Escape') {
+                                setEditingId(null);
+                                setEditName('');
+                              }
+                            }}
+                            className="flex-1 px-3 py-1 rounded-lg bg-white/10 border border-white/20 text-white text-sm focus:outline-none focus:border-cyan-500 transition-colors"
+                            autoFocus
+                          />
+                          <button
+                            onClick={() => handleRename(voice.id)}
+                            className="p-2 rounded-lg bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 transition-colors"
+                          >
+                            ✓
+                          </button>
+                          <button
+                            onClick={() => {
                               setEditingId(null);
                               setEditName('');
-                            }
-                          }}
-                          className="flex-1 px-3 py-1 rounded-lg bg-white/10 border border-white/20 text-white text-sm focus:outline-none focus:border-cyan-500"
-                          autoFocus
-                        />
-                        <button
-                          onClick={() => handleRename(voice.id)}
-                          className="p-2 rounded-lg bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30"
-                        >
-                          ✓
-                        </button>
-                        <button
-                          onClick={() => {
-                            setEditingId(null);
-                            setEditName('');
-                          }}
-                          className="p-2 rounded-lg bg-white/10 text-slate-400 hover:bg-white/20"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    ) : (
-                      <h4 className="text-lg font-bold text-white flex items-center gap-2">
-                        {voice.name}
-                        {voice.status === 'READY' && voice.cloning_status !== 'NEEDS_RECLONE' && (
-                          <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                        )}
-                        {/* Legacy voice indicator - needs re-clone */}
-                        {(voice.cloning_status === 'NEEDS_RECLONE' ||
-                          (!voice.elevenlabs_voice_id && (voice.provider === 'fish-audio' || voice.provider === 'chatterbox'))) && (
-                          <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 text-[9px] font-bold uppercase tracking-widest">
-                            Re-clone needed
-                          </span>
-                        )}
-                      </h4>
+                            }}
+                            className="p-2 rounded-lg bg-white/10 text-slate-400 hover:bg-white/20 transition-colors"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ) : (
+                        <h4 className="text-lg font-bold text-white flex items-center gap-2">
+                          {voice.name}
+                          {voice.status === 'READY' && voice.cloning_status !== 'NEEDS_RECLONE' && (
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                          )}
+                          {/* Legacy voice indicator - needs re-clone */}
+                          {(voice.cloning_status === 'NEEDS_RECLONE' ||
+                            (!voice.elevenlabs_voice_id && (voice.provider === 'fish-audio' || voice.provider === 'chatterbox'))) && (
+                            <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 text-[9px] font-bold uppercase tracking-widest border border-amber-500/20">
+                              Re-clone needed
+                            </span>
+                          )}
+                        </h4>
+                      )}
+                    </div>
+                    {currentVoiceId === voice.id && (
+                      <span className="px-2 py-1 rounded-full bg-cyan-500/20 text-cyan-400 text-[10px] font-bold uppercase tracking-widest border border-cyan-500/20">
+                        Active
+                      </span>
                     )}
                   </div>
-                  {currentVoiceId === voice.id && (
-                    <span className="px-2 py-1 rounded-full bg-cyan-500/20 text-cyan-400 text-[10px] font-bold uppercase tracking-widest">
-                      Active
-                    </span>
+
+                  {voice.description && (
+                    <p className="text-sm text-slate-400 mb-3">{voice.description}</p>
                   )}
-                </div>
 
-                {voice.description && (
-                  <p className="text-sm text-slate-400 mb-3">{voice.description}</p>
-                )}
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-slate-600">
+                      Created {formatDate(voice.created_at)}
+                    </span>
 
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-slate-600">
-                    Created {formatDate(voice.created_at)}
-                  </span>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => onSelectVoice(voice)}
-                      className="px-3 py-1.5 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 text-xs font-bold uppercase tracking-widest transition-all"
-                    >
-                      Use
-                    </button>
-                    <button
-                      onClick={() => {
-                        setEditingId(voice.id);
-                        setEditName(voice.name);
-                      }}
-                      className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-slate-400 transition-all"
-                      title="Rename"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={() => handleDelete(voice.id)}
-                      className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 transition-all"
-                      title="Delete"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => onSelectVoice(voice)}
+                        className="px-3 py-1.5 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 hover:shadow-[0_0_12px_rgba(34,211,238,0.3)] text-cyan-400 text-xs font-bold uppercase tracking-widest transition-all active:scale-95"
+                      >
+                        Use
+                      </button>
+                      <button
+                        onClick={() => {
+                          setEditingId(voice.id);
+                          setEditName(voice.name);
+                        }}
+                        className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-slate-400 hover:text-white transition-all active:scale-95"
+                        title="Rename"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => handleDelete(voice.id)}
+                        className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 hover:shadow-[0_0_12px_rgba(244,63,94,0.2)] text-rose-400 transition-all active:scale-95"
+                        title="Delete"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
-                </div>
-              </GlassCard>
+                </GlassCard>
+              </m.div>
             ))}
-          </div>
+          </m.div>
         )}
       </div>
       </div>
