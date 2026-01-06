@@ -2609,6 +2609,7 @@ const App: React.FC = () => {
           onLoadConversation={loadConversation}
           onStartNewConversation={startNewConversation}
           onConversationSelected={setResumeConversationId}
+          onMeditationRestore={(script) => setRestoredScript(script)}
           onSignOut={handleSignOut}
           onSignIn={() => setShowAuthModal(true)}
           Logo={ICONS.Logo}

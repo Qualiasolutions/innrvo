@@ -7,6 +7,13 @@ interface ChatHistoryItem {
   id: string;
   preview: string;
   mood?: string;
+  hasScript?: boolean; // True if conversation generated a meditation script
+}
+
+interface LoadedConversation {
+  sessionState?: {
+    lastMeditationScript?: string;
+  };
 }
 
 interface SidebarProps {
@@ -15,9 +22,10 @@ interface SidebarProps {
   user: { email?: string } | null;
   chatHistory: ChatHistoryItem[];
   isLoadingChatHistory: boolean;
-  onLoadConversation: (id: string) => Promise<unknown>;
+  onLoadConversation: (id: string) => Promise<LoadedConversation | null>;
   onStartNewConversation: () => Promise<void>;
   onConversationSelected: (id: string | null) => void;
+  onMeditationRestore?: (script: string) => void; // Called when conversation has a script
   onSignOut: () => void;
   onSignIn: () => void;
   Logo: React.ComponentType<{ className?: string }>;
@@ -135,6 +143,12 @@ const Icons = {
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
     </svg>
+  ),
+  Meditation: () => (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 6v6l4 2" />
+    </svg>
   )
 };
 
@@ -196,6 +210,11 @@ const ChatItem = memo(({
     <span className="flex-1 text-[13px] text-slate-400 group-hover:text-slate-200 truncate transition-colors duration-200">
       {item.preview}
     </span>
+    {item.hasScript && (
+      <span className="flex-shrink-0 p-1 rounded-md bg-cyan-500/10 text-cyan-400/80 border border-cyan-500/20" title="Has meditation">
+        <Icons.Meditation />
+      </span>
+    )}
     {item.mood && (
       <span className="flex-shrink-0 text-[9px] px-1.5 py-0.5 rounded-md bg-purple-500/10 text-purple-400/80 font-medium uppercase tracking-wide border border-purple-500/10">
         {item.mood}
@@ -216,6 +235,7 @@ export const Sidebar = memo(({
   onLoadConversation,
   onStartNewConversation,
   onConversationSelected,
+  onMeditationRestore,
   onSignOut,
   onSignIn,
   Logo,
@@ -237,7 +257,15 @@ export const Sidebar = memo(({
   const handleLoadChat = async (id: string) => {
     const conversation = await onLoadConversation(id);
     if (conversation) {
-      onConversationSelected(id);
+      // Check if this conversation has a meditation script
+      const script = conversation.sessionState?.lastMeditationScript;
+      if (script && onMeditationRestore) {
+        // Navigate to meditation editor with the script
+        onMeditationRestore(script);
+      } else {
+        // Resume the chat conversation
+        onConversationSelected(id);
+      }
       onClose();
     }
   };

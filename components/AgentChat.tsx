@@ -29,6 +29,19 @@ const SendIcon = () => (
   </svg>
 );
 
+const CopyIcon = () => (
+  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+    <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+  </svg>
+);
+
+const CheckIcon = () => (
+  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="20 6 9 17 4 12" />
+  </svg>
+);
+
 const WavesIcon = () => (
   <svg className="w-7 h-7" viewBox="0 0 24 24" fill="none" strokeLinecap="round">
     <path d="M6 9v6" stroke="#38bdf8" strokeWidth="3" strokeOpacity="0.8" />
@@ -63,9 +76,21 @@ interface MessageBubbleProps {
 
 const MessageBubble = memo<MessageBubbleProps>(({ message, isLast }) => {
   const isUser = message.role === 'user';
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = useCallback(async () => {
+    if (!message.content || message.isLoading) return;
+    try {
+      await navigator.clipboard.writeText(message.content);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  }, [message.content, message.isLoading]);
 
   return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4`}>
+    <div className={`group flex ${isUser ? 'justify-end' : 'justify-start'} mb-4`}>
       {!isUser && (
         <div className="flex-shrink-0 mr-3 mt-1">
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500/20 to-purple-600/20
@@ -75,26 +100,48 @@ const MessageBubble = memo<MessageBubbleProps>(({ message, isLast }) => {
         </div>
       )}
 
-      <div
-        className={`
-          max-w-[85%] rounded-2xl px-4 py-3
-          ${isUser
-            ? 'bg-gradient-to-br from-cyan-600 to-cyan-700 text-white shadow-lg shadow-cyan-500/20'
-            : 'bg-white/[0.08] text-white/90 border border-white/10'
-          }
-        `}
-      >
-        {message.isLoading ? (
-          <span className="text-amber-400/60 text-sm">Thinking...</span>
-        ) : (
-          <div className="text-base leading-relaxed whitespace-pre-wrap">{message.content}</div>
-        )}
+      <div className="relative max-w-[85%]">
+        <div
+          className={`
+            rounded-2xl px-4 py-3
+            ${isUser
+              ? 'bg-gradient-to-br from-cyan-600 to-cyan-700 text-white shadow-lg shadow-cyan-500/20'
+              : 'bg-white/[0.08] text-white/90 border border-white/10'
+            }
+          `}
+        >
+          {message.isLoading ? (
+            <span className="text-amber-400/60 text-sm">Thinking...</span>
+          ) : (
+            <div className="text-base leading-relaxed whitespace-pre-wrap">{message.content}</div>
+          )}
 
-        {message.quote && (
-          <div className="mt-3 pt-3 border-t border-white/10">
-            <p className="italic text-white/60 text-sm">"{message.quote.quote}"</p>
-            <p className="text-cyan-400 text-xs mt-1.5">— {message.quote.teacher}</p>
-          </div>
+          {message.quote && (
+            <div className="mt-3 pt-3 border-t border-white/10">
+              <p className="italic text-white/60 text-sm">"{message.quote.quote}"</p>
+              <p className="text-cyan-400 text-xs mt-1.5">— {message.quote.teacher}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Copy button - appears on hover */}
+        {!message.isLoading && message.content && (
+          <button
+            onClick={handleCopy}
+            className={`
+              absolute -bottom-1 ${isUser ? 'left-0 -translate-x-full -ml-1' : 'right-0 translate-x-full ml-1'}
+              opacity-0 group-hover:opacity-100 focus:opacity-100
+              p-1.5 rounded-lg transition-all duration-200
+              ${copied
+                ? 'bg-green-500/20 text-green-400'
+                : 'bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/70'
+              }
+            `}
+            title={copied ? 'Copied!' : 'Copy message'}
+            aria-label={copied ? 'Copied!' : 'Copy message'}
+          >
+            {copied ? <CheckIcon /> : <CopyIcon />}
+          </button>
         )}
       </div>
     </div>

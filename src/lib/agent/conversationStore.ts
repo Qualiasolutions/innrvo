@@ -91,6 +91,7 @@ export interface ConversationSummary {
   messageCount: number;
   createdAt: Date;
   mood?: string;
+  hasScript?: boolean; // True if conversation generated a meditation script
 }
 
 // ============================================================================
@@ -362,6 +363,7 @@ export class ConversationStore {
         messageCount: item.messages?.length || 0,
         createdAt: new Date(item.created_at),
         mood: item.session_state?.currentMood,
+        hasScript: !!item.session_state?.lastMeditationScript,
       }));
     } catch (error) {
       console.error('Error loading conversation history:', error);
