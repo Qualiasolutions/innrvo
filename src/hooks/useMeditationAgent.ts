@@ -334,8 +334,12 @@ export function useMeditationAgent(options: UseMeditationAgentOptions = {}): Use
           ));
 
           // Generate the meditation - this will open ScriptEditor automatically
+          // Pass content category and age group so stories use third person (not first person "I")
           const meditationPrompt = agentRef.current.generateMeditationPrompt(response.meditationType);
-          await generateMeditation(meditationPrompt, response.meditationType);
+          await generateMeditation(meditationPrompt, response.meditationType, {
+            contentCategory: response.contentCategory,
+            targetAgeGroup: response.contentGenerationParams?.targetAgeGroup,
+          });
         }
       } else {
         // Normal conversational response - show the agent's message
@@ -378,7 +382,11 @@ export function useMeditationAgent(options: UseMeditationAgentOptions = {}): Use
    */
   const generateMeditation = useCallback(async (
     prompt: string,
-    type: MeditationType = 'guided_visualization'
+    type: MeditationType = 'guided_visualization',
+    contentOptions?: {
+      contentCategory?: string;
+      targetAgeGroup?: string;
+    }
   ): Promise<MeditationResult | null> => {
     setIsGeneratingMeditation(true);
     setError(null);
@@ -391,11 +399,14 @@ export function useMeditationAgent(options: UseMeditationAgentOptions = {}): Use
       const durationMinutes = analysis.mentionedDuration || 5;
 
       // Generate the meditation script with exact duration
+      // Pass content category and age group for proper template selection (e.g., stories use third person)
       const result = await agentTools.generateMeditationScript(prompt, type, {
         durationMinutes,  // Pass exact duration in minutes
         tradition: analysis.mentionedTradition,
         teacherInfluence: analysis.mentionedTeacher,
         audioTags: ['[deep breath]', '[pause]'], // Default tags
+        contentCategory: contentOptions?.contentCategory,
+        targetAgeGroup: contentOptions?.targetAgeGroup,
       });
 
       if (!result.success || !result.data) {

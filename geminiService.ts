@@ -71,11 +71,19 @@ export const geminiService = {
    * @param thought - The user's meditation idea/prompt
    * @param audioTags - Optional array of audio tag labels to incorporate
    * @param durationMinutes - Target duration in minutes (default: 5)
+   * @param contentCategory - Content type (meditation, story, affirmation, etc.)
+   * @param targetAgeGroup - For stories: 'toddler' (2-4) or 'young_child' (5-8)
    */
-  async enhanceScript(thought: string, audioTags?: string[], durationMinutes?: number): Promise<string> {
+  async enhanceScript(
+    thought: string,
+    audioTags?: string[],
+    durationMinutes?: number,
+    contentCategory?: string,
+    targetAgeGroup?: string
+  ): Promise<string> {
     try {
       const { geminiGenerateScript } = await import('./src/lib/edgeFunctions');
-      return geminiGenerateScript(thought, audioTags, durationMinutes);
+      return geminiGenerateScript(thought, audioTags, durationMinutes, contentCategory, targetAgeGroup);
     } catch (error) {
       console.error('Error in enhanceScript:', error);
       const message = error instanceof Error ? error.message : 'Failed to generate meditation script. Please try again.';

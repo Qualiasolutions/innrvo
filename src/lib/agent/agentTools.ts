@@ -104,6 +104,8 @@ export async function generateMeditationScript(
     tradition?: string;
     teacherInfluence?: string;
     audioTags?: string[];
+    contentCategory?: string;  // Content type (meditation, story, etc.)
+    targetAgeGroup?: string;   // For stories: 'toddler' or 'young_child'
   }
 ): Promise<ToolResult<GeneratedMeditation>> {
   try {
@@ -160,8 +162,14 @@ export async function generateMeditationScript(
     enhancedPrompt += ` This is a ${typeInfo.name.toLowerCase()} meditation focused on ${typeInfo.benefits.slice(0, 2).join(' and ')}.`;
     enhancedPrompt += ` Target duration: exactly ${durationMinutes} minutes (${wordRange} words).`;
 
-    // Generate the script
-    const script = await geminiService.enhanceScript(enhancedPrompt, options?.audioTags, durationMinutes);
+    // Generate the script - pass content category and target age group for proper template selection
+    const script = await geminiService.enhanceScript(
+      enhancedPrompt,
+      options?.audioTags,
+      durationMinutes,
+      options?.contentCategory,
+      options?.targetAgeGroup
+    );
 
     return {
       success: true,
