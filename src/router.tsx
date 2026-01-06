@@ -14,6 +14,7 @@ const TermsPage = lazy(() => import('./pages/TermsPage'));
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
 const PricingPage = lazy(() => import('./pages/PricingPage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
+const MarketingPage = lazy(() => import('./pages/marketing/MarketingPage'));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
 const EmailVerifiedPage = lazy(() => import('./pages/EmailVerifiedPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
@@ -33,6 +34,7 @@ const routeImports: Record<string, () => Promise<unknown>> = {
   '/how-it-works': () => import('./pages/HowItWorksPage'),
   '/about': () => import('./pages/AboutPage'),
   '/pricing': () => import('./pages/PricingPage'),
+  '/marketing': () => import('./pages/marketing/MarketingPage'),
 };
 
 // Prefetch a route's chunk
@@ -56,6 +58,7 @@ const prefetchMap: Record<string, string[]> = {
   '/voice': ['/', '/clone', '/library'],
   '/clone': ['/voice', '/library'],
   '/pricing': ['/', '/library'],
+  '/marketing': ['/', '/admin'],
 };
 
 // Hook to prefetch adjacent routes when a page loads
@@ -150,6 +153,10 @@ export const router = createBrowserRouter([
       {
         path: 'admin',
         element: <AdminPage />,
+      },
+      {
+        path: 'marketing',
+        element: <MarketingPage />,
       },
       {
         path: 'auth/reset-password',
