@@ -342,8 +342,27 @@ export const updatePassword = async (newPassword: string): Promise<void> => {
 
 export const getCurrentUser = async () => {
   if (!supabase) return null;
-  const { data: { user } } = await supabase.auth.getUser();
-  return user;
+
+  try {
+    // Try getSession first (fast, cached from localStorage)
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user) {
+      return session.user;
+    }
+
+    // If no cached session, fallback to getUser (network request) with timeout
+    // This handles the race condition on initial page load
+    const timeoutPromise = new Promise<null>((resolve) => {
+      setTimeout(() => resolve(null), 5000);
+    });
+
+    const userPromise = supabase.auth.getUser().then(({ data: { user } }) => user);
+
+    return await Promise.race([userPromise, timeoutPromise]);
+  } catch (error) {
+    console.error('[getCurrentUser] Error:', error);
+    return null;
+  }
 };
 
 export const getCurrentUserProfile = async (): Promise<User | null> => {
