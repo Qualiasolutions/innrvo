@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useState, useCallback, useEffect, useMemo, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef, ReactNode } from 'react';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
-import { supabase, getCurrentUser, getUserVoiceProfiles, VoiceProfile, getAudioTagPreferences } from '../../lib/supabase';
+import { supabase, getCurrentUser, getUserVoiceProfiles, VoiceProfile } from '../../lib/supabase';
 
 /**
  * Authentication context - manages user authentication state and voice profiles
@@ -70,6 +70,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [user]);
 
+  // Track if auth has been initialized (to skip fallback)
+  const authInitializedRef = useRef(false);
+  const fallbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Set up auth listener - onAuthStateChange is the single source of truth
   // This fires immediately on mount with INITIAL_SESSION event
   useEffect(() => {
@@ -86,11 +90,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('[AuthContext] Auth state changed:', event, 'user:', session?.user?.id);
 
+      // Mark as initialized and clear fallback timeout
+      authInitializedRef.current = true;
+      if (fallbackTimeoutRef.current) {
+        clearTimeout(fallbackTimeoutRef.current);
+        fallbackTimeoutRef.current = null;
+      }
+
       // Only update user state, let the listener be the source of truth
       setUser(session?.user ?? null);
 
       // Mark loading complete after INITIAL_SESSION or any auth event
-      // This ensures we wait for Supabase to validate/refresh the token
       setIsLoading(false);
 
       // Clear voice profiles on logout
@@ -102,14 +112,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     // Fallback timeout in case onAuthStateChange doesn't fire
     // (shouldn't happen, but prevents infinite loading)
-    const fallbackTimeout = setTimeout(() => {
-      console.log('[AuthContext] Fallback timeout - checking user manually');
-      checkUser();
+    fallbackTimeoutRef.current = setTimeout(() => {
+      if (!authInitializedRef.current) {
+        console.log('[AuthContext] Fallback timeout - checking user manually');
+        checkUser();
+      }
     }, 3000);
 
     return () => {
       authListener?.subscription.unsubscribe();
-      clearTimeout(fallbackTimeout);
+      if (fallbackTimeoutRef.current) {
+        clearTimeout(fallbackTimeoutRef.current);
+      }
     };
   }, [checkUser]);
 
