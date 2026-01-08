@@ -18,6 +18,10 @@ const {
     addMessage: vi.fn(),
     savePreferences: vi.fn(),
     loadConversation: vi.fn(),
+    updateLastMeditationScript: vi.fn(),
+    clearCurrentConversation: vi.fn(),
+    flushPendingSave: vi.fn(),
+    destroy: vi.fn(),
   },
 }));
 

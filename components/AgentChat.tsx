@@ -547,12 +547,24 @@ export const AgentChat: React.FC<AgentChatProps> = ({
 
               <button
                 type="button"
-                onClick={(e) => {
-                  e.preventDefault();
+                onClick={() => {
+                  // Direct action based on current state - no preventDefault needed for type="button"
                   if (showMicButton || isRecording) {
                     handleMicClick();
                   } else {
                     handleSubmit();
+                  }
+                }}
+                // Explicit touch handler for mobile - ensures tap is captured even when keyboard dismisses
+                onTouchEnd={(e) => {
+                  // Only handle if this is a tap (not a scroll/swipe)
+                  if (e.cancelable) {
+                    e.preventDefault(); // Prevent ghost click
+                    if (showMicButton || isRecording) {
+                      handleMicClick();
+                    } else {
+                      handleSubmit();
+                    }
                   }
                 }}
                 disabled={isProcessing && !isRecording}

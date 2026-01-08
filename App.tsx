@@ -2165,6 +2165,12 @@ const App: React.FC = () => {
                           audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
                         }
 
+                        // CRITICAL: Resume suspended AudioContext (required for iOS Safari)
+                        // iOS suspends AudioContext by default until user gesture activates it
+                        if (audioContextRef.current.state === 'suspended') {
+                          await audioContextRef.current.resume();
+                        }
+
                         // Generate speech
                         const { audioBuffer, base64, needsReclone } = await voiceService.generateSpeech(
                           meditationScript,

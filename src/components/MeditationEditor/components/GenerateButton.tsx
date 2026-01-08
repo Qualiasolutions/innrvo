@@ -66,6 +66,13 @@ export const GenerateButton = memo<GenerateButtonProps>(
       >
         <button
           onClick={onClick}
+          // Explicit touch handler for mobile - ensures tap is captured reliably
+          onTouchEnd={(e) => {
+            if (e.cancelable && !isDisabled) {
+              e.preventDefault(); // Prevent ghost click
+              onClick();
+            }
+          }}
           disabled={isDisabled}
           aria-busy={isGenerating}
           aria-label={

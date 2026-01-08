@@ -2,6 +2,9 @@ import React, { createContext, useContext, useState, useCallback, useEffect, use
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { supabase, getCurrentUser, getUserVoiceProfiles, VoiceProfile } from '../../lib/supabase';
 
+// Only log in development mode
+const DEBUG = import.meta.env.DEV;
+
 /**
  * Authentication context - manages user authentication state and voice profiles
  * Separated from AppContext to reduce re-renders for components
@@ -39,17 +42,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Check user auth status
   const checkUser = useCallback(async () => {
-    console.log('[AuthContext] checkUser starting');
+    if (DEBUG) console.log('[AuthContext] checkUser starting');
     setIsLoading(true);
     try {
       const currentUser = await getCurrentUser();
-      console.log('[AuthContext] checkUser got user:', currentUser?.id);
+      if (DEBUG) console.log('[AuthContext] checkUser got user:', currentUser?.id);
       setUser(currentUser);
     } catch (error) {
       console.error('[AuthContext] Failed to check user:', error);
       setUser(null);
     } finally {
-      console.log('[AuthContext] checkUser done, setting isLoading=false');
+      if (DEBUG) console.log('[AuthContext] checkUser done, setting isLoading=false');
       setIsLoading(false);
     }
   }, []);
@@ -82,10 +85,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // Set up auth listener - onAuthStateChange is the single source of truth
   // This fires immediately on mount with INITIAL_SESSION event
   useEffect(() => {
-    console.log('[AuthContext] Setting up auth, supabase exists:', !!supabase);
+    if (DEBUG) console.log('[AuthContext] Setting up auth, supabase exists:', !!supabase);
 
     if (!supabase) {
-      console.log('[AuthContext] No supabase client, skipping listener');
+      if (DEBUG) console.log('[AuthContext] No supabase client, skipping listener');
       setIsLoading(false);
       return;
     }
@@ -93,7 +96,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // onAuthStateChange fires INITIAL_SESSION immediately on setup
     // This is the recommended way to get the initial session (Supabase v2+)
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('[AuthContext] Auth state changed:', event, 'user:', session?.user?.id, 'hasToken:', !!session?.access_token);
+      if (DEBUG) console.log('[AuthContext] Auth state changed:', event, 'user:', session?.user?.id, 'hasToken:', !!session?.access_token);
 
       // Mark as initialized and clear fallback timeout
       authInitializedRef.current = true;
@@ -110,7 +113,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       // Handle TOKEN_REFRESHED event - token is guaranteed available
       if (event === 'TOKEN_REFRESHED' && session?.access_token) {
-        console.log('[AuthContext] Token refreshed, session ready');
+        if (DEBUG) console.log('[AuthContext] Token refreshed, session ready');
         setIsSessionReady(true);
         return;
       }
@@ -124,14 +127,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         try {
           // If token is already available, we're good
           if (session?.access_token) {
-            console.log('[AuthContext] Session ready with access token');
+            if (DEBUG) console.log('[AuthContext] Session ready with access token');
             setIsSessionReady(true);
             return;
           }
 
           if (session?.user) {
             // User exists but no token yet - retry with increasing delays
-            console.log('[AuthContext] User exists but no token in event, verifying session with retries...');
+            if (DEBUG) console.log('[AuthContext] User exists but no token in event, verifying session with retries...');
 
             for (let attempt = 0; attempt < 5; attempt++) {
               // Wait with increasing delays: 100, 200, 300, 400, 500ms
@@ -141,17 +144,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               const { data } = await supabase.auth.getSession();
 
               if (data.session?.access_token) {
-                console.log(`[AuthContext] Session verified with token (attempt ${attempt + 1})`);
+                if (DEBUG) console.log(`[AuthContext] Session verified with token (attempt ${attempt + 1})`);
                 // Update user if needed (sometimes event user is partial)
                 setUser(data.session.user);
                 setIsSessionReady(true);
                 return;
               }
-              console.log(`[AuthContext] Retry ${attempt + 1}/5 - no token yet`);
+              if (DEBUG) console.log(`[AuthContext] Retry ${attempt + 1}/5 - no token yet`);
             }
 
             // All retries exhausted - still try to work with what we have
-            console.warn('[AuthContext] Token not available after 5 retries, setting session ready anyway');
+            if (DEBUG) console.warn('[AuthContext] Token not available after 5 retries, setting session ready anyway');
             setIsSessionReady(true); // Let requests proceed - they'll get 401 and trigger re-auth
           } else {
             // No user - session not ready
@@ -175,7 +178,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // (shouldn't happen, but prevents infinite loading)
     fallbackTimeoutRef.current = setTimeout(async () => {
       if (!authInitializedRef.current) {
-        console.log('[AuthContext] Fallback timeout - checking user manually');
+        if (DEBUG) console.log('[AuthContext] Fallback timeout - checking user manually');
         await checkUser();
         // Also check session ready state manually
         if (supabase) {
