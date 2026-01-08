@@ -324,10 +324,10 @@ serve(async (req) => {
       log.info('Audio uploaded to storage', { url: voiceSampleUrl });
     }
 
-    // Create voice profile in database
+    // Create or update voice profile in database (upsert on user_id + name)
     const { data: voiceProfile, error: profileError } = await (supabase
       .from('voice_profiles') as ReturnType<typeof supabase.from>)
-      .insert({
+      .upsert({
         user_id: user.id,
         name: voiceName,
         description: description || 'Voice clone created with Innrvo',
@@ -339,7 +339,7 @@ serve(async (req) => {
         cloning_status: 'READY',
         status: 'READY',
         metadata: metadata || {},
-      })
+      }, { onConflict: 'user_id,name' })
       .select('id')
       .single();
 

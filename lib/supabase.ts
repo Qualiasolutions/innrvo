@@ -982,10 +982,14 @@ export const saveMeditationHistory = async (
   backgroundTrackName?: string,
   durationSeconds?: number,
   audioTagsUsed?: string[],
-  audioBase64?: string
+  audioBase64?: string,
+  title?: string
 ): Promise<MeditationHistory | null> => {
   const user = await getCurrentUser();
   if (!user || !supabase) return null;
+
+  // Generate title from prompt if not provided (first 50 chars)
+  const meditationTitle = title || prompt.slice(0, 50) + (prompt.length > 50 ? '...' : '');
 
   // First, insert the meditation history record
   const { data, error } = await supabase
@@ -993,6 +997,7 @@ export const saveMeditationHistory = async (
     .insert({
       user_id: user.id,
       prompt,
+      title: meditationTitle,
       enhanced_script: enhancedScript,
       voice_id: voiceId,
       voice_name: voiceName,
