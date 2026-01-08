@@ -256,7 +256,7 @@ export const signUp = async (email: string, password: string, firstName?: string
     // Get the current origin for redirect URL
     const redirectUrl = typeof window !== 'undefined'
       ? `${window.location.origin}/auth/verified`
-      : 'https://inrvo.com/auth/verified';
+      : 'https://innrvo.com/auth/verified';
 
     const { data, error } = await supabase.auth.signUp({
       email,

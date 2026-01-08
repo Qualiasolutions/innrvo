@@ -52,7 +52,7 @@ const PrivacyPage: React.FC = () => {
             <section>
               <h3 className="text-lg font-semibold text-white mb-3">Contact</h3>
               <p className="text-slate-400 leading-relaxed">
-                For privacy-related inquiries, please contact us at privacy@inrvo.app.
+                For privacy-related inquiries, please contact us at privacy@innrvo.com.
               </p>
             </section>
           </div>
