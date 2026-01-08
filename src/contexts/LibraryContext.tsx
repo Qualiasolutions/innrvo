@@ -58,6 +58,7 @@ export const LibraryProvider: React.FC<{ children: ReactNode }> = ({ children })
     // Try cache first (unless force refresh)
     if (!forceRefresh) {
       const cached = getCachedHistory(userId, undefined, 20);
+      console.log('[LibraryContext] Cache check:', cached ? `HIT (${cached.data.length} items)` : 'MISS');
       if (cached) {
         setMeditationHistory(cached.data as MeditationHistory[]);
         setHasMoreHistory(cached.hasMore);
@@ -72,6 +73,7 @@ export const LibraryProvider: React.FC<{ children: ReactNode }> = ({ children })
     try {
       console.log('[LibraryContext] Loading history for user:', userId);
       const result = await getMeditationHistoryPaginated(0, 20);
+      console.log('[LibraryContext] Loaded:', result.data.length, 'items, hasMore:', result.hasMore);
       setMeditationHistory(result.data);
       setHasMoreHistory(result.hasMore);
 

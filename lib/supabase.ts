@@ -1077,13 +1077,20 @@ export const getMeditationHistoryPaginated = async (
   page = 0,
   pageSize = 20
 ): Promise<PaginatedHistoryResult> => {
+  console.log('[getMeditationHistoryPaginated] Starting, page:', page);
   const user = await getCurrentUser();
-  if (!user || !supabase) return { data: [], hasMore: false, totalCount: 0 };
+  if (!user || !supabase) {
+    console.log('[getMeditationHistoryPaginated] No user or supabase client');
+    return { data: [], hasMore: false, totalCount: 0 };
+  }
+
+  console.log('[getMeditationHistoryPaginated] Fetching for user:', user.id);
 
   return withRetry(async () => {
     const from = page * pageSize;
     const to = from + pageSize - 1;
 
+    console.log('[getMeditationHistoryPaginated] Executing query...');
     const { data, error, count } = await supabase
       .from('meditation_history')
       .select(MEDITATION_HISTORY_FIELDS, { count: 'exact' })
@@ -1092,12 +1099,14 @@ export const getMeditationHistoryPaginated = async (
       .range(from, to);
 
     if (error) {
-      console.error('Error fetching paginated meditation history:', error);
+      console.error('[getMeditationHistoryPaginated] Query error:', error);
       throw error;
     }
 
     const totalCount = count || 0;
     const hasMore = (page + 1) * pageSize < totalCount;
+
+    console.log('[getMeditationHistoryPaginated] Success! Items:', data?.length, 'Total:', totalCount);
 
     return {
       data: data || [],
