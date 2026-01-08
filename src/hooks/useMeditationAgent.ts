@@ -326,6 +326,8 @@ export function useMeditationAgent(options: UseMeditationAgentOptions = {}): Use
             readyForReview: true,
           };
           setCurrentMeditation(meditation);
+          // Persist pasted script to conversation store for history sidebar restoration
+          conversationStore.updateLastMeditationScript(response.pastedScript);
           if (DEBUG) console.log("[useMeditationAgent] Pasted script ready for review:", {
             length: meditation.script.length,
             type: meditation.meditationType,
@@ -433,6 +435,8 @@ export function useMeditationAgent(options: UseMeditationAgentOptions = {}): Use
       };
 
       setCurrentMeditation(meditation);
+      // Persist script to conversation store for history sidebar restoration
+      conversationStore.updateLastMeditationScript(result.data.script);
       trackMeditation.scriptGenerated(prompt.length);
       if (DEBUG) console.log("[useMeditationAgent] Setting meditation:", { script: meditation.script.substring(0, 50) + "...", readyForReview: meditation.readyForReview });
 

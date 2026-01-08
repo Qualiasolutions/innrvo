@@ -398,6 +398,16 @@ export class ConversationStore {
   }
 
   /**
+   * Update session state with the last generated meditation script
+   * This enables the history sidebar to restore scripts when loading conversations
+   */
+  updateLastMeditationScript(script: string): void {
+    if (!this.currentConversation) return;
+    this.currentConversation.sessionState.lastMeditationScript = script;
+    this.scheduleSave();
+  }
+
+  /**
    * Clear current conversation
    */
   clearCurrentConversation(): void {
