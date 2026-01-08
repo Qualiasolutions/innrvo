@@ -1864,7 +1864,7 @@ const App: React.FC = () => {
         selectedBackgroundTrack?.name,
         Math.round(audioBuffer.duration),
         audioTagsEnabled && selectedAudioTags.length > 0 ? selectedAudioTags : undefined,
-        selectedVoice.isCloned ? base64 : undefined // Save audio only for cloned voices
+        base64 // Always save audio, even for non-cloned voices
       ).catch(err => console.warn('Failed to save meditation history:', err));
 
       source.onended = () => {
@@ -2250,7 +2250,7 @@ const App: React.FC = () => {
                           selectedBackgroundTrack?.name,
                           Math.round(audioBuffer.duration),
                           tags.length > 0 ? tags : undefined,
-                          voice.isCloned ? base64 : undefined // Save audio only for cloned voices
+                          base64 // Always save audio
                         ).catch(err => console.warn('Failed to save history:', err));
 
                         source.onended = () => {
