@@ -546,8 +546,15 @@ export const AgentChat: React.FC<AgentChatProps> = ({
               />
 
               <button
-                type={showMicButton || isRecording ? 'button' : 'submit'}
-                onClick={showMicButton || isRecording ? handleMicClick : undefined}
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (showMicButton || isRecording) {
+                    handleMicClick();
+                  } else {
+                    handleSubmit();
+                  }
+                }}
                 disabled={isProcessing && !isRecording}
                 className={`
                   flex-shrink-0 ml-2 touch-manipulation
