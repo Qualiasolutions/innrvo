@@ -1,5 +1,5 @@
 /**
- * Agent Tools for INrVO Meditation Agent
+ * Agent Tools for Innrvo Meditation Agent
  *
  * These tools connect the conversational agent to the app's core functionality:
  * - Script generation (Gemini)

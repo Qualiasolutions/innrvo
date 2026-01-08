@@ -1,5 +1,5 @@
 /**
- * INrVO Intelligent Content Type System
+ * Innrvo Intelligent Content Type System
  *
  * Comprehensive type definitions for 5 content categories:
  * - Meditations (existing, refined)

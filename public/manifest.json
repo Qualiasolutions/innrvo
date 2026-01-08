@@ -1,6 +1,6 @@
 {
-  "name": "INrVO - AI-Powered Personalized Meditation",
-  "short_name": "INrVO",
+  "name": "Innrvo - AI-Powered Personalized Meditation",
+  "short_name": "Innrvo",
   "description": "Generate personalized meditation scripts with AI and listen in your own cloned voice.",
   "start_url": "/",
   "display": "standalone",

@@ -178,7 +178,7 @@ const MarketingPage: React.FC = () => {
                 transition={{ delay: 0.15 }}
                 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-slate-900 via-violet-900 to-slate-900 bg-clip-text text-transparent"
               >
-                INrVO Marketing Portal
+                Innrvo Marketing Portal
               </motion.h1>
               <motion.p
                 initial={{ opacity: 0, x: -20 }}

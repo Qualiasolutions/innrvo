@@ -1,5 +1,5 @@
 /**
- * INrVO Prompt Templates
+ * Innrvo Prompt Templates
  *
  * Category-specific generation prompts for the Gemini API.
  * Each content type has distinct structure, pacing, and requirements.

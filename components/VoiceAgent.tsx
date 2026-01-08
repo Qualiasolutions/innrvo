@@ -1,7 +1,7 @@
 /**
  * VoiceAgent Component
  *
- * Real-time voice conversation interface for INrVO Meditation.
+ * Real-time voice conversation interface for Innrvo Meditation.
  * Clean, minimal design with clear visual feedback.
  */
 

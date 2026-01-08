@@ -174,7 +174,7 @@ serve(async (req) => {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${openRouterApiKey}`,
                 'HTTP-Referer': Deno.env.get('SUPABASE_URL') || 'https://inrvo.app',
-                'X-Title': 'INrVO Meditation App',
+                'X-Title': 'Innrvo Meditation App',
               },
               body: JSON.stringify({
                 model: Deno.env.get('GEMINI_MODEL') || 'google/gemini-2.0-flash-001',

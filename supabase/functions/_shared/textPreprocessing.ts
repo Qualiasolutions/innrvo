@@ -30,7 +30,7 @@ function escapeRegex(string: string): string {
 
 /**
  * V3 tag mappings
- * Transforms INrVO meditation tags to V3-native audio tags
+ * Transforms Innrvo meditation tags to V3-native audio tags
  *
  * V3 supported tags (from ElevenLabs docs):
  * - Emotions: [sad], [laughing], [whispering], [giggling], [groaning]
@@ -96,7 +96,7 @@ const V2_TAG_MAPPINGS: Record<string, string> = {
 
 /**
  * Prepare meditation text for V3 model
- * Transforms INrVO tags to V3-native audio tags
+ * Transforms Innrvo tags to V3-native audio tags
  */
 export function prepareMeditationTextV3(text: string): TextProcessingResult {
   const warnings: string[] = [];

@@ -105,6 +105,10 @@ export async function createCompressedResponse(
  * Uses environment variable for additional allowed origins
  */
 const PRODUCTION_ORIGINS = [
+  'https://www.innrvo.com',
+  'https://innrvo.com',
+  'https://innrvo.vercel.app',
+  // Legacy domains (keep for transition period)
   'https://www.inrvo.com',
   'https://inrvo.com',
   'https://inrvo.vercel.app',
@@ -128,13 +132,17 @@ export const ALLOWED_ORIGINS = [
 ];
 
 // Project-specific patterns for Vercel preview deployments
-// Only allow deployments that belong to this project (start with "inrvo")
+// Allow both innrvo and inrvo patterns during transition
 const VERCEL_PREVIEW_PATTERNS = [
-  // Preview deployments: inrvo-abc123-team.vercel.app
-  /^https:\/\/inrvo-[a-z0-9]+-[a-z0-9]+\.vercel\.app$/,
-  // Branch deployments: inrvo-git-branch-name-team.vercel.app
-  /^https:\/\/inrvo-git-[a-z0-9-]+\.vercel\.app$/,
+  // Preview deployments: innrvo-abc123-team.vercel.app
+  /^https:\/\/innrvo-[a-z0-9]+-[a-z0-9]+\.vercel\.app$/,
+  // Branch deployments: innrvo-git-branch-name-team.vercel.app
+  /^https:\/\/innrvo-git-[a-z0-9-]+\.vercel\.app$/,
   // PR preview deployments
+  /^https:\/\/innrvo-[a-z0-9-]+-qualiasolutions\.vercel\.app$/,
+  // Legacy patterns (keep for transition)
+  /^https:\/\/inrvo-[a-z0-9]+-[a-z0-9]+\.vercel\.app$/,
+  /^https:\/\/inrvo-git-[a-z0-9-]+\.vercel\.app$/,
   /^https:\/\/inrvo-[a-z0-9-]+-qualiasolutions\.vercel\.app$/,
 ];
 

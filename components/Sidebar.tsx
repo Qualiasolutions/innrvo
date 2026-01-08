@@ -467,7 +467,7 @@ export const Sidebar = memo(({
                   Privacy
                 </button>
               </div>
-              <p className="text-[9px] text-slate-600 text-center pt-1">© {new Date().getFullYear()} INrVO</p>
+              <p className="text-[9px] text-slate-600 text-center pt-1">© {new Date().getFullYear()} Innrvo</p>
             </div>
           </m.aside>
         </>

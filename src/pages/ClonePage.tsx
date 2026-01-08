@@ -46,7 +46,7 @@ const ClonePage: React.FC = () => {
         cloneResult = await elevenLabsCloneVoice(
           wavBlob,
           name,
-          'Meditation voice clone created with INrVO',
+          'Meditation voice clone created with Innrvo',
           metadata,
           shouldRemoveNoise
         );

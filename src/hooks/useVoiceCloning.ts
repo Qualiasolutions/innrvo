@@ -190,7 +190,7 @@ export function useVoiceCloning(
       const cloneResult = await elevenLabsCloneVoice(
         wavBlob,
         name,
-        'Meditation voice clone created with INrVO',
+        'Meditation voice clone created with Innrvo',
         voiceMetadata,
         shouldRemoveNoise
       );
@@ -317,7 +317,7 @@ export function useVoiceCloning(
       const cloneResult = await elevenLabsCloneVoice(
         wavBlob,
         finalName,
-        'Voice clone created with INrVO',
+        'Voice clone created with Innrvo',
         undefined, // Use default metadata
         false // removeBackgroundNoise - disabled by default per ElevenLabs docs
       );

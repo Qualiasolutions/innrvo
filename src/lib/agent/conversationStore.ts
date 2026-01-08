@@ -1,5 +1,5 @@
 /**
- * Conversation Store for INrVO Meditation Agent
+ * Conversation Store for Innrvo Meditation Agent
  *
  * Manages conversation history using Supabase for persistence.
  * Replaces LocalStorage with database-first approach for cross-device sync.

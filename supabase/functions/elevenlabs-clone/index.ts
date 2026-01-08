@@ -273,7 +273,7 @@ serve(async (req) => {
 
     // Use simple description - let ElevenLabs auto-detect voice characteristics
     // Metadata is stored in DB for reference but NOT passed to ElevenLabs to avoid distortion
-    const simpleDescription = description || 'Voice clone created with INrVO for meditation';
+    const simpleDescription = description || 'Voice clone created with Innrvo for meditation';
     log.info('Using simple description (auto-detect mode)', { simpleDescription });
 
     // Create promises for parallel execution
@@ -316,7 +316,7 @@ serve(async (req) => {
       .insert({
         user_id: user.id,
         name: voiceName,
-        description: description || 'Voice clone created with INrVO',
+        description: description || 'Voice clone created with Innrvo',
         provider: 'elevenlabs',
         elevenlabs_voice_id: elevenLabsVoiceId,
         voice_sample_url: voiceSampleUrl,

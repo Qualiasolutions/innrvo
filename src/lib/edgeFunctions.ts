@@ -425,7 +425,7 @@ export async function elevenLabsCloneVoice(
   }>('elevenlabs-clone', {
     audioBase64: base64Audio,
     voiceName: name,
-    description: description || 'Voice clone created with INrVO',
+    description: description || 'Voice clone created with Innrvo',
     metadata: metadata || undefined,
     removeBackgroundNoise,
   }, {

@@ -1,5 +1,5 @@
 /**
- * INrVO Meditation Agent
+ * Innrvo Meditation Agent
  *
  * A conversational AI assistant for personalized meditation experiences,
  * drawing from humanity's deepest wisdom traditions.

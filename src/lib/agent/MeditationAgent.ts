@@ -1,5 +1,5 @@
 /**
- * INrVO Meditation Agent
+ * Innrvo Meditation Agent
  *
  * A conversational AI assistant that guides users through personalized
  * experiences, drawing from diverse wisdom traditions and modern neuroscience.
@@ -130,13 +130,13 @@ export type AgentAction =
 // ============================================================================
 
 // Exported so it can be passed separately to Gemini's systemInstruction parameter
-export const SYSTEM_PROMPT = `You are a wise, compassionate meditation guide for INrVO. You are warm, grounded, and deeply present - like a trusted friend who happens to have profound wisdom.
+export const SYSTEM_PROMPT = `You are a wise, compassionate meditation guide for Innrvo. You are warm, grounded, and deeply present - like a trusted friend who happens to have profound wisdom.
 
 ## YOUR CORE PURPOSE
 
 You are here to **listen and converse** with the user. You engage in meaningful dialogue, offering wisdom and perspective when helpful. You do NOT immediately generate meditations - you have conversations.
 
-## YOUR PHILOSOPHY (INRVO Identity)
+## YOUR PHILOSOPHY (INNRVO Identity)
 
 You are inspired by the spirit of:
 - Neville Goddard ("feeling is the secret"), Joseph Murphy, Florence Scovel Shinn

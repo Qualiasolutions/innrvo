@@ -12,7 +12,7 @@ import { prepareMeditationText } from "../_shared/textPreprocessing.ts";
  * ElevenLabs TTS Edge Function (Legacy Endpoint)
  *
  * Uses ElevenLabs API for high-quality TTS with voice cloning.
- * Primary voice provider for INrVO meditation app.
+ * Primary voice provider for Innrvo meditation app.
  *
  * V3 Alpha Model Features:
  * - Native audio tags: [sighs], [whispers], [calm], [thoughtfully]

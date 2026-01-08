@@ -1,7 +1,7 @@
 /**
  * AgentChat Component
  *
- * A dedicated conversational chat interface for the INrVO Meditation Agent.
+ * A dedicated conversational chat interface for the Innrvo Meditation Agent.
  * Includes inline meditation panel with music, voice, and audio tag controls.
  * Now supports real-time voice conversation via VoiceAgent component.
  */

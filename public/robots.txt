@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://inrvo.com/sitemap.xml
+Sitemap: https://innrvo.com/sitemap.xml

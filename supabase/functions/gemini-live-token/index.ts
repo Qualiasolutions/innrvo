@@ -26,7 +26,7 @@ const MEDITATION_VOICES = [
 ];
 
 // System prompt for voice meditation assistant
-const VOICE_SYSTEM_PROMPT = `You are a wise, compassionate meditation guide for INrVO speaking in real-time voice conversation.
+const VOICE_SYSTEM_PROMPT = `You are a wise, compassionate meditation guide for Innrvo speaking in real-time voice conversation.
 
 ## YOUR VOICE PERSONALITY
 

@@ -1,5 +1,5 @@
 /**
- * INrVO Content Detection System
+ * Innrvo Content Detection System
  *
  * Multi-layer detection pipeline that analyzes user input to determine:
  * 1. Content category (meditation, affirmation, hypnosis, journey, story)

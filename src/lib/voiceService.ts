@@ -14,7 +14,7 @@ const USE_V3_MODEL = true;
 
 /**
  * Prepare meditation text for V3 model
- * Transforms INrVO tags to V3-native audio tags
+ * Transforms Innrvo tags to V3-native audio tags
  */
 function prepareMeditationTextV3(text: string): string {
   return text

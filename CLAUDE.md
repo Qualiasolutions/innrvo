@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-INrVO is a meditation and wellness app that generates personalized guided meditations using AI. Users describe their mood/needs, and the app generates custom meditation scripts with TTS voice synthesis.
+Innrvo is a meditation and wellness app that generates personalized guided meditations using AI. Users describe their mood/needs, and the app generates custom meditation scripts with TTS voice synthesis.
 
-**Live URL**: https://inrvo.com (Vercel)
+**Live URL**: https://innrvo.com (Vercel)
 **Supabase Project ID**: `ygweconeysctxpjjnehy`
 
 ## Commands
@@ -91,7 +91,7 @@ Voice profiles support multiple providers (defined in `types.ts`):
 
 Legacy providers (`fish-audio`, `chatterbox`) are marked for re-cloning to ElevenLabs. The `voiceService.ts` routes TTS requests based on voice profile config.
 
-**ElevenLabs V3 Model**: Text preprocessing in `voiceService.ts` transforms INrVO audio tags (`[pause]`, `[deep breath]`) to V3-native tags (`[sighs]`, `[whispers]`).
+**ElevenLabs V3 Model**: Text preprocessing in `voiceService.ts` transforms Innrvo audio tags (`[pause]`, `[deep breath]`) to V3-native tags (`[sighs]`, `[whispers]`).
 
 ### Edge Functions (`supabase/functions/`)
 

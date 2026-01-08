@@ -1,5 +1,5 @@
 /**
- * INrVO Meditation Agent Knowledge Base
+ * Innrvo Meditation Agent Knowledge Base
  *
  * A comprehensive collection of wisdom traditions, teachers, and meditation practices
  * that inform the conversational AI meditation assistant.

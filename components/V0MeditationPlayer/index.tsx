@@ -728,7 +728,7 @@ const BreathingOrb = memo(({ isPlaying }: { isPlaying: boolean }) => {
 BreathingOrb.displayName = 'BreathingOrb';
 
 /**
- * Floating Particles - Enhanced ambient particle effect with INrVO colors
+ * Floating Particles - Enhanced ambient particle effect with Innrvo colors
  * Uses PARTICLE_COUNT (20) for immersive atmosphere
  */
 const FloatingParticles = memo(() => {

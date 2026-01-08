@@ -20,7 +20,7 @@ export const ONBOARDING_STEPS: OnboardingStep[] = [
   {
     id: 'welcome',
     targetSelector: '',
-    title: 'Welcome to INrVO',
+    title: 'Welcome to Innrvo',
     description: 'Your personal meditation companion. Let me show you around in 30 seconds.',
     position: 'auto',
     route: '/',

@@ -17,21 +17,21 @@ const TermsPage: React.FC = () => {
             <section>
               <h3 className="text-lg font-semibold text-white mb-3">1. Acceptance of Terms</h3>
               <p className="text-slate-400 leading-relaxed">
-                By accessing or using INrVO, you agree to be bound by these Terms of Service and all applicable laws and regulations.
+                By accessing or using Innrvo, you agree to be bound by these Terms of Service and all applicable laws and regulations.
               </p>
             </section>
 
             <section>
               <h3 className="text-lg font-semibold text-white mb-3">2. Use of Service</h3>
               <p className="text-slate-400 leading-relaxed">
-                You may use INrVO for personal, non-commercial purposes. You agree not to misuse the service or help anyone else do so.
+                You may use Innrvo for personal, non-commercial purposes. You agree not to misuse the service or help anyone else do so.
               </p>
             </section>
 
             <section>
               <h3 className="text-lg font-semibold text-white mb-3">3. User Content</h3>
               <p className="text-slate-400 leading-relaxed">
-                You retain ownership of any content you create using INrVO. By using our service, you grant us a license to process your content to provide the service.
+                You retain ownership of any content you create using Innrvo. By using our service, you grant us a license to process your content to provide the service.
               </p>
             </section>
 
@@ -45,7 +45,7 @@ const TermsPage: React.FC = () => {
             <section>
               <h3 className="text-lg font-semibold text-white mb-3">5. Limitation of Liability</h3>
               <p className="text-slate-400 leading-relaxed">
-                INrVO is provided "as is" without warranties of any kind. We are not liable for any damages arising from your use of the service.
+                Innrvo is provided "as is" without warranties of any kind. We are not liable for any damages arising from your use of the service.
               </p>
             </section>
 
