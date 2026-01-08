@@ -350,21 +350,29 @@ export function useMeditationAgent(options: UseMeditationAgentOptions = {}): Use
           // Generate the meditation - this will open ScriptEditor automatically
           // Pass content category and age group so stories use third person (not first person "I")
           const meditationPrompt = agentRef.current.generateMeditationPrompt(response.meditationType);
+
+          let generationError: string | null = null;
           const meditationResult = await generateMeditation(meditationPrompt, response.meditationType, {
             contentCategory: response.contentCategory,
             targetAgeGroup: response.contentGenerationParams?.targetAgeGroup,
+          }).catch((err) => {
+            generationError = err instanceof Error ? err.message : 'Unknown error';
+            return null;
           });
 
           // CRITICAL: If meditation generation failed, show error to user
           // This prevents the "Creating your meditation..." message from hanging indefinitely
-          if (!meditationResult) {
+          if (!meditationResult || !meditationResult.readyForReview) {
+            // Get error from catch or use generic message
+            const specificError = generationError || error || 'Failed to generate meditation';
+            console.warn('[useMeditationAgent] Showing error to user:', specificError);
             setMessages(prev => prev.map(msg =>
               msg.id === loadingId
                 ? {
                   ...msg,
-                  content: "I had trouble creating your meditation. Let's try again - could you describe what you're looking for?",
+                  content: `I had trouble creating your meditation (${specificError}). Let's try again - could you describe what you're looking for?`,
                   isLoading: false,
-                  error: error || 'Meditation generation failed',
+                  error: specificError,
                 }
                 : msg
             ));
@@ -463,15 +471,13 @@ export function useMeditationAgent(options: UseMeditationAgentOptions = {}): Use
     } catch (err) {
       console.error('Error generating meditation:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to generate meditation';
-      // Log additional context for mobile debugging
-      if (DEBUG) {
-        console.error('[useMeditationAgent] Meditation generation failed:', {
-          error: errorMessage,
-          prompt: prompt.substring(0, 100),
-          type,
-          userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
-        });
-      }
+      // Log additional context for mobile debugging (always log errors, not just in DEBUG mode)
+      console.error('[useMeditationAgent] Meditation generation failed:', {
+        error: errorMessage,
+        prompt: prompt.substring(0, 100),
+        type,
+        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
+      });
       setError(errorMessage);
       return null;
     } finally {
