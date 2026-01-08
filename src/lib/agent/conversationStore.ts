@@ -11,7 +11,7 @@
  */
 
 import { supabase, getCurrentUser, withRetry } from '../../../lib/supabase';
-import type { ConversationMessage, UserPreferences, SessionState } from './MeditationAgent';
+import type { ConversationMessage, UserPreferences, SessionState } from './types';
 
 // ============================================================================
 // TYPES

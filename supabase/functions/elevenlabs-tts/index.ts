@@ -7,6 +7,7 @@ import { withCircuitBreaker, CIRCUIT_CONFIGS, CircuitBreakerError } from "../_sh
 import { addSecurityHeaders } from "../_shared/securityHeaders.ts";
 import { getModelId, getVoiceSettings, USE_V3_MODEL, ELEVENLABS_MODELS } from "../_shared/elevenlabsConfig.ts";
 import { prepareMeditationText } from "../_shared/textPreprocessing.ts";
+import { sanitizeScriptContent, INPUT_LIMITS } from "../_shared/sanitization.ts";
 
 /**
  * ElevenLabs TTS Edge Function (Legacy Endpoint)
@@ -43,6 +44,9 @@ const ELEVENLABS_API_URL = 'https://api.elevenlabs.io/v1';
 
 // Cache environment variable at module level
 const ELEVENLABS_API_KEY = Deno.env.get('ELEVENLABS_API_KEY');
+
+// TTS request timeout (120 seconds for long meditations)
+const TTS_TIMEOUT_MS = 120000;
 
 interface ElevenLabsTTSRequest {
   text: string;
@@ -193,21 +197,36 @@ async function runElevenLabsTTS(
         use_speaker_boost: options?.useSpeakerBoost ?? true,
       });
 
-  const response = await fetch(
-    `${ELEVENLABS_API_URL}/text-to-speech/${elevenLabsVoiceId}?output_format=mp3_44100_128`,
-    {
-      method: 'POST',
-      headers: {
-        'xi-api-key': apiKey,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        text: preparedText,
-        model_id: modelId,
-        voice_settings: voiceSettings,
-      }),
+  // Add timeout protection to prevent hanging requests
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), TTS_TIMEOUT_MS);
+
+  let response: Response;
+  try {
+    response = await fetch(
+      `${ELEVENLABS_API_URL}/text-to-speech/${elevenLabsVoiceId}?output_format=mp3_44100_128`,
+      {
+        method: 'POST',
+        headers: {
+          'xi-api-key': apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: preparedText,
+          model_id: modelId,
+          voice_settings: voiceSettings,
+        }),
+        signal: controller.signal,
+      }
+    );
+  } catch (fetchError) {
+    clearTimeout(timeoutId);
+    if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+      throw new Error('ElevenLabs request timed out. Please try again.');
     }
-  );
+    throw fetchError;
+  }
+  clearTimeout(timeoutId);
 
   if (!response.ok) {
     const errorText = await response.text();
@@ -298,7 +317,19 @@ serve(async (req) => {
       return createRateLimitResponse(rateLimitResult, allHeaders);
     }
 
-    const { text, voiceId, elevenLabsVoiceId, options }: ElevenLabsTTSRequest = await req.json();
+    const { text: rawText, voiceId, elevenLabsVoiceId, options }: ElevenLabsTTSRequest = await req.json();
+
+    // Sanitize text input to prevent control characters and limit length
+    const textSanitization = sanitizeScriptContent(rawText || '', INPUT_LIMITS.script);
+    const text = textSanitization.sanitized;
+
+    if (textSanitization.wasModified) {
+      log.warn('TTS text was sanitized', {
+        originalLength: rawText?.length || 0,
+        sanitizedLength: text.length,
+        truncated: textSanitization.truncated,
+      });
+    }
 
     if (!text) {
       return new Response(

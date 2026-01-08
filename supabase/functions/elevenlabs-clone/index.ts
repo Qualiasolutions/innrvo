@@ -4,7 +4,7 @@ import { getCorsHeaders } from "../_shared/compression.ts";
 import { getRequestId, createLogger, getTracingHeaders } from "../_shared/tracing.ts";
 import { checkRateLimit, createRateLimitResponse, RATE_LIMITS } from "../_shared/rateLimit.ts";
 import { base64ToUint8Array, getWavValidationError } from "../_shared/encoding.ts";
-import { sanitizeFileName } from "../_shared/sanitization.ts";
+import { sanitizeFileName, sanitizePromptInput, INPUT_LIMITS } from "../_shared/sanitization.ts";
 import { addSecurityHeaders } from "../_shared/securityHeaders.ts";
 
 /**
@@ -230,11 +230,25 @@ serve(async (req) => {
 
     const {
       audioBase64,
-      voiceName,
-      description,
+      voiceName: rawVoiceName,
+      description: rawDescription,
       removeBackgroundNoise,
       metadata,
     }: ElevenLabsCloneRequest = await req.json();
+
+    // Sanitize voice name (prevents path traversal and special characters)
+    const voiceName = sanitizeFileName(rawVoiceName || '', INPUT_LIMITS.voiceName);
+
+    // Sanitize description (prevents prompt injection patterns)
+    const descriptionSanitization = sanitizePromptInput(rawDescription || '', INPUT_LIMITS.description);
+    const description = descriptionSanitization.sanitized;
+
+    if (descriptionSanitization.flaggedPatterns.length > 0) {
+      log.warn('Potential injection in voice description', {
+        patterns: descriptionSanitization.flaggedPatterns,
+        userId: user.id,
+      });
+    }
 
     if (!audioBase64 || !voiceName) {
       return new Response(

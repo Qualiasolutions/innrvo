@@ -2,7 +2,11 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { getCorsHeaders } from "../_shared/compression.ts";
 import { getRequestId, createLogger, getTracingHeaders } from "../_shared/tracing.ts";
-import { checkRateLimit, createRateLimitResponse, RATE_LIMITS } from "../_shared/rateLimit.ts";
+import {
+  checkRateLimitDistributed,
+  createDistributedRateLimitResponse,
+  RATE_LIMITS,
+} from "../_shared/rateLimit.ts";
 import { addSecurityHeaders } from "../_shared/securityHeaders.ts";
 
 /**
@@ -93,14 +97,11 @@ serve(async (req) => {
     log.info('Data export requested', { userId: user.id });
 
     // Rate limit - data export is expensive, limit to 1 per hour
-    const rateLimitResult = checkRateLimit(user.id, {
-      maxRequests: 1,
-      windowMs: 3600000, // 1 hour
-      keyPrefix: 'export',
-    });
+    // Use distributed rate limiting for critical GDPR endpoints (persists across cold starts)
+    const rateLimitResult = await checkRateLimitDistributed(user.id, RATE_LIMITS.dataExport);
     if (!rateLimitResult.allowed) {
       log.warn('Rate limit exceeded for data export', { userId: user.id });
-      return createRateLimitResponse(rateLimitResult, allHeaders);
+      return createDistributedRateLimitResponse(rateLimitResult, allHeaders);
     }
 
     // Fetch all user data in parallel

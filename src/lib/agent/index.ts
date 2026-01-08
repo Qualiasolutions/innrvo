@@ -23,18 +23,31 @@
  */
 
 // Core Agent
+export { MeditationAgent } from './MeditationAgent';
+
+// Types (from centralized types module)
+export type {
+  ConversationMessage,
+  ConversationContext,
+  UserPreferences,
+  SessionState,
+  AgentResponse,
+  AgentAction,
+  ExtractedUserContext,
+} from './types';
+
+// Utilities
 export {
-  MeditationAgent,
   getRandomGreeting,
   GREETING_MESSAGES,
   QUICK_PROMPTS,
-  type ConversationMessage,
-  type ConversationContext,
-  type UserPreferences,
-  type SessionState,
-  type AgentResponse,
-  type AgentAction,
-} from './MeditationAgent';
+  DEBUG,
+  debugLog,
+  debugWarn,
+} from './utils';
+
+// System Prompt (for Edge Functions)
+export { SYSTEM_PROMPT, GENERATION_TRIGGER_PHRASES } from './systemPrompt';
 
 // Knowledge Base
 export {
@@ -55,6 +68,25 @@ export {
   type MeditationTypeInfo,
   type EmotionalState,
 } from './knowledgeBase';
+
+// Content Types
+export {
+  type ContentCategory,
+  type ContentGenerationParams,
+  type AffirmationSubType,
+  type HypnosisDepth,
+  type JourneySubType,
+  type StoryAgeGroup,
+  CONTENT_CATEGORIES,
+  getContentCategory,
+} from './contentTypes';
+
+// Content Detection
+export {
+  ContentDetector,
+  contentDetector,
+  type ContentDetectionResult,
+} from './contentDetection';
 
 // Agent Tools
 export {
@@ -83,3 +115,9 @@ export {
   type StoredConversation,
   type ConversationSummary,
 } from './conversationStore';
+
+// Modules (for advanced usage)
+export { contextExtractor, ContextExtractor } from './modules/ContextExtractor';
+export { contentRouter, ContentRouter } from './modules/ContentRouter';
+export { responseHandler, ResponseHandler } from './modules/ResponseHandler';
+export { promptBuilder, PromptBuilder } from './modules/PromptBuilder';

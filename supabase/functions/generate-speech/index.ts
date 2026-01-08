@@ -8,6 +8,7 @@ import { addSecurityHeaders } from "../_shared/securityHeaders.ts";
 import { withCircuitBreaker, CIRCUIT_CONFIGS, CircuitBreakerError } from "../_shared/circuitBreaker.ts";
 import { getModelId, getVoiceSettings, USE_V3_MODEL, ELEVENLABS_MODELS } from "../_shared/elevenlabsConfig.ts";
 import { prepareMeditationText } from "../_shared/textPreprocessing.ts";
+import { sanitizeScriptContent, INPUT_LIMITS } from "../_shared/sanitization.ts";
 
 /**
  * Generate Speech - Unified TTS endpoint using ElevenLabs
@@ -251,7 +252,19 @@ serve(async (req) => {
     }
 
     // Parse request
-    const { text, voiceId, elevenLabsVoiceId, voiceSettings }: GenerateSpeechRequest = await req.json();
+    const { text: rawText, voiceId, elevenLabsVoiceId, voiceSettings }: GenerateSpeechRequest = await req.json();
+
+    // Sanitize text input to prevent control characters and limit length
+    const textSanitization = sanitizeScriptContent(rawText || '', INPUT_LIMITS.script);
+    const text = textSanitization.sanitized;
+
+    if (textSanitization.wasModified) {
+      log.warn('TTS text was sanitized', {
+        originalLength: rawText?.length || 0,
+        sanitizedLength: text.length,
+        truncated: textSanitization.truncated,
+      });
+    }
 
     if (!text) {
       return new Response(
