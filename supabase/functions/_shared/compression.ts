@@ -132,17 +132,10 @@ export const ALLOWED_ORIGINS = [
 ];
 
 // Project-specific patterns for Vercel preview deployments
-// Allow both innrvo and inrvo patterns during transition
+// SECURITY: Only allow deployments from qualiasolutions Vercel team to prevent subdomain takeover
 const VERCEL_PREVIEW_PATTERNS = [
-  // Preview deployments: innrvo-abc123-team.vercel.app
-  /^https:\/\/innrvo-[a-z0-9]+-[a-z0-9]+\.vercel\.app$/,
-  // Branch deployments: innrvo-git-branch-name-team.vercel.app
-  /^https:\/\/innrvo-git-[a-z0-9-]+\.vercel\.app$/,
-  // PR preview deployments
+  // Qualia Solutions team preview deployments ONLY
   /^https:\/\/innrvo-[a-z0-9-]+-qualiasolutions\.vercel\.app$/,
-  // Legacy patterns (keep for transition)
-  /^https:\/\/inrvo-[a-z0-9]+-[a-z0-9]+\.vercel\.app$/,
-  /^https:\/\/inrvo-git-[a-z0-9-]+\.vercel\.app$/,
   /^https:\/\/inrvo-[a-z0-9-]+-qualiasolutions\.vercel\.app$/,
 ];
 

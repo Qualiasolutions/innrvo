@@ -21,7 +21,6 @@ import { AIVoiceInput } from './components/ui/ai-voice-input';
 
 // Lazy-loaded components for bundle optimization (~400KB saved on initial load)
 const AuthModal = lazy(() => import('./components/AuthModal'));
-const VoiceManager = lazy(() => import('./components/VoiceManager'));
 const SimpleVoiceClone = lazy(() => import('./components/SimpleVoiceClone').then(m => ({ default: m.SimpleVoiceClone })));
 const MeditationEditor = lazy(() => import('./src/components/MeditationEditor'));
 const MeditationPlayer = lazy(() => import('./components/V0MeditationPlayer'));
@@ -40,7 +39,7 @@ import OfflineIndicator from './components/OfflineIndicator';
 import { Sidebar } from './components/Sidebar';
 import { buildTimingMap, getCurrentWordIndex } from './src/lib/textSync';
 import { geminiService, blobToBase64 } from './geminiService';
-import { voiceService, mapDbVoiceToProfile } from './src/lib/voiceService';
+import { voiceService } from './src/lib/voiceService';
 // Voice cloning functions are dynamically imported where used to avoid bundle bloat
 // See: voiceService.ts also imports edgeFunctions dynamically
 import { convertToWAV } from './src/lib/audioConverter';
@@ -130,7 +129,6 @@ const App: React.FC = () => {
     showPrivacy, setShowPrivacy,
     showPromptMenu, setShowPromptMenu,
     showAuthModal, setShowAuthModal,
-    showVoiceManager, setShowVoiceManager,
     closeAllModals,
   } = useModals();
 
@@ -2136,12 +2134,12 @@ const App: React.FC = () => {
                         handleGenerateAndPlay();
                       } else {
                         // Prompt user to select a voice
-                        setShowVoiceManager(true);
+                        navigate('/voices');
                       }
                     }}
                     onGenerateAudio={async (meditationScript, tags) => {
                       if (!selectedVoice) {
-                        setShowVoiceManager(true);
+                        navigate('/voices');
                         return;
                       }
                       const voice = selectedVoice;
@@ -2277,7 +2275,7 @@ const App: React.FC = () => {
                     }}
                     onChatStarted={() => setChatStarted(true)}
                     onMeditationPanelOpen={handleMeditationPanelOpen}
-                    onRequestVoiceSelection={() => setShowVoiceManager(true)}
+                    onRequestVoiceSelection={() => navigate('/voices')}
                     selectedVoice={selectedVoice}
                     selectedMusic={selectedBackgroundTrack}
                     availableMusic={BACKGROUND_TRACKS}
@@ -2564,7 +2562,7 @@ const App: React.FC = () => {
                 selectedTags={selectedAudioTags}
                 availableMusic={BACKGROUND_TRACKS}
                 availableTags={AUDIO_TAG_CATEGORIES}
-                onVoiceSelect={() => setShowVoiceManager(true)}
+                onVoiceSelect={() => navigate('/voices')}
                 onMusicSelect={(track) => setSelectedBackgroundTrack(track)}
                 onTagToggle={(tagId) => {
                   setSelectedAudioTags(prev =>
@@ -2598,35 +2596,6 @@ const App: React.FC = () => {
           </Suspense>
         </ErrorBoundary>
 
-        {/* Voice Manager Modal (lazy-loaded) */}
-        <ErrorBoundary>
-          <Suspense fallback={null}>
-            <VoiceManager
-              isOpen={showVoiceManager}
-              onClose={() => setShowVoiceManager(false)}
-              onSelectVoice={(voice) => {
-                // Determine provider based on available IDs (fish-audio > chatterbox)
-                const voiceProfile = mapDbVoiceToProfile(voice as DBVoiceProfile);
-                setSelectedVoice(voiceProfile);
-                setShowVoiceManager(false);
-              }}
-              onCloneVoice={() => {
-                openCloneModal();
-                setMicError(null);
-              }}
-              onVoiceDeleted={(deletedVoiceId) => {
-                // Clear selection if deleted voice was selected
-                if (selectedVoice?.id === deletedVoiceId) {
-                  setSelectedVoice(null);
-                }
-                // Remove from available voices
-                setAvailableVoices(prev => prev.filter(v => v.id !== deletedVoiceId));
-              }}
-              currentVoiceId={selectedVoice?.id}
-            />
-          </Suspense>
-        </ErrorBoundary>
-
         {/* ChatGPT-style Sidebar */}
         <Sidebar
           isOpen={showBurgerMenu}
@@ -2635,7 +2604,11 @@ const App: React.FC = () => {
           chatHistory={chatHistory}
           isLoadingChatHistory={isLoadingChatHistory}
           onLoadConversation={loadConversation}
-          onStartNewConversation={startNewConversation}
+          onStartNewConversation={async () => {
+            // Close any open modals when starting a new conversation
+            setShowScriptPreview(false);
+            await startNewConversation();
+          }}
           onConversationSelected={setResumeConversationId}
           onDeleteConversation={deleteConversation}
           onMeditationRestore={(script) => setRestoredScript(script)}

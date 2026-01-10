@@ -6,7 +6,7 @@ const HomePage = lazy(() => import('./pages/HomePage'));
 const PlayerPage = lazy(() => import('./pages/PlayerPage'));
 const LibraryPage = lazy(() => import('./pages/LibraryPage'));
 const TemplatesPage = lazy(() => import('./pages/TemplatesPage'));
-const VoicePage = lazy(() => import('./pages/VoicePage'));
+const VoicesPage = lazy(() => import('./pages/VoicePage'));
 const ClonePage = lazy(() => import('./pages/ClonePage'));
 const HowItWorksPage = lazy(() => import('./pages/HowItWorksPage'));
 const AboutPage = lazy(() => import('./pages/AboutPage'));
@@ -30,7 +30,7 @@ const routeImports: Record<string, () => Promise<unknown>> = {
   '/play': () => import('./pages/PlayerPage'),
   '/library': () => import('./pages/LibraryPage'),
   '/templates': () => import('./pages/TemplatesPage'),
-  '/voice': () => import('./pages/VoicePage'),
+  '/voices': () => import('./pages/VoicePage'),
   '/clone': () => import('./pages/ClonePage'),
   '/how-it-works': () => import('./pages/HowItWorksPage'),
   '/about': () => import('./pages/AboutPage'),
@@ -53,11 +53,11 @@ const prefetchRoute = (path: string) => {
 
 // Routes to prefetch from each page (adjacency map)
 const prefetchMap: Record<string, string[]> = {
-  '/': ['/library', '/templates', '/voice', '/play'],
+  '/': ['/library', '/templates', '/voices', '/play'],
   '/library': ['/', '/play', '/templates'],
   '/templates': ['/', '/library'],
-  '/voice': ['/', '/clone', '/library'],
-  '/clone': ['/voice', '/library'],
+  '/voices': ['/', '/clone', '/library'],
+  '/clone': ['/voices', '/library'],
   '/pricing': ['/', '/library'],
   '/marketing': ['/', '/admin'],
 };
@@ -124,8 +124,8 @@ export const router = createBrowserRouter([
         element: <TemplatesPage />,
       },
       {
-        path: 'voice',
-        element: <VoicePage />,
+        path: 'voices',
+        element: <VoicesPage />,
       },
       {
         path: 'clone',

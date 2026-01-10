@@ -95,7 +95,7 @@ export const CONTENT_CATEGORIES: ContentCategoryInfo[] = [
     name: 'Meditation',
     description: 'Guided mindfulness and relaxation practices for inner peace and personal growth.',
     icon: '🧘',
-    defaultDuration: { min: 5, recommended: 15, max: 45 },
+    defaultDuration: { min: 2, recommended: 5, max: 45 },
     wordsPerSecond: 2,
     requiresSafetyFraming: false,
     subTypes: [
@@ -109,7 +109,7 @@ export const CONTENT_CATEGORIES: ContentCategoryInfo[] = [
     name: 'Affirmations',
     description: 'Positive statements to reprogram beliefs and align with your highest potential.',
     icon: '💫',
-    defaultDuration: { min: 3, recommended: 10, max: 20 },
+    defaultDuration: { min: 2, recommended: 5, max: 20 },
     wordsPerSecond: 1.5, // Faster for power affirmations, adjusted per sub-type
     requiresSafetyFraming: false,
     subTypes: ['power', 'guided', 'sleep', 'mirror_work'],
@@ -119,7 +119,7 @@ export const CONTENT_CATEGORIES: ContentCategoryInfo[] = [
     name: 'Self-Hypnosis',
     description: 'Structured hypnotic sessions for deep subconscious reprogramming.',
     icon: '🌀',
-    defaultDuration: { min: 10, recommended: 20, max: 45 },
+    defaultDuration: { min: 5, recommended: 5, max: 45 },
     wordsPerSecond: 1.5,
     requiresSafetyFraming: true, // Always requires safety disclaimers
     subTypes: ['light', 'standard', 'therapeutic'],
@@ -129,7 +129,7 @@ export const CONTENT_CATEGORIES: ContentCategoryInfo[] = [
     name: 'Guided Journey',
     description: 'Deep spiritual explorations and esoteric experiences without limits.',
     icon: '✨',
-    defaultDuration: { min: 15, recommended: 30, max: 60 },
+    defaultDuration: { min: 5, recommended: 5, max: 60 },
     wordsPerSecond: 1.8,
     requiresSafetyFraming: false,
     subTypes: ['inner_journey', 'past_life', 'spirit_guide', 'shamanic', 'astral', 'akashic', 'quantum_field'],
@@ -139,7 +139,7 @@ export const CONTENT_CATEGORIES: ContentCategoryInfo[] = [
     name: "Children's Story",
     description: 'Age-appropriate bedtime stories for parents to read aloud to their children.',
     icon: '📖',
-    defaultDuration: { min: 3, recommended: 8, max: 15 },
+    defaultDuration: { min: 2, recommended: 5, max: 15 },
     wordsPerSecond: 1.2, // Parent reading pace
     requiresSafetyFraming: false,
     subTypes: ['toddler', 'young_child'],

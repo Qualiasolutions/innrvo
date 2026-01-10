@@ -298,43 +298,36 @@ serve(async (req) => {
   const log = createLogger({ requestId, operation: 'gemini-script' });
 
   try {
-    // Try to validate user from JWT token (optional - allows anonymous access)
+    // SECURITY: Authentication is REQUIRED for AI endpoints to prevent API cost abuse
     const authHeader = req.headers.get('Authorization');
-    let userId: string | null = null;
-    let isAnonymous = true;
-
-    if (authHeader) {
-      const supabase = getSupabaseClient();
-      const token = authHeader.replace('Bearer ', '');
-      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-      if (!authError && user) {
-        userId = user.id;
-        isAnonymous = false;
-        log.info('Request authenticated', { userId: user.id });
-      }
+    if (!authHeader) {
+      log.warn('Missing authorization header');
+      return new Response(
+        JSON.stringify({ error: 'Authentication required. Please sign in to generate meditations.', requestId }),
+        { status: 401, headers: { ...allHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    // For anonymous users, use IP address for rate limiting (with lower limits)
-    const clientIP = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-      req.headers.get('x-real-ip') ||
-      'unknown';
+    const supabase = getSupabaseClient();
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
-    // Rate limit key: use userId if authenticated, otherwise IP address
-    const rateLimitKey = userId || `anon:${clientIP}`;
+    if (authError || !user) {
+      log.warn('Invalid or expired token', { authError: authError?.message });
+      return new Response(
+        JSON.stringify({ error: 'Invalid or expired token. Please sign in again.', requestId }),
+        { status: 401, headers: { ...allHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
-    // Apply stricter rate limits for anonymous users
-    const rateLimit = isAnonymous
-      ? { maxRequests: 5, windowMs: 60000 }  // 5 requests per minute for anonymous
-      : RATE_LIMITS.script;
+    const userId = user.id;
+    log.info('Request authenticated', { userId });
 
-    const rateLimitResult = checkRateLimit(rateLimitKey, rateLimit);
+    // Rate limit by authenticated user ID
+    const rateLimitResult = checkRateLimit(userId, RATE_LIMITS.script);
     if (!rateLimitResult.allowed) {
-      log.warn('Rate limit exceeded', { rateLimitKey, remaining: rateLimitResult.remaining, isAnonymous });
+      log.warn('Rate limit exceeded', { userId, remaining: rateLimitResult.remaining });
       return createRateLimitResponse(rateLimitResult, allHeaders);
-    }
-
-    if (isAnonymous) {
-      log.info('Anonymous request', { clientIP, rateLimitKey });
     }
 
     // Parse request body
@@ -362,8 +355,7 @@ serve(async (req) => {
     if (thoughtSanitization.flaggedPatterns.length > 0) {
       log.warn('Potential prompt injection detected', {
         patterns: thoughtSanitization.flaggedPatterns,
-        userId: userId || rateLimitKey,
-        isAnonymous,
+        userId,
         originalLength: rawThought?.length || 0,
         wasModified: thoughtSanitization.wasModified,
       });
@@ -378,10 +370,7 @@ serve(async (req) => {
 
     // Check existing script for injection attempts too
     if (rawExistingScript && containsInjectionAttempt(rawExistingScript)) {
-      log.warn('Potential injection in existing script', {
-        userId: userId || rateLimitKey,
-        isAnonymous,
-      });
+      log.warn('Potential injection in existing script', { userId });
     }
 
     // ========================================================================

@@ -12,6 +12,9 @@ import {
 } from '../lib/voiceProfileCache';
 import { useAuth } from './AuthContext';
 
+// Only log in development mode
+const DEBUG = import.meta.env.DEV;
+
 interface AppContextType {
   // Auth (from AuthContext - kept for backward compatibility)
   user: ReturnType<typeof useAuth>['user'];
@@ -203,9 +206,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   // Helper to transform DB voice profiles to UI voice profiles
   const transformVoicesToUI = useCallback((voices: DBVoiceProfile[]) => {
     const clonedVoiceProfiles = voices
-      .filter(v => v.fish_audio_model_id || v.voice_sample_url || v.provider_voice_id)
+      .filter(v => v.fish_audio_model_id || v.voice_sample_url || v.provider_voice_id || v.elevenlabs_voice_id)
       .map(v => {
-        const provider = v.fish_audio_model_id ? 'fish-audio' as const : 'chatterbox' as const;
+        // Detect provider: ElevenLabs takes priority, then Fish Audio, then Chatterbox
+        const provider = v.elevenlabs_voice_id ? 'elevenlabs' as const
+          : v.fish_audio_model_id ? 'fish-audio' as const
+          : 'chatterbox' as const;
         return {
           id: v.id,
           name: v.name,
@@ -216,6 +222,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           providerVoiceId: v.provider_voice_id,
           fishAudioModelId: v.fish_audio_model_id,
           voiceSampleUrl: v.voice_sample_url,
+          elevenLabsVoiceId: v.elevenlabs_voice_id,
         };
       });
     return [...VOICE_PROFILES, ...clonedVoiceProfiles];
@@ -332,7 +339,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   // This ensures we have a valid access token before making DB requests
   useEffect(() => {
     if (user && isSessionReady) {
-      console.log('[AppContext] Session ready, loading voices and prefs for:', user.id);
+      DEBUG && console.log('[AppContext] Session ready, loading voices and prefs for:', user.id);
       Promise.all([loadUserVoices(), loadAudioTagPrefs()]).catch(console.error);
     }
   }, [user, isSessionReady, loadUserVoices]);

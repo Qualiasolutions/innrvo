@@ -9,6 +9,9 @@ import React, { createContext, useContext, useState, useCallback, useMemo, useEf
 import { conversationStore, type ConversationSummary, type StoredConversation } from '../lib/agent/conversationStore';
 import { useAuth } from './AuthContext';
 
+// Only log in development mode
+const DEBUG = import.meta.env.DEV;
+
 interface ChatHistoryContextValue {
   // State
   chatHistory: ConversationSummary[];
@@ -44,30 +47,30 @@ export function ChatHistoryProvider({ children }: ChatHistoryProviderProps) {
     // BUT if we have a user but no session ready, we might want to wait or retry.
     // For now, let the effect trigger it when isSessionReady becomes true.
     if (!isSessionReady && user) {
-      console.log('[ChatHistory] User present but session not ready, delaying refresh');
+      DEBUG && console.log('[ChatHistory] User present but session not ready, delaying refresh');
       return;
     }
 
-    console.log('[ChatHistory] refreshChatHistory called, user:', user?.id, 'sessionReady:', isSessionReady);
+    DEBUG && console.log('[ChatHistory] refreshChatHistory called, user:', user?.id, 'sessionReady:', isSessionReady);
 
     if (!user || !isSessionReady || isLoadingRef.current) return;
 
     // Force refresh if we are re-calling
     isLoadingRef.current = true;
     setIsLoadingChatHistory(true);
-    console.log('[ChatHistory] Starting to load history...');
+    DEBUG && console.log('[ChatHistory] Starting to load history...');
 
     try {
       // Pass userId directly
       const history = await conversationStore.loadConversationHistory(20, user.id);
-      console.log('[ChatHistory] Loaded history:', history.length, 'items');
+      DEBUG && console.log('[ChatHistory] Loaded history:', history.length, 'items');
       setChatHistory(history);
     } catch (error) {
       console.error('[ChatHistory] Error loading chat history:', error);
       // Don't clear history on error, keep old state if any (unless it was empty)
       if (chatHistory.length === 0) setChatHistory([]);
     } finally {
-      console.log('[ChatHistory] Done loading, setting isLoadingChatHistory=false');
+      DEBUG && console.log('[ChatHistory] Done loading, setting isLoadingChatHistory=false');
       setIsLoadingChatHistory(false);
       isLoadingRef.current = false;
     }
@@ -124,11 +127,11 @@ export function ChatHistoryProvider({ children }: ChatHistoryProviderProps) {
   const userId = user?.id;
   useEffect(() => {
     if (userId && isSessionReady) {
-      console.log('[ChatHistory] Session ready signal, refreshing for:', userId);
+      DEBUG && console.log('[ChatHistory] Session ready signal, refreshing for:', userId);
       refreshChatHistory();
     } else if (!userId) {
       // Only clear if absolutely no user
-      console.log('[ChatHistory] No user, clearing history');
+      DEBUG && console.log('[ChatHistory] No user, clearing history');
       setChatHistory([]);
       setSelectedConversationId(null);
     }

@@ -10,6 +10,9 @@ import {
   removeFromHistoryCache,
 } from '../lib/historyCache';
 
+// Only log in development mode
+const DEBUG = import.meta.env.DEV;
+
 /**
  * Library context - manages meditation history and library state
  * Separated from AppContext to reduce re-renders for components
@@ -49,7 +52,7 @@ export const LibraryProvider: React.FC<{ children: ReactNode }> = ({ children })
 
     // Can't load without a user
     if (!userId) {
-      console.log('[LibraryContext] No user, clearing history');
+      DEBUG && console.log('[LibraryContext] No user, clearing history');
       setMeditationHistory([]);
       setHasMoreHistory(false);
       return;
@@ -58,7 +61,7 @@ export const LibraryProvider: React.FC<{ children: ReactNode }> = ({ children })
     // Try cache first (unless force refresh)
     if (!forceRefresh) {
       const cached = getCachedHistory(userId, undefined, 20);
-      console.log('[LibraryContext] Cache check:', cached ? `HIT (${cached.data.length} items)` : 'MISS');
+      DEBUG && console.log('[LibraryContext] Cache check:', cached ? `HIT (${cached.data.length} items)` : 'MISS');
       if (cached) {
         setMeditationHistory(cached.data as MeditationHistory[]);
         setHasMoreHistory(cached.hasMore);
@@ -71,9 +74,9 @@ export const LibraryProvider: React.FC<{ children: ReactNode }> = ({ children })
     setIsLoadingHistory(true);
     setHistoryPage(0);
     try {
-      console.log('[LibraryContext] Loading history for user:', userId);
+      DEBUG && console.log('[LibraryContext] Loading history for user:', userId);
       const result = await getMeditationHistoryPaginated(0, 20);
-      console.log('[LibraryContext] Loaded:', result.data.length, 'items, hasMore:', result.hasMore);
+      DEBUG && console.log('[LibraryContext] Loaded:', result.data.length, 'items, hasMore:', result.hasMore);
       setMeditationHistory(result.data);
       setHasMoreHistory(result.hasMore);
 
@@ -144,11 +147,11 @@ export const LibraryProvider: React.FC<{ children: ReactNode }> = ({ children })
   useEffect(() => {
     if (userId && isSessionReady) {
       // Session is ready with valid token - refresh history (will use cache if available)
-      console.log('[LibraryContext] Session ready, refreshing history for:', userId);
+      DEBUG && console.log('[LibraryContext] Session ready, refreshing history for:', userId);
       refreshHistory();
     } else if (!isAuthLoading && !userId) {
       // User logged out and auth is not loading - clear history
-      console.log('[LibraryContext] No user, clearing history');
+      DEBUG && console.log('[LibraryContext] No user, clearing history');
       setMeditationHistory([]);
       setHasMoreHistory(false);
       setHistoryPage(0);

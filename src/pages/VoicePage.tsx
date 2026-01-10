@@ -6,6 +6,7 @@ import AppLayout from '../layouts/AppLayout';
 const VoiceManager = lazy(() => import('../../components/VoiceManager'));
 
 const VoicePage: React.FC = () => {
+  console.log('[VoicePage] Rendering VoicePage component');
   const navigate = useNavigate();
   const {
     selectedVoice,

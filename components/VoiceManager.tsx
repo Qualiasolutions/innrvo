@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { m, AnimatePresence } from 'framer-motion';
 import { getUserVoiceProfiles, deleteVoiceProfile, updateVoiceProfile, VoiceProfile } from '../lib/supabase';
+import { useApp } from '../src/contexts/AppContext';
 import { ICONS } from '../constants';
 import GlassCard from './GlassCard';
 import Starfield from './Starfield';
@@ -41,8 +42,10 @@ const VoiceManager: React.FC<VoiceManagerProps> = ({
   onVoiceDeleted,
   currentVoiceId
 }) => {
+  // Get setSavedVoices to keep AppContext in sync
+  const { setSavedVoices } = useApp();
   const [voices, setVoices] = useState<VoiceProfile[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true); // Start as loading
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
 
@@ -57,10 +60,12 @@ const VoiceManager: React.FC<VoiceManagerProps> = ({
     console.log('[VoiceManager] loadVoices called, setting loading=true');
     setLoading(true);
     try {
-      console.log('[VoiceManager] Calling getUserVoiceProfiles...');
+      console.log('[VoiceManager] Fetching voices directly...');
       const data = await getUserVoiceProfiles();
-      console.log('[VoiceManager] Got voice profiles:', data?.length, 'items', data);
+      console.log('[VoiceManager] Got voices:', data?.length, 'items');
       setVoices(data);
+      // Also update AppContext for consistency
+      setSavedVoices(data);
     } catch (error) {
       console.error('[VoiceManager] Failed to load voices:', error);
     } finally {
@@ -74,7 +79,9 @@ const VoiceManager: React.FC<VoiceManagerProps> = ({
 
     try {
       await deleteVoiceProfile(id);
-      setVoices(voices.filter(v => v.id !== id));
+      const updatedVoices = voices.filter(v => v.id !== id);
+      setVoices(updatedVoices);
+      setSavedVoices(updatedVoices); // Keep AppContext in sync
       // Notify parent that a voice was deleted (so it can reload voices and clear selection if needed)
       onVoiceDeleted?.(id);
     } catch (error) {
@@ -88,7 +95,9 @@ const VoiceManager: React.FC<VoiceManagerProps> = ({
     try {
       const updated = await updateVoiceProfile(id, { name: editName });
       if (updated) {
-        setVoices(voices.map(v => v.id === id ? updated : v));
+        const updatedVoices = voices.map(v => v.id === id ? updated : v);
+        setVoices(updatedVoices);
+        setSavedVoices(updatedVoices); // Keep AppContext in sync
       }
       setEditingId(null);
       setEditName('');

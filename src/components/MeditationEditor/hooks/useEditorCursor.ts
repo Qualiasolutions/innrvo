@@ -72,11 +72,33 @@ export function useEditorCursor(
       }
 
       if (foundNode) {
-        const range = document.createRange();
-        range.setStart(foundNode, foundOffset);
-        range.collapse(true);
-        selection.removeAllRanges();
-        selection.addRange(range);
+        try {
+          // Validate offset is within text node bounds
+          const textLength = foundNode.textContent?.length || 0;
+          const safeOffset = Math.min(Math.max(0, foundOffset), textLength);
+
+          const range = document.createRange();
+          range.setStart(foundNode, safeOffset);
+          range.collapse(true);
+          selection.removeAllRanges();
+          selection.addRange(range);
+        } catch (e) {
+          // Cursor restoration failed - DOM may have changed
+          // Fallback: try to place cursor at end of editor
+          console.warn('Cursor restoration failed, placing at end:', e);
+          try {
+            const lastChild = editorRef.current?.lastChild;
+            if (lastChild && lastChild.nodeType === Node.TEXT_NODE) {
+              const range = document.createRange();
+              range.setStart(lastChild, lastChild.textContent?.length || 0);
+              range.collapse(true);
+              selection.removeAllRanges();
+              selection.addRange(range);
+            }
+          } catch {
+            // Silently fail - cursor position is lost but no crash
+          }
+        }
       }
     },
     [editorRef]

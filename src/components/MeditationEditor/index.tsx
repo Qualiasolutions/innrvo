@@ -120,12 +120,28 @@ export const MeditationEditor = memo<MeditationEditorProps>(
       setEditedScript(script);
     }, [script]);
 
-    // Handle content input
+    // Handle content input with RAF batching to prevent rapid re-renders on mobile
+    const pendingInputRef = useRef<number | null>(null);
     const handleInput = useCallback(
       (e: React.FormEvent<HTMLDivElement>) => {
-        const target = e.currentTarget;
-        const text = target.innerText;
-        setEditedScript(text);
+        try {
+          const target = e.currentTarget;
+          const text = target.innerText;
+
+          // Cancel any pending update
+          if (pendingInputRef.current !== null) {
+            cancelAnimationFrame(pendingInputRef.current);
+          }
+
+          // Batch updates via requestAnimationFrame to prevent rapid re-renders
+          pendingInputRef.current = requestAnimationFrame(() => {
+            setEditedScript(text);
+            pendingInputRef.current = null;
+          });
+        } catch (err) {
+          // Silently handle any DOM access errors on mobile
+          console.warn('Input handling error:', err);
+        }
       },
       []
     );

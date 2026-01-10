@@ -198,7 +198,9 @@ const PlayerPage: React.FC = () => {
   // Update background volume
   const updateBackgroundVolume = useCallback((volume: number) => {
     setBackgroundVolume(volume);
-    if (backgroundAudioRef.current) {
+    // Only set volume if audio element exists and is in a playable state
+    // readyState >= 2 means HAVE_CURRENT_DATA or better
+    if (backgroundAudioRef.current && backgroundAudioRef.current.readyState >= 2) {
       backgroundAudioRef.current.volume = volume;
     }
   }, [setBackgroundVolume, backgroundAudioRef]);
@@ -231,14 +233,19 @@ const PlayerPage: React.FC = () => {
         if (!backgroundAudioRef.current) {
           backgroundAudioRef.current = new Audio();
           backgroundAudioRef.current.loop = true;
-
-          // iOS-specific: load event ensures audio is ready
-          backgroundAudioRef.current.addEventListener('canplaythrough', () => {
-            console.log('Background music ready to play');
-          }, { once: true });
         }
 
+        // Set src and prepare to play
         backgroundAudioRef.current.src = selectedBackgroundTrack.audioUrl;
+
+        // Ensure volume is applied after audio is ready (iOS requirement)
+        backgroundAudioRef.current.addEventListener('canplaythrough', () => {
+          if (backgroundAudioRef.current) {
+            backgroundAudioRef.current.volume = backgroundVolume;
+          }
+        }, { once: true });
+
+        // Also set volume immediately in case it's already loaded
         backgroundAudioRef.current.volume = backgroundVolume;
 
         // Play and handle iOS autoplay rejection
@@ -287,6 +294,103 @@ const PlayerPage: React.FC = () => {
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [isMusicPlaying, audioContextRef, backgroundAudioRef]);
+
+  // Silent audio element to keep AudioContext alive on iOS
+  const silentAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Initialize silent audio keeper for iOS background playback
+  useEffect(() => {
+    // Create a silent audio element that loops to prevent iOS from suspending AudioContext
+    // This is a well-known workaround for iOS audio limitations
+    const silentAudio = new Audio();
+    // Minimal silent MP3 (1 second of silence, ~1KB)
+    silentAudio.src = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAABhgC7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7//////////////////////////////////////////////////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAAAAAAAAAAAAYYoRwmHAAAAAAD/+9DEAAAIAANIAAAAgAAA0gAAABEAAAGkAAAAIAAANIAAAARMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//tQxBkAAADSAAAAAAAAANIAAAAATEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVQ==';
+    silentAudio.loop = true;
+    silentAudio.volume = 0.01; // Nearly silent
+    silentAudioRef.current = silentAudio;
+
+    return () => {
+      silentAudio.pause();
+      silentAudio.src = '';
+    };
+  }, []);
+
+  // Start/stop silent audio with playback
+  useEffect(() => {
+    if (isPlaying && silentAudioRef.current) {
+      silentAudioRef.current.play().catch(() => {
+        // Ignore autoplay failures - user will interact to play
+      });
+    } else if (!isPlaying && silentAudioRef.current) {
+      silentAudioRef.current.pause();
+    }
+  }, [isPlaying]);
+
+  // Setup MediaSession API for lock screen controls (iOS/Android)
+  useEffect(() => {
+    if (!('mediaSession' in navigator)) return;
+
+    // Set metadata for lock screen display
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: selectedVoice?.name ? `Meditation with ${selectedVoice.name}` : 'Guided Meditation',
+      artist: 'Innrvo',
+      album: 'Meditation',
+    });
+
+    // Play action
+    navigator.mediaSession.setActionHandler('play', () => {
+      if (!isPlaying) {
+        handleTogglePlayback();
+      }
+    });
+
+    // Pause action
+    navigator.mediaSession.setActionHandler('pause', () => {
+      if (isPlaying) {
+        handleTogglePlayback();
+      }
+    });
+
+    // Stop action
+    navigator.mediaSession.setActionHandler('stop', () => {
+      handleClose();
+    });
+
+    // Seek backward (skip -15s)
+    navigator.mediaSession.setActionHandler('seekbackward', () => {
+      handleSkip(-15);
+    });
+
+    // Seek forward (skip +15s)
+    navigator.mediaSession.setActionHandler('seekforward', () => {
+      handleSkip(15);
+    });
+
+    // Update playback state
+    navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
+
+    // Update position state
+    if (duration > 0) {
+      try {
+        navigator.mediaSession.setPositionState({
+          duration: duration,
+          position: currentTime,
+          playbackRate: playbackRate,
+        });
+      } catch {
+        // Some browsers don't support setPositionState
+      }
+    }
+
+    return () => {
+      // Clear action handlers on unmount
+      navigator.mediaSession.setActionHandler('play', null);
+      navigator.mediaSession.setActionHandler('pause', null);
+      navigator.mediaSession.setActionHandler('stop', null);
+      navigator.mediaSession.setActionHandler('seekbackward', null);
+      navigator.mediaSession.setActionHandler('seekforward', null);
+    };
+  }, [isPlaying, currentTime, duration, playbackRate, selectedVoice, handleTogglePlayback, handleClose, handleSkip]);
 
   return (
     <Suspense fallback={

@@ -25,21 +25,28 @@ export function useAudioTags(script: string): UseAudioTagsReturn {
     const parts: React.ReactNode[] = [];
     let lastIndex = 0;
     let match;
+    let tagIndex = 0;
 
     const regex = new RegExp(AUDIO_TAG_REGEX.source, 'g');
 
     while ((match = regex.exec(script)) !== null) {
-      // Add text before the tag
+      // Add text before the tag (with stable key)
       if (match.index > lastIndex) {
-        parts.push(script.slice(lastIndex, match.index));
+        parts.push(
+          React.createElement(
+            React.Fragment,
+            { key: `text-${tagIndex}` },
+            script.slice(lastIndex, match.index)
+          )
+        );
       }
 
-      // Add styled audio tag
+      // Add styled audio tag with stable key based on index + content
       parts.push(
         React.createElement(
           'span',
           {
-            key: match.index,
+            key: `tag-${tagIndex}-${match[0]}`,
             className: 'audio-tag',
             contentEditable: false,
             'data-tag': match[0],
@@ -48,12 +55,19 @@ export function useAudioTags(script: string): UseAudioTagsReturn {
         )
       );
 
+      tagIndex++;
       lastIndex = match.index + match[0].length;
     }
 
-    // Add remaining text
+    // Add remaining text (with stable key)
     if (lastIndex < script.length) {
-      parts.push(script.slice(lastIndex));
+      parts.push(
+        React.createElement(
+          React.Fragment,
+          { key: `text-end` },
+          script.slice(lastIndex)
+        )
+      );
     }
 
     return parts;

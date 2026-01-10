@@ -154,7 +154,13 @@ export function buildMeditationPrompt(params: ContentGenerationParams): string {
 REQUEST: "${goal}"
 ${audioTagsLine}
 ${teacherLine}
+
+=== DURATION REQUIREMENTS (CRITICAL - MUST FOLLOW EXACTLY) ===
 TARGET DURATION: ${durationMinutes} minutes
+- This meditation MUST be EXACTLY ${durationMinutes} minutes when read at meditation pace (2 words/second)
+- DO NOT exceed ${durationMinutes} minutes under any circumstances
+- If the user specified a duration, that is their preference and must be respected precisely
+- Short meditations (2-5 min) are complete and effective - do not pad or extend them
 
 ANALYZE (internal):
 - Situation: What specific challenge? (interview, can't sleep, etc.)
@@ -175,7 +181,7 @@ REQUIREMENTS:
 - Natural ellipses for pacing...
 - Fresh language (avoid "journey", "sacred")
 - Match tone to need (drowsy for sleep, energizing for confidence)
-- CRITICAL: The meditation MUST be ${durationMinutes} minutes long when read at meditation pace
+- STRICT DURATION: The meditation MUST be EXACTLY ${durationMinutes} minutes - no more, no less
 
 OUTPUT: Only the meditation script. No titles, headers, or explanations. Start immediately.`;
 }
@@ -198,6 +204,12 @@ export function buildAffirmationPrompt(params: ContentGenerationParams): string 
   switch (subType) {
     case 'power':
       return `Create POWER AFFIRMATIONS for: "${goal}"
+
+=== DURATION REQUIREMENTS (CRITICAL - MUST FOLLOW EXACTLY) ===
+TARGET DURATION: ${durationMinutes} minutes
+- These affirmations MUST be EXACTLY ${durationMinutes} minutes when read aloud
+- DO NOT exceed ${durationMinutes} minutes under any circumstances
+- Short sessions (2-5 min) are complete and effective - do not pad them
 
 ${structure}
 ${audioTagsLine}
@@ -226,6 +238,11 @@ OUTPUT: Only the affirmation script. No titles or explanations.`;
     case 'guided':
       return `Create GUIDED AFFIRMATIONS for: "${goal}"
 
+=== DURATION REQUIREMENTS (CRITICAL - MUST FOLLOW EXACTLY) ===
+TARGET DURATION: ${durationMinutes} minutes
+- These affirmations MUST be EXACTLY ${durationMinutes} minutes when read aloud
+- DO NOT exceed ${durationMinutes} minutes under any circumstances
+
 ${structure}
 ${audioTagsLine}
 
@@ -252,6 +269,11 @@ OUTPUT: Only the affirmation script. No titles or explanations.`;
 
     case 'sleep':
       return `Create SLEEP AFFIRMATIONS for: "${goal}"
+
+=== DURATION REQUIREMENTS (CRITICAL - MUST FOLLOW EXACTLY) ===
+TARGET DURATION: ${durationMinutes} minutes
+- These affirmations MUST be EXACTLY ${durationMinutes} minutes when read aloud
+- DO NOT exceed ${durationMinutes} minutes under any circumstances
 
 ${structure}
 ${audioTagsLine}
@@ -281,6 +303,11 @@ OUTPUT: Only the affirmation script. No titles or explanations.`;
 
     case 'mirror_work':
       return `Create MIRROR WORK AFFIRMATIONS in Louise Hay style for: "${goal}"
+
+=== DURATION REQUIREMENTS (CRITICAL - MUST FOLLOW EXACTLY) ===
+TARGET DURATION: ${durationMinutes} minutes
+- These affirmations MUST be EXACTLY ${durationMinutes} minutes when read aloud
+- DO NOT exceed ${durationMinutes} minutes under any circumstances
 
 ${structure}
 ${audioTagsLine}
@@ -366,7 +393,13 @@ export function buildHypnosisPrompt(params: ContentGenerationParams): string {
   return `Create a SELF-HYPNOSIS SESSION for: "${goal}"
 
 DEPTH LEVEL: ${depth.toUpperCase()} (${depthInfo?.name || depth})
+
+=== DURATION REQUIREMENTS (CRITICAL - MUST FOLLOW EXACTLY) ===
 TARGET DURATION: ${durationMinutes} minutes
+- This hypnosis session MUST be EXACTLY ${durationMinutes} minutes when read aloud
+- DO NOT exceed ${durationMinutes} minutes under any circumstances
+- If the user specified a duration, that is their preference and must be respected precisely
+
 ${audioTagsLine}
 
 ${structure}
@@ -528,6 +561,13 @@ export function buildJourneyPrompt(params: ContentGenerationParams): string {
 
 JOURNEY TYPE: ${subType.replace(/_/g, ' ').toUpperCase()}
 ${tradition}
+
+=== DURATION REQUIREMENTS (CRITICAL - MUST FOLLOW EXACTLY) ===
+TARGET DURATION: ${durationMinutes} minutes
+- This journey MUST be EXACTLY ${durationMinutes} minutes when read aloud
+- DO NOT exceed ${durationMinutes} minutes under any circumstances
+- If the user specified a duration, that is their preference and must be respected precisely
+
 KEY ELEMENTS: ${keyElements}
 TECHNICAL DEPTH: ${technicalDepth.toUpperCase()} - Be as precise and technical as this level requires
 INSPIRED BY: ${teachers}
@@ -600,6 +640,12 @@ export function buildStoryPrompt(params: ContentGenerationParams): string {
 THEME/REQUEST: "${goal}"
 ${customLine}
 
+=== DURATION REQUIREMENTS (CRITICAL - MUST FOLLOW EXACTLY) ===
+TARGET DURATION: ${durationMinutes} minutes
+- This story MUST be EXACTLY ${durationMinutes} minutes when read aloud (about ${targetWords} words)
+- DO NOT exceed ${durationMinutes} minutes under any circumstances
+- Short stories (2-5 min) are perfect for toddlers - do not extend them
+
 ${structure}
 
 === STORY REQUIREMENTS ===
@@ -651,6 +697,12 @@ OUTPUT: Story only. No title, headers, or explanations. Start directly with the 
 
 THEME/REQUEST: "${goal}"
 ${customLine}
+
+=== DURATION REQUIREMENTS (CRITICAL - MUST FOLLOW EXACTLY) ===
+TARGET DURATION: ${durationMinutes} minutes
+- This story MUST be EXACTLY ${durationMinutes} minutes when read aloud (about ${targetWords} words)
+- DO NOT exceed ${durationMinutes} minutes under any circumstances
+- If the user specified a duration, that is their preference and must be respected precisely
 
 ${structure}
 
