@@ -1,18 +1,15 @@
 /**
  * VoiceAgent Component
  *
- * Real-time voice conversation interface for Innrvo Meditation.
- * Clean, minimal design with clear visual feedback.
+ * Free real-time voice conversation interface using:
+ * - Web Speech API for speech recognition (free, built into browsers)
+ * - Existing AI chat for responses
+ * - Browser TTS for speaking responses (free)
  */
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { m, AnimatePresence } from 'framer-motion';
-import {
-  getVoiceSession,
-  isVoiceSessionSupported,
-  type VoiceSessionState,
-  type TranscriptEntry,
-} from '../src/lib/voiceSession';
+import { useMeditationAgent } from '../src/hooks/useMeditationAgent';
 
 // ============================================================================
 // ICONS
@@ -48,69 +45,66 @@ const MicOffIcon = ({ className = '' }: { className?: string }) => (
 );
 
 const XIcon = ({ className = '' }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
     <line x1="18" y1="6" x2="6" y2="18" />
     <line x1="6" y1="6" x2="18" y2="18" />
   </svg>
 );
 
 // ============================================================================
-// AUDIO VISUALIZER - Elegant waveform
+// TYPES
 // ============================================================================
 
-interface AudioVisualizerProps {
-  isActive: boolean;
-  isListening: boolean;
-  isSpeaking: boolean;
-  volume: number;
+type VoiceState = 'idle' | 'listening' | 'processing' | 'speaking' | 'error';
+
+interface Transcript {
+  id: string;
+  role: 'user' | 'assistant';
+  text: string;
+  isFinal: boolean;
 }
 
-const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
+// ============================================================================
+// AUDIO WAVE VISUALIZER
+// ============================================================================
+
+const WaveVisualizer: React.FC<{ isActive: boolean; isSpeaking: boolean; volume: number }> = ({
   isActive,
-  isListening,
   isSpeaking,
   volume,
 }) => {
-  const bars = 7;
+  const bars = 5;
 
   return (
-    <div className="flex items-center justify-center gap-1 h-16">
+    <div className="flex items-center justify-center gap-1 h-12">
       {[...Array(bars)].map((_, i) => {
-        // Create wave pattern - center bars taller
         const centerDistance = Math.abs(i - (bars - 1) / 2);
-        const baseHeight = 24 - centerDistance * 4;
+        const baseHeight = 32 - centerDistance * 6;
 
-        // Calculate dynamic height based on state
-        let height = 4; // idle height
+        let height = 6;
         if (isActive) {
-          if (isListening) {
-            height = baseHeight * (0.3 + volume * 0.7);
-          } else if (isSpeaking) {
-            // Smooth wave animation when speaking
-            const phase = (Date.now() / 200 + i * 0.5) % (Math.PI * 2);
-            height = baseHeight * (0.4 + Math.sin(phase) * 0.3);
+          if (isSpeaking) {
+            const phase = (Date.now() / 150 + i * 0.6) % (Math.PI * 2);
+            height = baseHeight * (0.5 + Math.sin(phase) * 0.4);
           } else {
-            height = baseHeight * 0.3; // connected but idle
+            height = baseHeight * (0.3 + volume * 0.7);
           }
         }
 
         return (
           <m.div
             key={i}
-            className="w-1.5 rounded-full"
+            className="w-1 rounded-full"
             style={{
               background: isActive
-                ? 'linear-gradient(to top, rgba(34,211,238,0.6), rgba(34,211,238,1))'
-                : 'rgba(255,255,255,0.2)',
+                ? 'linear-gradient(to top, rgba(34,211,238,0.5), rgba(34,211,238,1))'
+                : 'rgba(255,255,255,0.15)',
             }}
             animate={{
-              height: `${Math.max(4, height)}px`,
-              opacity: isActive ? 1 : 0.5,
+              height: `${Math.max(6, height)}px`,
+              opacity: isActive ? 1 : 0.4,
             }}
-            transition={{
-              height: { duration: 0.1, ease: 'easeOut' },
-              opacity: { duration: 0.3 },
-            }}
+            transition={{ duration: 0.08, ease: 'easeOut' }}
           />
         );
       })}
@@ -119,36 +113,29 @@ const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
 };
 
 // ============================================================================
-// PULSING ORB - Visual feedback for connection state
+// ORB COMPONENT
 // ============================================================================
 
-interface PulsingOrbProps {
-  state: VoiceSessionState;
-  volume: number;
-}
-
-const PulsingOrb: React.FC<PulsingOrbProps> = ({ state, volume }) => {
-  const isConnected = state === 'connected' || state === 'listening' || state === 'agent-speaking';
-  const isListening = state === 'listening';
-  const isSpeaking = state === 'agent-speaking';
-  const isConnecting = state === 'connecting' || state === 'requesting-mic';
+const VoiceOrb: React.FC<{ state: VoiceState; volume: number }> = ({ state, volume }) => {
+  const isActive = state === 'listening' || state === 'speaking';
+  const isProcessing = state === 'processing';
 
   return (
     <div className="relative flex items-center justify-center">
-      {/* Outer glow rings */}
+      {/* Outer glow */}
       <m.div
-        className="absolute w-48 h-48 rounded-full"
+        className="absolute w-52 h-52 rounded-full"
         style={{
-          background: isConnected
-            ? 'radial-gradient(circle, rgba(34,211,238,0.15) 0%, transparent 70%)'
+          background: isActive
+            ? 'radial-gradient(circle, rgba(34,211,238,0.2) 0%, transparent 70%)'
             : 'radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%)',
         }}
         animate={{
-          scale: isListening ? [1, 1.1 + volume * 0.2, 1] : isSpeaking ? [1, 1.15, 1] : 1,
-          opacity: isConnected ? [0.5, 1, 0.5] : 0.3,
+          scale: state === 'listening' ? [1, 1.1 + volume * 0.15, 1] : state === 'speaking' ? [1, 1.12, 1] : 1,
+          opacity: isActive ? [0.6, 1, 0.6] : 0.3,
         }}
         transition={{
-          duration: isSpeaking ? 1.5 : 2,
+          duration: state === 'speaking' ? 1.2 : 1.8,
           repeat: Infinity,
           ease: 'easeInOut',
         }}
@@ -156,97 +143,71 @@ const PulsingOrb: React.FC<PulsingOrbProps> = ({ state, volume }) => {
 
       {/* Middle ring */}
       <m.div
-        className="absolute w-32 h-32 rounded-full border"
+        className="absolute w-36 h-36 rounded-full border-2"
         style={{
-          borderColor: isConnected ? 'rgba(34,211,238,0.3)' : 'rgba(255,255,255,0.1)',
+          borderColor: isActive ? 'rgba(34,211,238,0.4)' : 'rgba(255,255,255,0.08)',
         }}
         animate={{
-          scale: isConnecting ? [1, 1.1, 1] : 1,
-          opacity: isConnecting ? [0.3, 0.6, 0.3] : 0.5,
+          scale: isProcessing ? [1, 1.08, 1] : 1,
+          opacity: isProcessing ? [0.4, 0.7, 0.4] : 0.6,
         }}
-        transition={{
-          duration: 1.5,
-          repeat: Infinity,
-          ease: 'easeInOut',
-        }}
+        transition={{ duration: 1.2, repeat: Infinity }}
       />
 
       {/* Inner orb */}
       <m.div
-        className="relative w-24 h-24 rounded-full flex items-center justify-center"
+        className="relative w-28 h-28 rounded-full flex items-center justify-center"
         style={{
-          background: isConnected
-            ? 'radial-gradient(circle at 30% 30%, rgba(34,211,238,0.4), rgba(34,211,238,0.1))'
-            : 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.1), rgba(255,255,255,0.02))',
-          boxShadow: isConnected
-            ? '0 0 40px rgba(34,211,238,0.3), inset 0 0 30px rgba(34,211,238,0.1)'
-            : 'inset 0 0 20px rgba(255,255,255,0.05)',
+          background: isActive
+            ? 'radial-gradient(circle at 35% 35%, rgba(34,211,238,0.5), rgba(34,211,238,0.15))'
+            : 'radial-gradient(circle at 35% 35%, rgba(255,255,255,0.12), rgba(255,255,255,0.03))',
+          boxShadow: isActive
+            ? '0 0 50px rgba(34,211,238,0.35), inset 0 0 35px rgba(34,211,238,0.15)'
+            : 'inset 0 0 25px rgba(255,255,255,0.05)',
         }}
         animate={{
-          scale: isListening ? 1 + volume * 0.15 : 1,
+          scale: state === 'listening' ? 1 + volume * 0.12 : 1,
         }}
-        transition={{
-          type: 'spring',
-          stiffness: 300,
-          damping: 20,
-        }}
+        transition={{ type: 'spring', stiffness: 350, damping: 25 }}
       >
-        <AudioVisualizer
-          isActive={isConnected}
-          isListening={isListening}
-          isSpeaking={isSpeaking}
-          volume={volume}
-        />
+        {isProcessing ? (
+          <m.div
+            className="w-8 h-8 border-3 border-white/30 border-t-cyan-400 rounded-full"
+            animate={{ rotate: 360 }}
+            transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
+          />
+        ) : (
+          <WaveVisualizer isActive={isActive} isSpeaking={state === 'speaking'} volume={volume} />
+        )}
       </m.div>
     </div>
   );
 };
 
 // ============================================================================
-// TRANSCRIPT DISPLAY
+// TRANSCRIPT BUBBLE
 // ============================================================================
 
-interface TranscriptDisplayProps {
-  transcripts: TranscriptEntry[];
-  transcriptsEndRef: React.RefObject<HTMLDivElement>;
-}
-
-const TranscriptDisplay: React.FC<TranscriptDisplayProps> = ({
-  transcripts,
-  transcriptsEndRef,
-}) => {
-  if (transcripts.length === 0) return null;
-
-  return (
-    <div className="w-full max-w-lg mx-auto px-4">
-      <AnimatePresence mode="popLayout">
-        {transcripts.slice(-5).map((entry) => (
-          <m.div
-            key={entry.id}
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
-            animate={{ opacity: entry.isFinal ? 1 : 0.7, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 0.95 }}
-            transition={{ duration: 0.2 }}
-            className={`mb-3 flex ${entry.role === 'user' ? 'justify-end' : 'justify-start'}`}
-          >
-            <div
-              className={`
-                max-w-[85%] px-4 py-3 rounded-2xl text-sm leading-relaxed
-                ${entry.role === 'user'
-                  ? 'bg-cyan-500/20 text-white border border-cyan-500/30 rounded-br-sm'
-                  : 'bg-white/10 text-white/90 border border-white/10 rounded-bl-sm'
-                }
-              `}
-            >
-              {entry.text}
-            </div>
-          </m.div>
-        ))}
-      </AnimatePresence>
-      <div ref={transcriptsEndRef} />
+const TranscriptBubble: React.FC<{ transcript: Transcript }> = ({ transcript }) => (
+  <m.div
+    initial={{ opacity: 0, y: 15, scale: 0.96 }}
+    animate={{ opacity: transcript.isFinal ? 1 : 0.75, y: 0, scale: 1 }}
+    exit={{ opacity: 0, scale: 0.96 }}
+    className={`flex ${transcript.role === 'user' ? 'justify-end' : 'justify-start'}`}
+  >
+    <div
+      className={`
+        max-w-[85%] px-4 py-3 rounded-2xl text-sm leading-relaxed
+        ${transcript.role === 'user'
+          ? 'bg-gradient-to-br from-cyan-500/25 to-cyan-600/20 text-white border border-cyan-500/30 rounded-br-md'
+          : 'bg-white/[0.08] text-white/90 border border-white/10 rounded-bl-md'
+        }
+      `}
+    >
+      {transcript.text}
     </div>
-  );
-};
+  </m.div>
+);
 
 // ============================================================================
 // MAIN COMPONENT
@@ -257,108 +218,274 @@ interface VoiceAgentProps {
   className?: string;
 }
 
-export const VoiceAgent: React.FC<VoiceAgentProps> = ({
-  onClose,
-  className = '',
-}) => {
-  const [sessionState, setSessionState] = useState<VoiceSessionState>('idle');
-  const [transcripts, setTranscripts] = useState<TranscriptEntry[]>([]);
+export const VoiceAgent: React.FC<VoiceAgentProps> = ({ onClose, className = '' }) => {
+  const [state, setState] = useState<VoiceState>('idle');
+  const [transcripts, setTranscripts] = useState<Transcript[]>([]);
   const [isMuted, setIsMuted] = useState(false);
   const [volume, setVolume] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const [isSupported, setIsSupported] = useState(true);
+  const [currentTranscript, setCurrentTranscript] = useState('');
 
   const transcriptsEndRef = useRef<HTMLDivElement>(null);
-  const voiceSession = useRef(getVoiceSession());
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const synthesisRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const volumeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const { sendMessage, messages, isLoading } = useMeditationAgent({});
 
   // Check browser support
-  useEffect(() => {
-    setIsSupported(isVoiceSessionSupported());
-  }, []);
+  const isSupported = typeof window !== 'undefined' &&
+    ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) &&
+    'speechSynthesis' in window;
 
   // Auto-scroll transcripts
   useEffect(() => {
     transcriptsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [transcripts]);
 
-  // Handlers
-  const handleStateChange = useCallback((state: VoiceSessionState) => {
-    console.log('[VoiceAgent] State changed:', state);
-    setSessionState(state);
-  }, []);
+  // Simulate volume for visual feedback
+  useEffect(() => {
+    if (state === 'listening' && !isMuted) {
+      volumeIntervalRef.current = setInterval(() => {
+        setVolume(Math.random() * 0.6 + 0.2);
+      }, 100);
+    } else {
+      if (volumeIntervalRef.current) {
+        clearInterval(volumeIntervalRef.current);
+        volumeIntervalRef.current = null;
+      }
+      setVolume(0);
+    }
+    return () => {
+      if (volumeIntervalRef.current) {
+        clearInterval(volumeIntervalRef.current);
+      }
+    };
+  }, [state, isMuted]);
 
-  const handleTranscript = useCallback((entry: TranscriptEntry) => {
+  // Watch for AI responses and speak them
+  useEffect(() => {
+    const lastMessage = messages[messages.length - 1];
+    if (lastMessage?.role === 'assistant' && lastMessage.content && !lastMessage.isLoading && state !== 'idle') {
+      speakResponse(lastMessage.content);
+    }
+  }, [messages]);
+
+  // Update state when loading
+  useEffect(() => {
+    if (isLoading && state === 'listening') {
+      setState('processing');
+    }
+  }, [isLoading, state]);
+
+  const addTranscript = useCallback((role: 'user' | 'assistant', text: string, isFinal: boolean) => {
+    const id = `${role}-${Date.now()}`;
     setTranscripts(prev => {
-      const existingIndex = prev.findIndex(t => t.role === entry.role && !t.isFinal);
-      if (existingIndex >= 0) {
+      // Update existing interim or add new
+      const existingIdx = prev.findIndex(t => t.role === role && !t.isFinal);
+      if (existingIdx >= 0 && !isFinal) {
         const updated = [...prev];
-        updated[existingIndex] = entry;
+        updated[existingIdx] = { id, role, text, isFinal };
+        return updated;
+      } else if (existingIdx >= 0 && isFinal) {
+        const updated = [...prev];
+        updated[existingIdx] = { id, role, text, isFinal };
         return updated;
       }
-      return [...prev, entry];
+      return [...prev, { id, role, text, isFinal }];
     });
   }, []);
 
-  const handleVolumeChange = useCallback((vol: number) => {
-    setVolume(vol);
-  }, []);
+  const speakResponse = useCallback((text: string) => {
+    if (!window.speechSynthesis) return;
 
-  const handleError = useCallback((err: Error) => {
-    console.error('[VoiceAgent] Error:', err);
-    setError(err.message);
-  }, []);
+    // Cancel any ongoing speech
+    window.speechSynthesis.cancel();
 
-  const startSession = useCallback(async () => {
-    setError(null);
-    setTranscripts([]);
-    console.log('[VoiceAgent] Starting session...');
-    try {
-      await voiceSession.current.start({
-        onStateChange: handleStateChange,
-        onTranscript: handleTranscript,
-        onVolumeChange: handleVolumeChange,
-        onError: handleError,
-      });
-    } catch (err) {
-      console.error('[VoiceAgent] Start failed:', err);
-      setError(err instanceof Error ? err.message : 'Failed to start voice session');
+    setState('speaking');
+    addTranscript('assistant', text, true);
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.9;
+    utterance.pitch = 1;
+    utterance.volume = 1;
+
+    // Try to get a nice voice
+    const voices = window.speechSynthesis.getVoices();
+    const preferredVoice = voices.find(v =>
+      v.name.includes('Samantha') ||
+      v.name.includes('Google') ||
+      v.name.includes('Karen') ||
+      v.lang.startsWith('en')
+    );
+    if (preferredVoice) {
+      utterance.voice = preferredVoice;
     }
-  }, [handleStateChange, handleTranscript, handleVolumeChange, handleError]);
+
+    utterance.onend = () => {
+      setState('listening');
+      startListening();
+    };
+
+    utterance.onerror = () => {
+      setState('listening');
+      startListening();
+    };
+
+    synthesisRef.current = utterance;
+    window.speechSynthesis.speak(utterance);
+  }, [addTranscript]);
+
+  const startListening = useCallback(() => {
+    if (isMuted) return;
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+
+    let accumulatedTranscript = '';
+    let silenceTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const clearSilenceTimer = () => {
+      if (silenceTimer) {
+        clearTimeout(silenceTimer);
+        silenceTimer = null;
+      }
+    };
+
+    recognition.onstart = () => {
+      setState('listening');
+      setCurrentTranscript('');
+      accumulatedTranscript = '';
+    };
+
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      let finalText = '';
+      let interimText = '';
+
+      for (let i = 0; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalText += transcript + ' ';
+        } else {
+          interimText += transcript;
+        }
+      }
+
+      accumulatedTranscript = finalText.trim();
+      const displayText = (finalText + interimText).trim();
+      setCurrentTranscript(displayText);
+
+      if (displayText) {
+        addTranscript('user', displayText, false);
+      }
+
+      // Auto-stop after silence
+      if (accumulatedTranscript) {
+        clearSilenceTimer();
+        silenceTimer = setTimeout(() => {
+          recognition.stop();
+        }, 1800);
+      }
+    };
+
+    recognition.onerror = (event) => {
+      console.error('Speech recognition error:', event.error);
+      if (event.error !== 'no-speech' && event.error !== 'aborted') {
+        setError(`Voice error: ${event.error}`);
+        setState('error');
+      }
+      clearSilenceTimer();
+    };
+
+    recognition.onend = () => {
+      clearSilenceTimer();
+      if (accumulatedTranscript.trim()) {
+        addTranscript('user', accumulatedTranscript.trim(), true);
+        setState('processing');
+        sendMessage(accumulatedTranscript.trim());
+      } else {
+        // Restart listening if no speech detected (only if session still active)
+        setTimeout(() => {
+          // Check current state via setState's functional form
+          setState(currentState => {
+            if (currentState === 'listening') {
+              // Re-trigger listening
+              requestAnimationFrame(() => startListening());
+            }
+            return currentState;
+          });
+        }, 500);
+      }
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+  }, [isMuted, sendMessage, addTranscript]);
 
   const stopSession = useCallback(() => {
-    voiceSession.current.stop();
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+    }
+    if (window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+    setState('idle');
     setVolume(0);
   }, []);
 
-  const toggleMute = useCallback(() => {
-    const newMuted = voiceSession.current.toggleMute();
-    setIsMuted(newMuted);
-  }, []);
+  const startSession = useCallback(() => {
+    setError(null);
+    setTranscripts([]);
+    startListening();
+  }, [startListening]);
 
-  // Cleanup
+  const toggleMute = useCallback(() => {
+    setIsMuted(prev => {
+      const newMuted = !prev;
+      if (newMuted && recognitionRef.current) {
+        recognitionRef.current.stop();
+      } else if (!newMuted && state === 'listening') {
+        startListening();
+      }
+      return newMuted;
+    });
+  }, [state, startListening]);
+
+  const handleClose = useCallback(() => {
+    stopSession();
+    onClose?.();
+  }, [stopSession, onClose]);
+
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
-      voiceSession.current.stop();
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+      if (volumeIntervalRef.current) {
+        clearInterval(volumeIntervalRef.current);
+      }
     };
   }, []);
 
-  // State helpers
-  const isConnected = sessionState === 'connected' || sessionState === 'listening' || sessionState === 'agent-speaking';
-  const isConnecting = sessionState === 'connecting' || sessionState === 'requesting-mic';
-  const isListening = sessionState === 'listening';
-  const isSpeaking = sessionState === 'agent-speaking';
+  const isActive = state === 'listening' || state === 'speaking' || state === 'processing';
 
-  // Status text
   const getStatusText = () => {
-    switch (sessionState) {
+    switch (state) {
       case 'idle': return 'Tap to start';
-      case 'requesting-mic': return 'Requesting microphone...';
-      case 'connecting': return 'Connecting...';
-      case 'connected': return 'Connected';
-      case 'listening': return 'Listening...';
-      case 'agent-speaking': return 'Speaking...';
-      case 'error': return 'Connection failed';
-      case 'disconnected': return 'Call ended';
+      case 'listening': return isMuted ? 'Muted' : 'Listening...';
+      case 'processing': return 'Thinking...';
+      case 'speaking': return 'Speaking...';
+      case 'error': return 'Something went wrong';
       default: return '';
     }
   };
@@ -370,19 +497,28 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className={`fixed inset-0 z-[70] bg-gradient-to-b from-slate-900 to-slate-950 flex flex-col items-center justify-center p-8 ${className}`}
+        className={`fixed inset-0 z-[100] bg-gradient-to-b from-slate-900 to-slate-950 flex flex-col items-center justify-center p-8 ${className}`}
       >
+        {/* Close button */}
+        <button
+          onClick={handleClose}
+          className="absolute top-4 right-4 z-10 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-all active:scale-95"
+          aria-label="Close"
+        >
+          <XIcon className="w-6 h-6" />
+        </button>
+
         <div className="text-center max-w-sm">
           <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-white/5 flex items-center justify-center border border-white/10">
             <MicOffIcon className="w-8 h-8 text-white/40" />
           </div>
           <h2 className="text-xl font-medium text-white mb-3">Voice Not Available</h2>
           <p className="text-sm text-white/50 mb-8 leading-relaxed">
-            Your browser doesn't support voice features. Please try Chrome, Firefox, or Safari on desktop.
+            Your browser doesn't support voice features. Please try Chrome, Firefox, or Safari.
           </p>
           <button
-            onClick={onClose}
-            className="px-8 py-3 text-sm font-medium text-white bg-white/10 hover:bg-white/15 rounded-full transition-all duration-300 border border-white/10"
+            onClick={handleClose}
+            className="px-8 py-3 text-sm font-medium text-white bg-white/10 hover:bg-white/15 rounded-full transition-all border border-white/10"
           >
             Go Back
           </button>
@@ -396,66 +532,81 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className={`fixed inset-0 z-[70] bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 flex flex-col ${className}`}
+      className={`fixed inset-0 z-[100] bg-gradient-to-b from-slate-900 via-[#0a0f1a] to-slate-950 flex flex-col ${className}`}
     >
-      {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4">
+      {/* Header with close button */}
+      <div className="flex items-center justify-between px-5 py-4 relative z-20">
         <div className="flex items-center gap-3">
           <m.div
-            className={`w-2 h-2 rounded-full ${
-              isConnected ? 'bg-emerald-400' :
-              isConnecting ? 'bg-amber-400' :
-              error ? 'bg-rose-400' : 'bg-white/30'
+            className={`w-2.5 h-2.5 rounded-full ${
+              isActive ? 'bg-emerald-400' :
+              state === 'error' ? 'bg-rose-400' : 'bg-white/30'
             }`}
-            animate={isConnecting ? { opacity: [0.5, 1, 0.5] } : {}}
-            transition={{ duration: 1, repeat: Infinity }}
+            animate={state === 'processing' ? { opacity: [0.5, 1, 0.5] } : {}}
+            transition={{ duration: 0.8, repeat: Infinity }}
           />
-          <span className="text-sm text-white/60">{getStatusText()}</span>
+          <span className="text-sm font-medium text-white/70">{getStatusText()}</span>
         </div>
 
         <button
-          onClick={onClose}
-          className="p-2 rounded-full text-white/40 hover:text-white/70 hover:bg-white/5 transition-all"
+          onClick={handleClose}
+          className="p-3 rounded-full bg-white/5 hover:bg-white/15 text-white/60 hover:text-white transition-all active:scale-95"
+          aria-label="Close voice chat"
         >
           <XIcon className="w-5 h-5" />
         </button>
       </div>
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 overflow-hidden">
-        {/* Transcripts area */}
+      <div className="flex-1 flex flex-col items-center justify-center px-5 overflow-hidden relative">
+        {/* Transcripts */}
         {transcripts.length > 0 && (
-          <div className="absolute top-20 left-0 right-0 bottom-72 overflow-y-auto">
-            <TranscriptDisplay
-              transcripts={transcripts}
-              transcriptsEndRef={transcriptsEndRef as React.RefObject<HTMLDivElement>}
-            />
+          <div className="absolute top-0 left-0 right-0 bottom-56 overflow-y-auto px-4 pt-2 pb-4">
+            <div className="max-w-md mx-auto space-y-3">
+              <AnimatePresence mode="popLayout">
+                {transcripts.slice(-6).map((t) => (
+                  <TranscriptBubble key={t.id} transcript={t} />
+                ))}
+              </AnimatePresence>
+              <div ref={transcriptsEndRef} />
+            </div>
           </div>
         )}
 
-        {/* Pulsing orb visualization */}
+        {/* Orb visualization */}
         <m.div
-          initial={{ scale: 0.8, opacity: 0 }}
+          initial={{ scale: 0.85, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.1, duration: 0.4 }}
-          className={transcripts.length > 0 ? 'mt-auto mb-4' : ''}
+          transition={{ delay: 0.1, duration: 0.35 }}
+          className={transcripts.length > 0 ? 'mt-auto mb-6' : ''}
         >
-          <PulsingOrb state={sessionState} volume={volume} />
+          <VoiceOrb state={state} volume={volume} />
         </m.div>
 
-        {/* Status message */}
+        {/* Prompt text */}
         <AnimatePresence>
-          {!isConnected && !isConnecting && !error && transcripts.length === 0 && (
+          {!isActive && transcripts.length === 0 && !error && (
             <m.p
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="mt-8 text-white/40 text-sm text-center"
+              className="mt-6 text-white/40 text-sm text-center"
             >
               Talk with your meditation guide
             </m.p>
           )}
         </AnimatePresence>
+
+        {/* Current transcript preview */}
+        {state === 'listening' && currentTranscript && (
+          <m.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-4 px-4 py-2 bg-white/5 rounded-xl max-w-xs text-center"
+          >
+            <p className="text-white/60 text-sm italic">{currentTranscript}</p>
+          </m.div>
+        )}
 
         {/* Error display */}
         <AnimatePresence>
@@ -464,7 +615,7 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="mt-6 px-5 py-3 bg-rose-500/10 border border-rose-500/20 rounded-xl max-w-sm"
+              className="mt-6 px-5 py-3 bg-rose-500/10 border border-rose-500/25 rounded-xl max-w-sm"
             >
               <p className="text-rose-300 text-sm text-center">{error}</p>
             </m.div>
@@ -473,18 +624,18 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({
       </div>
 
       {/* Bottom controls */}
-      <div className="flex-shrink-0 pb-10 pt-6">
-        <div className="flex items-center justify-center gap-8">
+      <div className="flex-shrink-0 pb-12 pt-6 relative z-20">
+        <div className="flex items-center justify-center gap-6">
           {/* Mute button */}
           <AnimatePresence>
-            {isConnected && (
+            {isActive && (
               <m.button
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.8 }}
                 onClick={toggleMute}
                 className={`
-                  w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300
+                  w-14 h-14 rounded-full flex items-center justify-center transition-all
                   ${isMuted
                     ? 'bg-rose-500/20 text-rose-400 border-2 border-rose-500/40'
                     : 'bg-white/5 text-white/60 hover:text-white border-2 border-white/10 hover:border-white/20'
@@ -498,39 +649,39 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({
 
           {/* Main call button */}
           <m.button
-            onClick={isConnected ? stopSession : startSession}
-            disabled={isConnecting}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            onClick={isActive ? stopSession : startSession}
+            disabled={state === 'processing'}
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.96 }}
             className="relative"
           >
-            {/* Animated ring when connecting */}
-            {isConnecting && (
+            {/* Pulse ring when processing */}
+            {state === 'processing' && (
               <m.div
                 className="absolute inset-0 rounded-full border-2 border-cyan-400/50"
-                animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0, 0.5] }}
-                transition={{ duration: 1.5, repeat: Infinity }}
+                animate={{ scale: [1, 1.25, 1], opacity: [0.5, 0, 0.5] }}
+                transition={{ duration: 1.3, repeat: Infinity }}
               />
             )}
 
             <div
               className={`
-                relative w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300
-                ${isConnecting
+                relative w-20 h-20 rounded-full flex items-center justify-center transition-all duration-200
+                ${state === 'processing'
                   ? 'bg-cyan-500/20 border-2 border-cyan-500/50'
-                  : isConnected
-                    ? 'bg-rose-500 border-2 border-rose-400 shadow-lg shadow-rose-500/30'
-                    : 'bg-cyan-500 border-2 border-cyan-400 shadow-lg shadow-cyan-500/30 hover:shadow-cyan-500/50'
+                  : isActive
+                    ? 'bg-rose-500 border-2 border-rose-400 shadow-lg shadow-rose-500/35'
+                    : 'bg-cyan-500 border-2 border-cyan-400 shadow-lg shadow-cyan-500/35 hover:shadow-cyan-500/50'
                 }
               `}
             >
-              {isConnecting ? (
+              {state === 'processing' ? (
                 <m.div
                   className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full"
                   animate={{ rotate: 360 }}
-                  transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                  transition={{ duration: 0.9, repeat: Infinity, ease: 'linear' }}
                 />
-              ) : isConnected ? (
+              ) : isActive ? (
                 <EndCallIcon className="w-7 h-7 text-white" />
               ) : (
                 <PhoneIcon className="w-7 h-7 text-white" />
@@ -539,26 +690,24 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({
           </m.button>
 
           {/* Spacer for symmetry */}
-          {isConnected && <div className="w-14" />}
+          {isActive && <div className="w-14" />}
         </div>
 
         {/* Helper text */}
         <m.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="text-center text-white/30 text-xs mt-6"
+          className="text-center text-white/30 text-xs mt-5"
         >
-          {isConnected
+          {isActive
             ? isMuted
               ? 'Microphone muted'
-              : isListening
+              : state === 'listening'
                 ? 'Listening to you...'
-                : isSpeaking
+                : state === 'speaking'
                   ? 'Guide is speaking'
-                  : 'Say something'
-            : isConnecting
-              ? 'Setting up voice connection...'
-              : 'Start a voice conversation'}
+                  : 'Thinking...'
+            : 'Free voice conversation'}
         </m.p>
       </div>
     </m.div>
