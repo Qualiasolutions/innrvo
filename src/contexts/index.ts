@@ -5,6 +5,15 @@ export { LibraryProvider, useLibrary } from './LibraryContext';
 export { AudioTagsProvider, useAudioTags } from './AudioTagsContext';
 export { ChatHistoryProvider, useChatHistory } from './ChatHistoryContext';
 
+// Audio playback context (separated for performance - high-frequency updates)
+export {
+  AudioPlaybackProvider,
+  useAudioPlayback,
+  useIsPlaying,
+  usePlaybackTime,
+  usePlaybackRate,
+} from './AudioPlaybackContext';
+
 // Existing contexts
 export { AudioProvider, useAudio } from './AudioContext';
 export { ModalProvider, useModal } from './ModalContext';

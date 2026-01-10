@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useRef, useCallback, useEffect, useMemo, ReactNode } from 'react';
-import { VoiceProfile, ScriptTimingMap, CloningStatus, CreditInfo } from '../../types';
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo, ReactNode } from 'react';
+import { VoiceProfile, CloningStatus, CreditInfo } from '../../types';
 import { VOICE_PROFILES, BACKGROUND_TRACKS, BackgroundTrack } from '../../constants';
 import { getCurrentUser, getUserVoiceProfiles, VoiceProfile as DBVoiceProfile, getMeditationHistoryPaginated, MeditationHistory, getAudioTagPreferences } from '../../lib/supabase';
 import {
@@ -11,10 +11,20 @@ import {
   removeFromCachedVoiceProfiles,
 } from '../lib/voiceProfileCache';
 import { useAuth } from './AuthContext';
+import { AudioPlaybackProvider } from './AudioPlaybackContext';
 
 // Only log in development mode
 const DEBUG = import.meta.env.DEV;
 
+/**
+ * AppContext - Core application state (voices, scripts, generation)
+ *
+ * PERFORMANCE NOTE: Audio playback state (isPlaying, currentTime, duration, etc.)
+ * has been moved to AudioPlaybackContext to prevent high-frequency re-renders
+ * during audio playback from affecting the entire app.
+ *
+ * Use useAudioPlayback() for playback-related state.
+ */
 interface AppContextType {
   // Auth (from AuthContext - kept for backward compatibility)
   user: ReturnType<typeof useAuth>['user'];
@@ -33,15 +43,9 @@ interface AppContextType {
   creditInfo: CreditInfo;
   setCreditInfo: (info: CreditInfo) => void;
 
-  // Audio
+  // Audio track selection (not playback - that's in AudioPlaybackContext)
   selectedBackgroundTrack: BackgroundTrack;
   setSelectedBackgroundTrack: (track: BackgroundTrack) => void;
-  backgroundVolume: number;
-  setBackgroundVolume: (volume: number) => void;
-  voiceVolume: number;
-  setVoiceVolume: (volume: number) => void;
-  playbackRate: number;
-  setPlaybackRate: (rate: number) => void;
 
   // Script
   script: string;
@@ -66,25 +70,6 @@ interface AppContextType {
   hasMoreHistory: boolean;
   loadMoreHistory: () => Promise<void>;
   refreshHistory: () => Promise<void>;
-
-  // Playback state
-  isPlaying: boolean;
-  setIsPlaying: (playing: boolean) => void;
-  currentTime: number;
-  setCurrentTime: (time: number) => void;
-  duration: number;
-  setDuration: (duration: number) => void;
-  currentWordIndex: number;
-  setCurrentWordIndex: (index: number) => void;
-  timingMap: ScriptTimingMap | null;
-  setTimingMap: (map: ScriptTimingMap | null) => void;
-
-  // Audio refs
-  audioContextRef: React.MutableRefObject<AudioContext | null>;
-  audioSourceRef: React.MutableRefObject<AudioBufferSourceNode | null>;
-  audioBufferRef: React.MutableRefObject<AudioBuffer | null>;
-  gainNodeRef: React.MutableRefObject<GainNode | null>;
-  backgroundAudioRef: React.MutableRefObject<HTMLAudioElement | null>;
 
   // Generation state
   isGenerating: boolean;
@@ -144,11 +129,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     cloneCost: 0,
   });
 
-  // Audio state
+  // Audio track selection (playback state moved to AudioPlaybackContext)
   const [selectedBackgroundTrack, setSelectedBackgroundTrack] = useState<BackgroundTrack>(BACKGROUND_TRACKS[0]);
-  const [backgroundVolume, setBackgroundVolume] = useState(0.3);
-  const [voiceVolume, setVoiceVolume] = useState(0.7);
-  const [playbackRate, setPlaybackRate] = useState(1.0);
 
   // Script state
   const [script, setScript] = useState('');
@@ -167,19 +149,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [hasMoreHistory, setHasMoreHistory] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  // Playback state
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [currentWordIndex, setCurrentWordIndex] = useState(-1);
-  const [timingMap, setTimingMap] = useState<ScriptTimingMap | null>(null);
-
-  // Audio refs
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const audioSourceRef = useRef<AudioBufferSourceNode | null>(null);
-  const audioBufferRef = useRef<AudioBuffer | null>(null);
-  const gainNodeRef = useRef<GainNode | null>(null);
-  const backgroundAudioRef = useRef<HTMLAudioElement | null>(null);
+  // NOTE: Playback state (isPlaying, currentTime, duration, etc.) and audio refs
+  // have been moved to AudioPlaybackContext for performance optimization.
+  // This prevents high-frequency updates during playback from re-rendering the entire app.
 
   // Generation state
   const [isGenerating, setIsGenerating] = useState(false);
@@ -346,6 +318,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // Memoize context value to prevent unnecessary re-renders
   // Only re-creates object when dependencies actually change
+  // NOTE: Playback state removed - use useAudioPlayback() instead
   const value = useMemo<AppContextType>(() => ({
     user,
     availableVoices,
@@ -360,12 +333,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     setCreditInfo,
     selectedBackgroundTrack,
     setSelectedBackgroundTrack,
-    backgroundVolume,
-    setBackgroundVolume,
-    voiceVolume,
-    setVoiceVolume,
-    playbackRate,
-    setPlaybackRate,
     script,
     setScript,
     enhancedScript,
@@ -384,21 +351,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     hasMoreHistory,
     loadMoreHistory,
     refreshHistory,
-    isPlaying,
-    setIsPlaying,
-    currentTime,
-    setCurrentTime,
-    duration,
-    setDuration,
-    currentWordIndex,
-    setCurrentWordIndex,
-    timingMap,
-    setTimingMap,
-    audioContextRef,
-    audioSourceRef,
-    audioBufferRef,
-    gainNodeRef,
-    backgroundAudioRef,
     isGenerating,
     setIsGenerating,
     generationStage,
@@ -416,16 +368,22 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     removeVoiceFromCache,
   }), [
     user, availableVoices, selectedVoice, savedVoices,
-    cloningStatus, creditInfo, selectedBackgroundTrack, backgroundVolume,
-    voiceVolume, playbackRate, script, enhancedScript, editableScript,
+    cloningStatus, creditInfo, selectedBackgroundTrack,
+    script, enhancedScript, editableScript,
     selectedAudioTags, audioTagsEnabled, favoriteAudioTags, meditationHistory,
     isLoadingHistory, hasMoreHistory, loadMoreHistory, refreshHistory,
-    isPlaying, currentTime, duration, currentWordIndex, timingMap,
     isGenerating, generationStage, chatStarted, restoredScript, micError, loadUserVoices,
     invalidateVoiceCache, addVoiceToCache, updateVoiceInCache, removeVoiceFromCache,
   ]);
 
-  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+  // Wrap with AudioPlaybackProvider to provide audio state
+  return (
+    <AppContext.Provider value={value}>
+      <AudioPlaybackProvider>
+        {children}
+      </AudioPlaybackProvider>
+    </AppContext.Provider>
+  );
 };
 
 export default AppProvider;

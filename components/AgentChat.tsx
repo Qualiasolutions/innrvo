@@ -177,7 +177,9 @@ interface AgentChatProps {
   onConversationResumed?: () => void;
 }
 
-export const AgentChat: React.FC<AgentChatProps> = ({
+// Wrap AgentChat with memo for performance - prevents unnecessary re-renders
+// when parent state changes but AgentChat props haven't changed
+const AgentChatComponent: React.FC<AgentChatProps> = ({
   onMeditationReady,
   onGenerateAudio,
   onRequestVoiceSelection,
@@ -649,5 +651,9 @@ export const AgentChat: React.FC<AgentChatProps> = ({
     </div>
   );
 };
+
+// Memoize the component to prevent unnecessary re-renders
+export const AgentChat = memo(AgentChatComponent);
+AgentChat.displayName = 'AgentChat';
 
 export default AgentChat;

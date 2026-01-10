@@ -1091,9 +1091,11 @@ export const getMeditationHistoryPaginated = async (
     const to = from + pageSize - 1;
 
     console.log('[getMeditationHistoryPaginated] Executing query...');
+    // Use 'estimated' count for better performance on large tables
+    // 'exact' scans the entire table which is slow for 100k+ rows
     const { data, error, count } = await supabase
       .from('meditation_history')
-      .select(MEDITATION_HISTORY_FIELDS, { count: 'exact' })
+      .select(MEDITATION_HISTORY_FIELDS, { count: 'estimated' })
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .range(from, to);

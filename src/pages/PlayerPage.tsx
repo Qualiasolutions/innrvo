@@ -1,6 +1,7 @@
 import React, { lazy, Suspense, useRef, useCallback, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useApp } from '../contexts/AppContext';
+import { useAudioPlayback } from '../contexts/AudioPlaybackContext';
 import { trackAudio } from '../lib/tracking';
 
 const MeditationPlayer = lazy(() => import('../../components/V0MeditationPlayer'));
@@ -8,27 +9,29 @@ const MeditationPlayer = lazy(() => import('../../components/V0MeditationPlayer'
 const PlayerPage: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id?: string }>();
+
+  // App state (low-frequency updates)
+  const { user, selectedVoice, selectedBackgroundTrack } = useApp();
+
+  // Audio playback state (high-frequency updates during playback)
   const {
-    user,
-    selectedVoice,
-    selectedBackgroundTrack,
+    isPlaying,
+    setIsPlaying,
+    currentTime,
+    setCurrentTime,
+    duration,
     backgroundVolume,
     setBackgroundVolume,
     voiceVolume,
     setVoiceVolume,
     playbackRate,
     setPlaybackRate,
-    isPlaying,
-    setIsPlaying,
-    currentTime,
-    setCurrentTime,
-    duration,
     audioContextRef,
     audioSourceRef,
     audioBufferRef,
     gainNodeRef,
     backgroundAudioRef,
-  } = useApp();
+  } = useAudioPlayback();
 
   const playbackStartTimeRef = useRef(0);
   const pauseOffsetRef = useRef(0);
