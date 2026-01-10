@@ -497,13 +497,19 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({ onClose, className = '' 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className={`fixed inset-0 z-[100] bg-gradient-to-b from-slate-900 to-slate-950 flex flex-col items-center justify-center p-8 ${className}`}
+        className={`fixed top-0 left-0 right-0 bottom-0 w-screen h-screen z-[9999] flex flex-col items-center justify-center p-8 ${className}`}
+        style={{
+          background: 'linear-gradient(to bottom, #0f172a 0%, #020617 50%, #0f172a 100%)',
+          minHeight: '100vh',
+          minWidth: '100vw',
+        }}
       >
         {/* Close button */}
         <button
           onClick={handleClose}
-          className="absolute top-4 right-4 z-10 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-all active:scale-95"
+          className="absolute top-4 right-4 z-[10000] p-4 rounded-full bg-white/10 hover:bg-white/20 text-white/80 hover:text-white transition-all active:scale-95 cursor-pointer"
           aria-label="Close"
+          style={{ touchAction: 'manipulation' }}
         >
           <XIcon className="w-6 h-6" />
         </button>
@@ -532,10 +538,15 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({ onClose, className = '' 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className={`fixed inset-0 z-[100] bg-gradient-to-b from-slate-900 via-[#0a0f1a] to-slate-950 flex flex-col ${className}`}
+      className={`fixed top-0 left-0 right-0 bottom-0 w-screen h-screen z-[9999] flex flex-col ${className}`}
+      style={{
+        background: 'linear-gradient(to bottom, #0f172a 0%, #020617 50%, #0f172a 100%)',
+        minHeight: '100vh',
+        minWidth: '100vw',
+      }}
     >
       {/* Header with close button */}
-      <div className="flex items-center justify-between px-5 py-4 relative z-20">
+      <div className="flex items-center justify-between px-5 py-4 relative z-[10000]">
         <div className="flex items-center gap-3">
           <m.div
             className={`w-2.5 h-2.5 rounded-full ${
@@ -550,10 +561,11 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({ onClose, className = '' 
 
         <button
           onClick={handleClose}
-          className="p-3 rounded-full bg-white/5 hover:bg-white/15 text-white/60 hover:text-white transition-all active:scale-95"
+          className="p-4 rounded-full bg-white/10 hover:bg-white/20 text-white/80 hover:text-white transition-all active:scale-95 cursor-pointer"
           aria-label="Close voice chat"
+          style={{ touchAction: 'manipulation' }}
         >
-          <XIcon className="w-5 h-5" />
+          <XIcon className="w-6 h-6" />
         </button>
       </div>
 
@@ -624,7 +636,7 @@ export const VoiceAgent: React.FC<VoiceAgentProps> = ({ onClose, className = '' 
       </div>
 
       {/* Bottom controls */}
-      <div className="flex-shrink-0 pb-12 pt-6 relative z-20">
+      <div className="flex-shrink-0 pb-12 pt-6 relative z-[10000]">
         <div className="flex items-center justify-center gap-6">
           {/* Mute button */}
           <AnimatePresence>
