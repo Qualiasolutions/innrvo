@@ -11,10 +11,10 @@ const PageLoader = () => (
 );
 
 const HomePage = () => {
-  const { user, isSessionReady } = useAuth();
+  const { user, isLoading } = useAuth();
 
-  // Wait for session to be ready before deciding what to show
-  if (!isSessionReady) {
+  // Wait for auth to finish before deciding what to show
+  if (isLoading) {
     return <PageLoader />;
   }
 
