@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { motion } from 'framer-motion';
-import { Sparkles, Mic, Brain, Heart } from 'lucide-react';
+import { Mic, Brain, Heart } from 'lucide-react';
 import Background from '../../components/Background';
 import Starfield from '../../components/Starfield';
 import AuthModal from '../../components/AuthModal';
@@ -38,17 +38,6 @@ const LandingPage = () => {
           transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
           className="text-center max-w-2xl"
         >
-          {/* Sparkle badge */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-cyan-500/10 to-purple-500/10 border border-cyan-500/20 mb-6"
-          >
-            <Sparkles className="w-4 h-4 text-cyan-400" />
-            <span className="text-sm text-cyan-300/80">AI-Powered Meditation</span>
-          </motion.div>
-
           {/* Logo/Brand */}
           <motion.h1
             initial={{ opacity: 0, scale: 0.95 }}
