@@ -177,16 +177,16 @@ const Starfield: React.FC = () => {
         <Star key={star.id} star={star} />
       ))}
 
-      {/* Neural pulse waves */}
-      {pulses.map((pulse) => (
+      {/* Shooting stars */}
+      {shootingStars.map((star) => (
         <div
-          key={pulse.id}
-          className="neural-wave"
+          key={star.id}
+          className="shooting-star"
           style={{
-            top: `${pulse.y}%`,
-            left: `${pulse.x}%`,
-            transform: 'translate(-50%, -50%)'
-          }}
+            top: `${star.startY}%`,
+            left: `${star.startX}%`,
+            '--duration': `${star.duration}s`
+          } as React.CSSProperties}
         />
       ))}
 
