@@ -62,7 +62,7 @@ const LandingPage = () => {
             transition={{ duration: 0.6, delay: 0.3 }}
             className="text-xl md:text-2xl font-light tracking-wide mb-3 bg-gradient-to-r from-slate-300 via-cyan-200 to-slate-300 bg-clip-text text-transparent"
           >
-            Meditation, made for you
+            Your voice. Your journey. Your peace.
           </motion.p>
 
           {/* Description with stagger effect */}
@@ -72,7 +72,7 @@ const LandingPage = () => {
             transition={{ duration: 0.6, delay: 0.45 }}
             className="text-slate-400 text-base md:text-lg max-w-lg mx-auto mb-10 leading-relaxed"
           >
-            Describe how you're feeling, and AI creates a personalized guided meditation — delivered in your chosen voice.
+            We create personalized meditations in your own voice — guiding you back to your inner calm, one breath at a time.
           </motion.p>
 
           {/* CTA Buttons with enhanced animations */}
