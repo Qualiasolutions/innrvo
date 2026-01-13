@@ -60,9 +60,9 @@ const LandingPage = () => {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
-            className="text-xl md:text-2xl font-light tracking-wide mb-3 bg-gradient-to-r from-slate-300 via-cyan-200 to-slate-300 bg-clip-text text-transparent"
+            className="text-xl md:text-2xl font-light tracking-wide mb-3 text-slate-300"
           >
-            Your voice. Your journey. Your peace.
+            Speak it. Feel it. <span className="text-cyan-400">Become it.</span>
           </motion.p>
 
           {/* Description with stagger effect */}
@@ -72,7 +72,7 @@ const LandingPage = () => {
             transition={{ duration: 0.6, delay: 0.45 }}
             className="text-slate-400 text-base md:text-lg max-w-lg mx-auto mb-10 leading-relaxed"
           >
-            We create personalized meditations in your own voice — guiding you back to your inner calm, one breath at a time.
+            Create personalized meditations and affirmations in your own voice.
           </motion.p>
 
           {/* CTA Buttons with enhanced animations */}
