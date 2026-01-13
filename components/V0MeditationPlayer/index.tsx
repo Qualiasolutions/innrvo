@@ -190,7 +190,7 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
           {/* Progress bar */}
           <div className="relative px-1">
             <div
-              className="absolute -inset-1 rounded-full bg-cyan-400/20 blur-md transition-all"
+              className="absolute -inset-1 rounded-full bg-blue-400/20 blur-md transition-all"
               style={{ width: `${Math.max(progress, 1)}%` }}
             />
             <div
@@ -349,9 +349,9 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
                         <span className="text-cyan-300 font-mono">{Math.round(voiceVolume * 100)}%</span>
                       </div>
                       <div className="flex items-center gap-3">
-                        <span className="text-xs text-cyan-400/40">0%</span>
+                        <span className="text-xs text-blue-400/40">0%</span>
                         <div className="relative flex-1 h-4 flex items-center">
-                          <div className="absolute inset-x-0 h-1.5 rounded-full bg-gradient-to-r from-cyan-500/20 to-cyan-400/30 pointer-events-none" />
+                          <div className="absolute inset-x-0 h-1.5 rounded-full bg-gradient-to-r from-blue-500/20 to-blue-400/30 pointer-events-none" />
                           <input
                             type="range"
                             min="0"
@@ -361,13 +361,13 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
                             onChange={(e) => onVoiceVolumeChange(parseFloat(e.target.value))}
                             className="relative z-10 w-full h-1.5 bg-transparent rounded-full appearance-none cursor-pointer
                               [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4
-                              [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-gradient-to-br [&::-webkit-slider-thumb]:from-cyan-400 [&::-webkit-slider-thumb]:to-cyan-500
-                              [&::-webkit-slider-thumb]:shadow-[0_0_12px_rgba(34,211,238,0.6),0_0_4px_rgba(34,211,238,0.8)]
+                              [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-gradient-to-br [&::-webkit-slider-thumb]:from-blue-400 [&::-webkit-slider-thumb]:to-blue-500
+                              [&::-webkit-slider-thumb]:shadow-[0_0_12px_rgba(59,130,246,0.6),0_0_4px_rgba(59,130,246,0.8)]
                               [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full
-                              [&::-moz-range-thumb]:bg-cyan-400 [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:shadow-[0_0_12px_rgba(34,211,238,0.6)]"
+                              [&::-moz-range-thumb]:bg-blue-400 [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:shadow-[0_0_12px_rgba(59,130,246,0.6)]"
                           />
                         </div>
-                        <span className="text-xs text-cyan-400/40">100%</span>
+                        <span className="text-xs text-blue-400/40">100%</span>
                       </div>
                     </div>
                   )}
@@ -385,7 +385,7 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
                       <div className="flex items-center gap-3">
                         <span className="text-xs text-violet-400/40">0%</span>
                         <div className="relative flex-1 h-4 flex items-center">
-                          <div className="absolute inset-x-0 h-1.5 rounded-full bg-gradient-to-r from-cyan-500/20 via-violet-500/25 to-purple-500/20 pointer-events-none" />
+                          <div className="absolute inset-x-0 h-1.5 rounded-full bg-gradient-to-r from-blue-500/20 via-violet-500/25 to-purple-500/20 pointer-events-none" />
                           <input
                             type="range"
                             min="0"
@@ -395,7 +395,7 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
                             onChange={(e) => onNatureSoundVolumeChange(parseFloat(e.target.value))}
                             className="relative z-10 w-full h-1.5 bg-transparent rounded-full appearance-none cursor-pointer
                               [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4
-                              [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-gradient-to-br [&::-webkit-slider-thumb]:from-cyan-400 [&::-webkit-slider-thumb]:via-violet-400 [&::-webkit-slider-thumb]:to-purple-500
+                              [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-gradient-to-br [&::-webkit-slider-thumb]:from-blue-400 [&::-webkit-slider-thumb]:via-violet-400 [&::-webkit-slider-thumb]:to-purple-500
                               [&::-webkit-slider-thumb]:shadow-[0_0_12px_rgba(139,92,246,0.6),0_0_4px_rgba(139,92,246,0.8)]
                               [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full
                               [&::-moz-range-thumb]:bg-violet-400 [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:shadow-[0_0_12px_rgba(139,92,246,0.6)]"

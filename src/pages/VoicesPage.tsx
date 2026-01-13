@@ -455,6 +455,10 @@ const VoicesPage: React.FC = () => {
         VoicesPage Loaded - User: {user ? 'Yes' : 'No'}
       </div>
       <div className="flex-1 w-full max-w-5xl mx-auto px-4 py-8 md:py-12">
+        {/* DEBUG: Test without animation */}
+        <div className="text-white text-2xl mb-4 bg-purple-500 p-4">
+          TEST: This should be visible without framer-motion
+        </div>
         {/* Header */}
         <div className="text-center mb-10">
           <m.div
