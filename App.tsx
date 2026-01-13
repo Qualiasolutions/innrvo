@@ -2134,12 +2134,12 @@ const App: React.FC = () => {
                         handleGenerateAndPlay();
                       } else {
                         // Prompt user to select a voice
-                        navigate('/voices');
+                        navigate('/your-voices');
                       }
                     }}
                     onGenerateAudio={async (meditationScript, tags) => {
                       if (!selectedVoice) {
-                        navigate('/voices');
+                        navigate('/your-voices');
                         return;
                       }
                       const voice = selectedVoice;
@@ -2275,7 +2275,7 @@ const App: React.FC = () => {
                     }}
                     onChatStarted={() => setChatStarted(true)}
                     onMeditationPanelOpen={handleMeditationPanelOpen}
-                    onRequestVoiceSelection={() => navigate('/voices')}
+                    onRequestVoiceSelection={() => navigate('/your-voices')}
                     selectedVoice={selectedVoice}
                     selectedMusic={selectedBackgroundTrack}
                     availableMusic={BACKGROUND_TRACKS}
@@ -2562,7 +2562,7 @@ const App: React.FC = () => {
                 selectedTags={selectedAudioTags}
                 availableMusic={BACKGROUND_TRACKS}
                 availableTags={AUDIO_TAG_CATEGORIES}
-                onVoiceSelect={() => navigate('/voices')}
+                onVoiceSelect={() => navigate('/your-voices')}
                 onMusicSelect={(track) => setSelectedBackgroundTrack(track)}
                 onTagToggle={(tagId) => {
                   setSelectedAudioTags(prev =>

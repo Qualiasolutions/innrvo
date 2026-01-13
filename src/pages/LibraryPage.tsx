@@ -48,6 +48,7 @@ const MeditationCard: React.FC<MeditationCardProps> = memo(({
 }) => {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [isLoadingAudio, setIsLoadingAudio] = useState(false);
+  const [audioError, setAudioError] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const scriptPreview = meditation.title || meditation.enhanced_script || meditation.prompt || 'Untitled meditation';
@@ -68,13 +69,17 @@ const MeditationCard: React.FC<MeditationCardProps> = memo(({
     if (!meditation.audio_url || audioUrl) return;
 
     setIsLoadingAudio(true);
+    setAudioError(null);
     try {
       const url = await getMeditationAudioSignedUrl(meditation.audio_url);
       if (url) {
         setAudioUrl(url);
+      } else {
+        setAudioError('Audio unavailable');
       }
     } catch (error) {
       console.error('[MeditationCard] Failed to load audio:', error);
+      setAudioError('Failed to load audio');
     } finally {
       setIsLoadingAudio(false);
     }
@@ -98,20 +103,22 @@ const MeditationCard: React.FC<MeditationCardProps> = memo(({
     onPlay();
   };
 
-  // Start playback when audioUrl is loaded and we're supposed to be playing
+  // Unified audio playback control - handles both play and stop
   useEffect(() => {
-    if (audioUrl && isPlaying && audioRef.current) {
-      audioRef.current.play().catch(console.error);
-    }
-  }, [audioUrl, isPlaying]);
+    if (!audioRef.current) return;
 
-  // Stop when no longer the active player
-  useEffect(() => {
-    if (!isPlaying && audioRef.current) {
+    if (isPlaying && audioUrl) {
+      audioRef.current.play().catch(() => {
+        setAudioError('Playback failed');
+        onStop();
+      });
+    } else {
       audioRef.current.pause();
-      audioRef.current.currentTime = 0;
+      if (!isPlaying) {
+        audioRef.current.currentTime = 0;
+      }
     }
-  }, [isPlaying]);
+  }, [audioUrl, isPlaying, onStop]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -142,9 +149,17 @@ const MeditationCard: React.FC<MeditationCardProps> = memo(({
             onEnded={onStop}
             onError={() => {
               console.error('[MeditationCard] Audio playback error');
+              setAudioError('Audio playback error');
               onStop();
             }}
           />
+        )}
+
+        {/* Audio error indicator */}
+        {audioError && (
+          <div className="mb-2 px-2 py-1 rounded bg-rose-500/10 text-rose-400 text-xs">
+            {audioError}
+          </div>
         )}
 
         <div className="flex items-start gap-4">
@@ -280,7 +295,6 @@ const LibraryPage: React.FC = () => {
   const [meditations, setMeditations] = useState<MeditationHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab] = useState<'all' | 'favorites'>('all');
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(false);
@@ -316,7 +330,15 @@ const LibraryPage: React.FC = () => {
       setPage(pageNum);
     } catch (err) {
       console.error('[LibraryPage] Failed to load meditations:', err);
-      setError('Failed to load your library. Please try again.');
+      // Provide specific error messages based on error type
+      const error = err as { message?: string; status?: number; code?: string };
+      if (error.status === 401 || error.code === 'PGRST301') {
+        setError('Session expired. Please sign in again.');
+      } else if (error.message?.includes('network') || error.message?.includes('fetch')) {
+        setError('Network error. Please check your connection.');
+      } else {
+        setError('Failed to load your library. Please try again.');
+      }
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -370,10 +392,8 @@ const LibraryPage: React.FC = () => {
     }
   };
 
-  // Filter meditations
-  const filteredMeditations = activeTab === 'favorites'
-    ? meditations.filter(m => m.is_favorite)
-    : meditations;
+  // Filter meditations (favorites tab hidden for now)
+  const filteredMeditations = meditations;
 
   const meditationsWithAudio = filteredMeditations.filter(m => m.audio_url);
   const meditationsWithoutAudio = filteredMeditations.filter(m => !m.audio_url);
@@ -388,7 +408,7 @@ const LibraryPage: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             className="inline-block px-4 py-1 mb-4 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-bold uppercase tracking-[0.4em] border border-emerald-500/20"
           >
-            Library
+            My Audios
           </m.div>
           <m.h1
             initial={{ opacity: 0, y: 10 }}
@@ -396,7 +416,7 @@ const LibraryPage: React.FC = () => {
             transition={{ delay: 0.1 }}
             className="text-3xl md:text-4xl font-serif font-bold text-white mb-3"
           >
-            Your Meditations
+            Your Audio Library
           </m.h1>
           <m.p
             initial={{ opacity: 0 }}
@@ -509,11 +529,11 @@ const LibraryPage: React.FC = () => {
                 )}
 
                 {/* Without Audio (Scripts only) */}
-                {meditationsWithoutAudio.length > 0 && activeTab === 'all' && (
+                {meditationsWithoutAudio.length > 0 && (
                   <div>
                     <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
                       <Clock className="w-4 h-4" />
-                      Script History ({meditationsWithoutAudio.length})
+                      Script History ({meditationsWithoutAudio.length > 10 ? `10 of ${meditationsWithoutAudio.length}` : meditationsWithoutAudio.length})
                     </h3>
                     <div className="space-y-2">
                       {meditationsWithoutAudio.slice(0, 10).map((meditation) => (
@@ -542,7 +562,7 @@ const LibraryPage: React.FC = () => {
                 )}
 
                 {/* Load More */}
-                {hasMore && activeTab === 'all' && (
+                {hasMore && (
                   <div className="flex justify-center pt-4">
                     <button
                       onClick={handleLoadMore}

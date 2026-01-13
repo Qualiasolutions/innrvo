@@ -28,9 +28,9 @@ const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 const routeImports: Record<string, () => Promise<unknown>> = {
   '/': () => import('./pages/HomePage'),
   '/play': () => import('./pages/PlayerPage'),
-  '/library': () => import('./pages/LibraryPage'),
+  '/my-audios': () => import('./pages/LibraryPage'),
   '/templates': () => import('./pages/TemplatesPage'),
-  '/voices': () => import('./pages/VoicesPage'),
+  '/your-voices': () => import('./pages/VoicesPage'),
   '/clone': () => import('./pages/ClonePage'),
   '/how-it-works': () => import('./pages/HowItWorksPage'),
   '/about': () => import('./pages/AboutPage'),
@@ -53,12 +53,12 @@ const prefetchRoute = (path: string) => {
 
 // Routes to prefetch from each page (adjacency map)
 const prefetchMap: Record<string, string[]> = {
-  '/': ['/library', '/templates', '/voices', '/play'],
-  '/library': ['/', '/play', '/templates'],
-  '/templates': ['/', '/library'],
-  '/voices': ['/', '/clone', '/library'],
-  '/clone': ['/voices', '/library'],
-  '/pricing': ['/', '/library'],
+  '/': ['/my-audios', '/templates', '/your-voices', '/play'],
+  '/my-audios': ['/', '/play', '/templates'],
+  '/templates': ['/', '/my-audios'],
+  '/your-voices': ['/', '/clone', '/my-audios'],
+  '/clone': ['/your-voices', '/my-audios'],
+  '/pricing': ['/', '/my-audios'],
   '/marketing': ['/', '/admin'],
 };
 
@@ -116,7 +116,7 @@ export const router = createBrowserRouter([
         element: <PlayerPage />,
       },
       {
-        path: 'library',
+        path: 'my-audios',
         element: <LibraryPage />,
       },
       {
@@ -124,7 +124,7 @@ export const router = createBrowserRouter([
         element: <TemplatesPage />,
       },
       {
-        path: 'voices',
+        path: 'your-voices',
         element: <VoicesPage />,
       },
       {

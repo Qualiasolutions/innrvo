@@ -343,8 +343,8 @@ export const Sidebar = memo(({
               />
               <MenuItem
                 icon={Icons.Library}
-                label="Library"
-                onClick={() => handleNavigation('/library')}
+                label="My Audios"
+                onClick={() => handleNavigation('/my-audios')}
               />
               <MenuItem
                 icon={Icons.Templates}
@@ -353,8 +353,8 @@ export const Sidebar = memo(({
               />
               <MenuItem
                 icon={Icons.Voice}
-                label="Voices"
-                onClick={() => handleNavigation('/voices')}
+                label="Your Voices"
+                onClick={() => handleNavigation('/your-voices')}
               />
               {isAdmin && (
                 <>
