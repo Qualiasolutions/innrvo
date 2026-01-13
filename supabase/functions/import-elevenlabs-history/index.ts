@@ -56,7 +56,40 @@ serve(async (req) => {
 
     // Admin mode - directly specify user ID (for recovery operations)
     if (adminUserId) {
-      // Verify user exists in auth.users
+      // SECURITY: Verify the caller is an admin before allowing adminUserId override
+      if (!authHeader) {
+        return new Response(
+          JSON.stringify({ error: 'Authorization required for admin operations', requestId }),
+          { status: 401, headers: { ...allHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user: callerUser }, error: callerError } = await supabase.auth.getUser(token);
+
+      if (callerError || !callerUser) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid or expired token', requestId }),
+          { status: 401, headers: { ...allHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Check if caller has ADMIN role
+      const { data: callerProfile, error: profileError } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', callerUser.id)
+        .single();
+
+      if (profileError || callerProfile?.role !== 'ADMIN') {
+        log.warn('Non-admin attempted to use adminUserId', { callerId: callerUser.id });
+        return new Response(
+          JSON.stringify({ error: 'Admin role required for this operation', requestId }),
+          { status: 403, headers: { ...allHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Verify target user exists in auth.users
       const { data: adminUser, error: adminError } = await supabase.auth.admin.getUserById(adminUserId);
 
       if (adminError || !adminUser) {
@@ -66,7 +99,7 @@ serve(async (req) => {
         );
       }
       userId = adminUserId;
-      log.info('Admin mode: importing for user', { userId });
+      log.info('Admin mode: importing for user', { userId, adminId: callerUser.id });
     } else if (authHeader) {
       // Normal user auth
       const token = authHeader.replace('Bearer ', '');

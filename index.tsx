@@ -1,7 +1,6 @@
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import * as Sentry from '@sentry/react';
 import { Analytics } from '@vercel/analytics/react';
 import { Toaster } from 'sonner';
 import './index.css';
@@ -27,68 +26,78 @@ type Metric = {
   id: string;
 };
 
-// Initialize Sentry for error tracking
-// DSN should be set via environment variable in production
+// Sentry DSN from environment
 const SENTRY_DSN = import.meta.env.VITE_SENTRY_DSN;
 
+// Lazy-load Sentry to improve initial page load performance (~85KB saved from critical path)
+// Deferred to after first paint using requestIdleCallback
 if (SENTRY_DSN && import.meta.env.PROD) {
-  Sentry.init({
-    dsn: SENTRY_DSN,
-    environment: import.meta.env.MODE,
-    release: `inrvo@${__APP_VERSION__}`,
+  const initSentry = () => {
+    import('@sentry/react').then((Sentry) => {
+      Sentry.init({
+        dsn: SENTRY_DSN,
+        environment: import.meta.env.MODE,
+        release: `inrvo@${__APP_VERSION__}`,
 
-    // Send default PII (IP address on events)
-    sendDefaultPii: true,
+        // Send default PII (IP address on events)
+        sendDefaultPii: true,
 
-    // Enable Sentry Logs
-    _experiments: {
-      enableLogs: true,
-    },
+        // Enable Sentry Logs
+        _experiments: {
+          enableLogs: true,
+        },
 
-    // Integrations
-    integrations: [
-      // Capture console.error and console.warn as Sentry logs
-      Sentry.consoleLoggingIntegration({ levels: ['error', 'warn'] }),
-      // Browser tracing for performance
-      Sentry.browserTracingIntegration(),
-      // Session replay
-      Sentry.replayIntegration({
-        maskAllText: false,
-        blockAllMedia: false,
-      }),
-    ],
+        // Integrations
+        integrations: [
+          // Capture console.error and console.warn as Sentry logs
+          Sentry.consoleLoggingIntegration({ levels: ['error', 'warn'] }),
+          // Browser tracing for performance
+          Sentry.browserTracingIntegration(),
+          // Session replay
+          Sentry.replayIntegration({
+            maskAllText: false,
+            blockAllMedia: false,
+          }),
+        ],
 
-    // Performance monitoring
-    tracesSampleRate: import.meta.env.PROD ? 0.1 : 1.0,
+        // Performance monitoring
+        tracesSampleRate: 0.1,
 
-    // Session replay for debugging (sample 10% of sessions, 100% of errors)
-    replaysSessionSampleRate: 0.1,
-    replaysOnErrorSampleRate: 1.0,
+        // Session replay for debugging (sample 10% of sessions, 100% of errors)
+        replaysSessionSampleRate: 0.1,
+        replaysOnErrorSampleRate: 1.0,
 
-    // Only enable in production
-    enabled: import.meta.env.PROD,
+        // Only enable in production
+        enabled: true,
 
-    // Filter out noisy errors
-    ignoreErrors: [
-      // Browser extensions
-      'ResizeObserver loop limit exceeded',
-      'ResizeObserver loop completed with undelivered notifications',
-      // Network errors (user is offline)
-      'Failed to fetch',
-      'NetworkError',
-      'Load failed',
-    ],
+        // Filter out noisy errors
+        ignoreErrors: [
+          // Browser extensions
+          'ResizeObserver loop limit exceeded',
+          'ResizeObserver loop completed with undelivered notifications',
+          // Network errors (user is offline)
+          'Failed to fetch',
+          'NetworkError',
+          'Load failed',
+        ],
 
-    // Add user context when available
-    beforeSend(event) {
-      // Don't send events in development
-      if (import.meta.env.DEV) {
-        console.log('[Sentry] Would send event:', event);
-        return null;
-      }
-      return event;
-    },
-  });
+        // Add user context when available
+        beforeSend(event) {
+          return event;
+        },
+      });
+    }).catch((err) => {
+      console.warn('[Sentry] Failed to load:', err);
+    });
+  };
+
+  // Defer Sentry initialization to after first paint
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(initSentry, { timeout: 3000 });
+  } else {
+    // Fallback for Safari and older browsers
+    setTimeout(initSentry, 1000);
+  }
 }
 
 const rootElement = document.getElementById('root');
@@ -152,40 +161,44 @@ const reportWebVitals = (metric: Metric) => {
     );
   }
 
-  // Send to Sentry in production for performance monitoring
+  // Send to Sentry in production for performance monitoring (lazy-loaded)
   if (import.meta.env.PROD && SENTRY_DSN) {
-    // Add as breadcrumb for context
-    Sentry.addBreadcrumb({
-      category: 'web-vitals',
-      message: `${metric.name}: ${metric.value.toFixed(2)}${metric.name === 'CLS' ? '' : 'ms'}`,
-      level: metric.rating === 'good' ? 'info' : 'warning',
-      data: {
-        name: metric.name,
-        value: metric.value,
-        rating: metric.rating,
-        delta: metric.delta,
-        id: metric.id,
-      },
-    });
-
-    // Set as custom measurement for Sentry performance monitoring
-    Sentry.setMeasurement(metric.name, metric.value, metric.name === 'CLS' ? '' : 'millisecond');
-
-    // Report poor metrics as issues for alerting
-    if (metric.rating === 'poor') {
-      Sentry.captureMessage(`Poor Web Vital: ${metric.name}`, {
-        level: 'warning',
-        tags: {
-          webVital: metric.name,
-          rating: metric.rating,
-        },
-        extra: {
+    import('@sentry/react').then((Sentry) => {
+      // Add as breadcrumb for context
+      Sentry.addBreadcrumb({
+        category: 'web-vitals',
+        message: `${metric.name}: ${metric.value.toFixed(2)}${metric.name === 'CLS' ? '' : 'ms'}`,
+        level: metric.rating === 'good' ? 'info' : 'warning',
+        data: {
+          name: metric.name,
           value: metric.value,
+          rating: metric.rating,
           delta: metric.delta,
           id: metric.id,
         },
       });
-    }
+
+      // Set as custom measurement for Sentry performance monitoring
+      Sentry.setMeasurement(metric.name, metric.value, metric.name === 'CLS' ? '' : 'millisecond');
+
+      // Report poor metrics as issues for alerting
+      if (metric.rating === 'poor') {
+        Sentry.captureMessage(`Poor Web Vital: ${metric.name}`, {
+          level: 'warning',
+          tags: {
+            webVital: metric.name,
+            rating: metric.rating,
+          },
+          extra: {
+            value: metric.value,
+            delta: metric.delta,
+            id: metric.id,
+          },
+        });
+      }
+    }).catch(() => {
+      // Sentry not loaded yet, skip reporting
+    });
   }
 };
 

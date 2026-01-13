@@ -9,8 +9,11 @@ import { Webhook } from "https://esm.sh/standardwebhooks@1.0.0";
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
 // Remove v1,whsec_ prefix from the secret as required by standardwebhooks library
-const rawSecret = Deno.env.get('AUTH_WEBHOOK_SECRET') || '';
-const HOOK_SECRET = rawSecret.replace('v1,whsec_', '');
+const rawSecret = Deno.env.get('AUTH_WEBHOOK_SECRET');
+if (!rawSecret) {
+  console.error('CRITICAL: AUTH_WEBHOOK_SECRET not configured - webhook signature verification disabled');
+}
+const HOOK_SECRET = rawSecret ? rawSecret.replace('v1,whsec_', '') : '';
 const FROM_EMAIL = 'Innrvo <noreply@innrvo.com>';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || 'https://ygweconeysctxpjjnehy.supabase.co';
 
@@ -223,21 +226,24 @@ serve(async (req) => {
 
   let verified: AuthHookPayload;
 
-  // Verify webhook signature if secret is configured
-  if (HOOK_SECRET) {
-    try {
-      const wh = new Webhook(HOOK_SECRET);
-      verified = wh.verify(payload, headers) as AuthHookPayload;
-    } catch (error) {
-      console.error('Webhook verification failed:', error);
-      return new Response(
-        JSON.stringify({ error: { http_code: 401, message: 'Invalid webhook signature' } }),
-        { status: 401, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
-  } else {
-    // No secret configured, parse payload directly (not recommended for production)
-    verified = JSON.parse(payload);
+  // SECURITY: Require webhook signature verification
+  if (!HOOK_SECRET) {
+    console.error('Webhook rejected: AUTH_WEBHOOK_SECRET not configured');
+    return new Response(
+      JSON.stringify({ error: { http_code: 500, message: 'Webhook secret not configured' } }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+
+  try {
+    const wh = new Webhook(HOOK_SECRET);
+    verified = wh.verify(payload, headers) as AuthHookPayload;
+  } catch (error) {
+    console.error('Webhook verification failed:', error);
+    return new Response(
+      JSON.stringify({ error: { http_code: 401, message: 'Invalid webhook signature' } }),
+      { status: 401, headers: { 'Content-Type': 'application/json' } }
+    );
   }
 
   const { user, email_data } = verified;

@@ -516,12 +516,14 @@ export function useMeditationAgent(options: UseMeditationAgentOptions = {}): Use
       }
 
       // Update current meditation with audio
-      setCurrentMeditation(prev => prev ? {
+      // Use setCurrentMeditationState directly for functional update pattern
+      setCurrentMeditationState(prev => prev ? {
         ...prev,
         audioBuffer: result.data?.audioBuffer,
         audioBase64: result.data?.base64,
         duration: result.data?.duration,
-      } : null);
+        _updatedAt: Date.now(),
+      } as MeditationResult : null);
 
       // Add success message
       const audioMessage: ChatMessage = {

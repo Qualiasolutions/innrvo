@@ -410,8 +410,12 @@ describe('useMeditationAgent', () => {
 
       expect(agentTools.synthesizeAudio).toHaveBeenCalled();
 
+      // Wait for async state update before checking meditation
+      await waitFor(() => {
+        expect(result.current.currentMeditation?.audioBuffer).toBeDefined();
+      });
+
       // Should update current meditation with audio
-      expect(result.current.currentMeditation?.audioBuffer).toBeDefined();
       expect(result.current.currentMeditation?.audioBase64).toBe('base64audio');
     });
 

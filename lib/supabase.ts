@@ -77,19 +77,23 @@ export async function withRetry<T>(
   let lastError: any;
 
   for (let attempt = 0; attempt <= opts.maxRetries; attempt++) {
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
     try {
       // Create a timeout promise (default 30s for slow connections)
       const timeoutMs = options?.maxDelayMs || 30000;
       const startTime = Date.now();
       const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => {
+        timeoutId = setTimeout(() => {
           const elapsed = Date.now() - startTime;
           reject(new Error(`Operation timed out after ${elapsed}ms`));
         }, timeoutMs);
       });
 
-      return await Promise.race([operation(), timeoutPromise]);
+      const result = await Promise.race([operation(), timeoutPromise]);
+      if (timeoutId) clearTimeout(timeoutId);
+      return result;
     } catch (error: any) {
+      if (timeoutId) clearTimeout(timeoutId);
       lastError = error;
 
       // Don't retry non-retryable errors (auth errors, validation errors, etc.)
@@ -383,13 +387,16 @@ export const getCurrentUser = async () => {
 
     // If no cached session, fallback to getUser (network request) with timeout
     // This handles the race condition on initial page load
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
     const timeoutPromise = new Promise<null>((resolve) => {
-      setTimeout(() => resolve(null), 5000);
+      timeoutId = setTimeout(() => resolve(null), 5000);
     });
 
     const userPromise = supabase.auth.getUser().then(({ data: { user } }) => user);
 
-    return await Promise.race([userPromise, timeoutPromise]);
+    const result = await Promise.race([userPromise, timeoutPromise]);
+    if (timeoutId) clearTimeout(timeoutId);
+    return result;
   } catch (error) {
     console.error('[getCurrentUser] Error:', error);
     return null;
