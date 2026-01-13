@@ -1,5 +1,5 @@
 import React, { useCallback, memo, useState, useMemo } from 'react';
-import { m, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { X, Play, Pause, RotateCcw, RotateCw, ChevronUp, Volume2 } from 'lucide-react';
 import { ICONS } from '../../constants';
 
@@ -124,16 +124,16 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
   }, [onSeek, duration]);
 
   return (
-    <div className="fixed inset-0 z-[100] w-full overflow-hidden bg-[#0f172a]">
-      {/* Animated gradient background */}
-      <m.div
+    <div className="fixed inset-0 z-[100] w-full overflow-hidden bg-[#020617]">
+      {/* Animated gradient background - deep blue/cyan theme */}
+      <motion.div
         className="absolute inset-0"
         animate={{
           background: [
-            'linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)',
-            'linear-gradient(135deg, #0f172a 0%, #1e1b4b 60%, #0f172a 100%)',
-            'linear-gradient(135deg, #0f172a 0%, #1e1b4b 40%, #0f172a 100%)',
-            'linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)',
+            'linear-gradient(135deg, #020617 0%, #0c1929 50%, #020617 100%)',
+            'linear-gradient(135deg, #020617 0%, #0c1929 60%, #020617 100%)',
+            'linear-gradient(135deg, #020617 0%, #0c1929 40%, #020617 100%)',
+            'linear-gradient(135deg, #020617 0%, #0c1929 50%, #020617 100%)',
           ],
         }}
         transition={{ duration: 20, repeat: Infinity, ease: 'easeInOut' }}
@@ -145,8 +145,8 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
       {/* Content */}
       <div className="relative z-10 flex min-h-[100dvh] flex-col items-center justify-between px-4 sm:px-6 pb-12 sm:pb-16 md:pb-20 pt-16 sm:pt-14 safe-top safe-bottom">
         {/* Header with close button */}
-        <div className="w-full max-w-lg mt-2">
-          <m.button
+        <div className="w-full mt-2">
+          <motion.button
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             whileHover={{ scale: 1.1 }}
@@ -156,7 +156,7 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
             aria-label="Close player"
           >
             <X className="h-5 w-5" />
-          </m.button>
+          </motion.button>
         </div>
 
         {/* Center content */}
@@ -165,7 +165,7 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
           <BreathingOrb isPlaying={isPlaying} />
 
           {/* Title and time */}
-          <m.div
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
@@ -177,15 +177,15 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
             <p className="mt-2 font-mono text-sm text-white/50">
               {formatTime(currentTime)} / {formatTime(duration)}
             </p>
-          </m.div>
+          </motion.div>
         </div>
 
         {/* Controls */}
-        <m.div
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="w-full max-w-lg space-y-5 sm:space-y-6 mb-4 sm:mb-6 md:mb-8"
+          className="w-full max-w-xl space-y-5 sm:space-y-6 mb-4 sm:mb-6 md:mb-8"
         >
           {/* Progress bar */}
           <div className="relative px-1">
@@ -198,7 +198,7 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
               onClick={handleProgressClick}
             >
               <div
-                className="absolute left-0 top-0 h-full bg-gradient-to-r from-cyan-400/80 to-purple-400/80 rounded-full transition-all duration-100"
+                className="absolute left-0 top-0 h-full bg-gradient-to-r from-cyan-400/80 to-blue-400/80 rounded-full transition-all duration-100"
                 style={{ width: `${progress}%` }}
               />
               {/* Thumb indicator */}
@@ -211,7 +211,7 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
 
           {/* Main playback controls */}
           <div className="flex items-center justify-center gap-6 sm:gap-8">
-            <m.button
+            <motion.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               onClick={() => onSkip(-15)}
@@ -220,9 +220,9 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
             >
               <RotateCcw className="h-6 w-6" />
               <span className="absolute -bottom-1 text-[10px] font-medium">15</span>
-            </m.button>
+            </motion.button>
 
-            <m.button
+            <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.92 }}
               onClick={onPlayPause}
@@ -235,18 +235,18 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
             >
               <AnimatePresence mode="wait">
                 {isPlaying ? (
-                  <m.div key="pause" initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }} transition={{ duration: 0.15 }}>
+                  <motion.div key="pause" initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }} transition={{ duration: 0.15 }}>
                     <Pause className="h-7 w-7 fill-white" />
-                  </m.div>
+                  </motion.div>
                 ) : (
-                  <m.div key="play" initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }} transition={{ duration: 0.15 }}>
+                  <motion.div key="play" initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }} transition={{ duration: 0.15 }}>
                     <Play className="ml-1 h-7 w-7 fill-white" />
-                  </m.div>
+                  </motion.div>
                 )}
               </AnimatePresence>
-            </m.button>
+            </motion.button>
 
-            <m.button
+            <motion.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               onClick={() => onSkip(15)}
@@ -255,45 +255,45 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
             >
               <RotateCw className="h-6 w-6" />
               <span className="absolute -bottom-1 text-[10px] font-medium">15</span>
-            </m.button>
+            </motion.button>
           </div>
 
           {/* Expand controls arrow */}
           <div className="flex items-center justify-center mt-4">
-            <m.button
+            <motion.button
               whileHover={{ scale: 1.15 }}
               whileTap={{ scale: 0.9 }}
               onClick={() => setShowControls(!showControls)}
               className="flex items-center justify-center p-2 transition-opacity hover:opacity-100 opacity-60"
               aria-label={showControls ? 'Hide sound controls' : 'Show sound controls'}
               style={{
-                background: 'linear-gradient(135deg, #22d3ee 0%, #a855f7 50%, #22d3ee 100%)',
+                background: 'linear-gradient(135deg, #22d3ee 0%, #3b82f6 50%, #22d3ee 100%)',
                 WebkitBackgroundClip: 'text',
                 backgroundClip: 'text',
               }}
             >
-              <m.div
+              <motion.div
                 animate={{ rotate: showControls ? 180 : 0 }}
                 transition={{ duration: 0.2 }}
               >
                 <ChevronUp className="h-6 w-6" style={{ stroke: 'url(#player-arrow-gradient)' }} />
-              </m.div>
+              </motion.div>
               <svg width="0" height="0" className="absolute">
                 <defs>
                   <linearGradient id="player-arrow-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
                     <stop offset="0%" stopColor="#22d3ee" />
-                    <stop offset="50%" stopColor="#a855f7" />
+                    <stop offset="50%" stopColor="#3b82f6" />
                     <stop offset="100%" stopColor="#22d3ee" />
                   </linearGradient>
                 </defs>
               </svg>
-            </m.button>
+            </motion.button>
           </div>
 
           {/* Expanded controls panel - Glassmorphism */}
           <AnimatePresence>
             {showControls && (
-              <m.div
+              <motion.div
                 initial={{ opacity: 0, height: 0, scale: 0.95 }}
                 animate={{ opacity: 1, height: 'auto', scale: 1 }}
                 exit={{ opacity: 0, height: 0, scale: 0.95 }}
@@ -309,7 +309,7 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
                         onClick={onBackgroundMusicToggle}
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition-colors ${
                           backgroundMusicEnabled
-                            ? 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/30'
+                            ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
                             : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white/80'
                         }`}
                       >
@@ -376,16 +376,16 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
                   {natureSoundEnabled && onNatureSoundVolumeChange && (
                     <div className="space-y-2">
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-violet-400/80 flex items-center gap-2">
-                          <span className="text-violet-400">{renderNatureIcon(natureSoundIcon, "w-4 h-4")}</span>
+                        <span className="text-emerald-400/80 flex items-center gap-2">
+                          <span className="text-emerald-400">{renderNatureIcon(natureSoundIcon, "w-4 h-4")}</span>
                           {natureSoundName || 'Nature Sound'}
                         </span>
-                        <span className="text-violet-300 font-mono">{Math.round(natureSoundVolume * 100)}%</span>
+                        <span className="text-emerald-300 font-mono">{Math.round(natureSoundVolume * 100)}%</span>
                       </div>
                       <div className="flex items-center gap-3">
-                        <span className="text-xs text-violet-400/40">0%</span>
+                        <span className="text-xs text-emerald-400/40">0%</span>
                         <div className="relative flex-1 h-4 flex items-center">
-                          <div className="absolute inset-x-0 h-1.5 rounded-full bg-gradient-to-r from-blue-500/20 via-violet-500/25 to-purple-500/20 pointer-events-none" />
+                          <div className="absolute inset-x-0 h-1.5 rounded-full bg-gradient-to-r from-emerald-500/20 to-teal-500/25 pointer-events-none" />
                           <input
                             type="range"
                             min="0"
@@ -395,13 +395,13 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
                             onChange={(e) => onNatureSoundVolumeChange(parseFloat(e.target.value))}
                             className="relative z-10 w-full h-1.5 bg-transparent rounded-full appearance-none cursor-pointer
                               [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4
-                              [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-gradient-to-br [&::-webkit-slider-thumb]:from-blue-400 [&::-webkit-slider-thumb]:via-violet-400 [&::-webkit-slider-thumb]:to-purple-500
-                              [&::-webkit-slider-thumb]:shadow-[0_0_12px_rgba(139,92,246,0.6),0_0_4px_rgba(139,92,246,0.8)]
+                              [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-gradient-to-br [&::-webkit-slider-thumb]:from-emerald-400 [&::-webkit-slider-thumb]:to-teal-500
+                              [&::-webkit-slider-thumb]:shadow-[0_0_12px_rgba(52,211,153,0.6),0_0_4px_rgba(52,211,153,0.8)]
                               [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full
-                              [&::-moz-range-thumb]:bg-violet-400 [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:shadow-[0_0_12px_rgba(139,92,246,0.6)]"
+                              [&::-moz-range-thumb]:bg-emerald-400 [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:shadow-[0_0_12px_rgba(52,211,153,0.6)]"
                           />
                         </div>
-                        <span className="text-xs text-violet-400/40">100%</span>
+                        <span className="text-xs text-emerald-400/40">100%</span>
                       </div>
                     </div>
                   )}
@@ -410,16 +410,16 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
                   {backgroundMusicEnabled && (
                     <div className="space-y-2">
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-purple-400/80 flex items-center gap-2">
+                        <span className="text-blue-400/80 flex items-center gap-2">
                           <span>🎵</span>
                           Music Volume
                         </span>
-                        <span className="text-purple-300 font-mono">{Math.round(backgroundVolume * 100)}%</span>
+                        <span className="text-blue-300 font-mono">{Math.round(backgroundVolume * 100)}%</span>
                       </div>
                       <div className="flex items-center gap-3">
-                        <span className="text-xs text-purple-400/40">0%</span>
+                        <span className="text-xs text-blue-400/40">0%</span>
                         <div className="relative flex-1 h-4 flex items-center">
-                          <div className="absolute inset-x-0 h-1.5 rounded-full bg-gradient-to-r from-purple-500/20 to-purple-400/30 pointer-events-none" />
+                          <div className="absolute inset-x-0 h-1.5 rounded-full bg-gradient-to-r from-blue-500/20 to-blue-400/30 pointer-events-none" />
                           <input
                             type="range"
                             min="0"
@@ -429,22 +429,22 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
                             onChange={(e) => onBackgroundVolumeChange(parseFloat(e.target.value))}
                             className="relative z-10 w-full h-1.5 bg-transparent rounded-full appearance-none cursor-pointer
                               [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4
-                              [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-gradient-to-br [&::-webkit-slider-thumb]:from-purple-400 [&::-webkit-slider-thumb]:to-purple-600
-                              [&::-webkit-slider-thumb]:shadow-[0_0_12px_rgba(168,85,247,0.6),0_0_4px_rgba(168,85,247,0.8)]
+                              [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-gradient-to-br [&::-webkit-slider-thumb]:from-blue-400 [&::-webkit-slider-thumb]:to-blue-600
+                              [&::-webkit-slider-thumb]:shadow-[0_0_12px_rgba(59,130,246,0.6),0_0_4px_rgba(59,130,246,0.8)]
                               [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full
-                              [&::-moz-range-thumb]:bg-purple-500 [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:shadow-[0_0_12px_rgba(168,85,247,0.6)]"
+                              [&::-moz-range-thumb]:bg-blue-500 [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:shadow-[0_0_12px_rgba(59,130,246,0.6)]"
                           />
                         </div>
-                        <span className="text-xs text-purple-400/40">100%</span>
+                        <span className="text-xs text-blue-400/40">100%</span>
                       </div>
                     </div>
                   )}
                 </div>
-              </m.div>
+              </motion.div>
             )}
           </AnimatePresence>
 
-        </m.div>
+        </motion.div>
       </div>
     </div>
   );
@@ -508,10 +508,10 @@ const BreathingOrb = memo(({ isPlaying }: { isPlaying: boolean }) => {
   return (
     <div className="relative flex items-center justify-center">
       {/* Layer 5: Ambient Glow Field */}
-      <m.div
+      <motion.div
         className="absolute w-[240px] h-[240px] sm:w-[280px] sm:h-[280px] md:w-[320px] md:h-[320px] lg:w-[350px] lg:h-[350px] rounded-full"
         style={{
-          background: 'radial-gradient(circle, rgba(34, 211, 238, 0.18) 0%, rgba(168, 85, 247, 0.12) 35%, rgba(99, 102, 241, 0.06) 60%, transparent 80%)',
+          background: 'radial-gradient(circle, rgba(34, 211, 238, 0.22) 0%, rgba(59, 130, 246, 0.14) 35%, rgba(14, 165, 233, 0.08) 60%, transparent 80%)',
           filter: 'blur(40px)',
         }}
         animate={isPlaying ? {
@@ -526,39 +526,40 @@ const BreathingOrb = memo(({ isPlaying }: { isPlaying: boolean }) => {
         }}
       />
 
-      {/* Layer 4: Shooting Stars - diagonal streaks */}
-      <div className="absolute w-[400px] h-[400px] sm:w-[500px] sm:h-[500px] overflow-hidden pointer-events-none">
+      {/* Layer 4: Professional Shooting Stars - smooth diagonal streaks */}
+      <div className="absolute w-[500px] h-[500px] sm:w-[600px] sm:h-[600px] overflow-hidden pointer-events-none">
         {shootingStars.map((star) => (
-          <m.div
+          <motion.div
             key={`star-${star.id}`}
             className="absolute left-1/2 top-1/2"
             style={{
-              width: star.length,
-              height: star.size,
+              width: star.length * 1.2,
+              height: star.size * 0.8,
               marginLeft: star.startX,
               marginTop: star.startY,
               background: star.isCyan
-                ? 'linear-gradient(90deg, transparent 0%, rgba(34, 211, 238, 0.1) 20%, rgba(34, 211, 238, 0.8) 80%, rgba(255, 255, 255, 1) 100%)'
-                : 'linear-gradient(90deg, transparent 0%, rgba(168, 85, 247, 0.1) 20%, rgba(168, 85, 247, 0.8) 80%, rgba(255, 255, 255, 1) 100%)',
-              borderRadius: '2px',
+                ? 'linear-gradient(90deg, transparent 0%, rgba(34, 211, 238, 0.05) 15%, rgba(34, 211, 238, 0.6) 70%, rgba(255, 255, 255, 0.95) 100%)'
+                : 'linear-gradient(90deg, transparent 0%, rgba(59, 130, 246, 0.05) 15%, rgba(59, 130, 246, 0.6) 70%, rgba(255, 255, 255, 0.95) 100%)',
+              borderRadius: '4px',
               transform: `rotate(${star.angle}deg)`,
               boxShadow: star.isCyan
-                ? '0 0 8px rgba(34, 211, 238, 0.6), 0 0 16px rgba(34, 211, 238, 0.3)'
-                : '0 0 8px rgba(168, 85, 247, 0.6), 0 0 16px rgba(168, 85, 247, 0.3)',
+                ? '0 0 12px rgba(34, 211, 238, 0.5), 0 0 24px rgba(34, 211, 238, 0.25), 0 0 4px rgba(255,255,255,0.8)'
+                : '0 0 12px rgba(59, 130, 246, 0.5), 0 0 24px rgba(59, 130, 246, 0.25), 0 0 4px rgba(255,255,255,0.8)',
             }}
-            initial={{ x: 0, y: 0, opacity: 0 }}
+            initial={{ x: 0, y: 0, opacity: 0, scale: 0.8 }}
             animate={isPlaying ? {
-              x: [0, 300],
-              y: [0, 180],
-              opacity: [0, 1, 1, 0],
-            } : { x: 0, y: 0, opacity: 0 }}
+              x: [0, 350],
+              y: [0, 210],
+              opacity: [0, 0.9, 0.9, 0],
+              scale: [0.8, 1, 1, 0.6],
+            } : { x: 0, y: 0, opacity: 0, scale: 0.8 }}
             transition={{
-              duration: star.duration,
+              duration: star.duration * 1.3,
               delay: star.delay,
               repeat: Infinity,
-              repeatDelay: 4 + Math.random() * 6,
-              ease: 'easeOut',
-              times: [0, 0.1, 0.8, 1],
+              repeatDelay: 5 + Math.random() * 8,
+              ease: [0.25, 0.1, 0.25, 1],
+              times: [0, 0.08, 0.85, 1],
             }}
           />
         ))}
@@ -567,7 +568,7 @@ const BreathingOrb = memo(({ isPlaying }: { isPlaying: boolean }) => {
       {/* Layer 3: Particle Orbit System */}
       <div className="absolute w-[180px] h-[180px] sm:w-[200px] sm:h-[200px] md:w-[220px] md:h-[220px]">
         {orbitParticles.map((particle) => (
-          <m.div
+          <motion.div
             key={particle.id}
             className="absolute left-1/2 top-1/2"
             style={{
@@ -575,7 +576,7 @@ const BreathingOrb = memo(({ isPlaying }: { isPlaying: boolean }) => {
               height: particle.size,
               marginLeft: -particle.size / 2,
               marginTop: -particle.size / 2,
-              background: `radial-gradient(circle, rgba(34, 211, 238, 0.9) 0%, rgba(168, 85, 247, 0.7) 100%)`,
+              background: `radial-gradient(circle, rgba(34, 211, 238, 0.9) 0%, rgba(59, 130, 246, 0.7) 100%)`,
               borderRadius: '50%',
               boxShadow: `0 0 ${particle.size * 3}px rgba(34, 211, 238, 0.6)`,
             }}
@@ -610,23 +611,23 @@ const BreathingOrb = memo(({ isPlaying }: { isPlaying: boolean }) => {
       </div>
 
       {/* Layer 2: Main Pulsing Orb */}
-      <m.div
+      <motion.div
         className={`relative ${ORB_CONFIG.orbSize} rounded-full flex items-center justify-center`}
         style={{
-          background: 'linear-gradient(135deg, rgba(34, 211, 238, 0.28) 0%, rgba(168, 85, 247, 0.22) 50%, rgba(99, 102, 241, 0.28) 100%)',
-          boxShadow: 'inset 0 0 50px rgba(168, 85, 247, 0.15), inset 0 0 100px rgba(34, 211, 238, 0.1)',
+          background: 'linear-gradient(135deg, rgba(34, 211, 238, 0.28) 0%, rgba(59, 130, 246, 0.22) 50%, rgba(14, 165, 233, 0.28) 100%)',
+          boxShadow: 'inset 0 0 50px rgba(59, 130, 246, 0.15), inset 0 0 100px rgba(34, 211, 238, 0.1)',
         }}
         animate={isPlaying ? {
           scale: [1, 1.18, 1.18, 1],
           filter: [
-            'drop-shadow(0 0 35px rgba(34, 211, 238, 0.45)) drop-shadow(0 0 70px rgba(168, 85, 247, 0.25))',
-            'drop-shadow(0 0 70px rgba(34, 211, 238, 0.7)) drop-shadow(0 0 120px rgba(168, 85, 247, 0.4))',
-            'drop-shadow(0 0 70px rgba(34, 211, 238, 0.7)) drop-shadow(0 0 120px rgba(168, 85, 247, 0.4))',
-            'drop-shadow(0 0 35px rgba(34, 211, 238, 0.45)) drop-shadow(0 0 70px rgba(168, 85, 247, 0.25))',
+            'drop-shadow(0 0 35px rgba(34, 211, 238, 0.45)) drop-shadow(0 0 70px rgba(59, 130, 246, 0.25))',
+            'drop-shadow(0 0 70px rgba(34, 211, 238, 0.7)) drop-shadow(0 0 120px rgba(59, 130, 246, 0.4))',
+            'drop-shadow(0 0 70px rgba(34, 211, 238, 0.7)) drop-shadow(0 0 120px rgba(59, 130, 246, 0.4))',
+            'drop-shadow(0 0 35px rgba(34, 211, 238, 0.45)) drop-shadow(0 0 70px rgba(59, 130, 246, 0.25))',
           ],
         } : {
           scale: 1,
-          filter: 'drop-shadow(0 0 25px rgba(34, 211, 238, 0.3)) drop-shadow(0 0 50px rgba(168, 85, 247, 0.15))',
+          filter: 'drop-shadow(0 0 25px rgba(34, 211, 238, 0.3)) drop-shadow(0 0 50px rgba(59, 130, 246, 0.15))',
         }}
         transition={{
           duration: 19, // 4-7-8 breathing: 4s inhale, 7s hold, 8s exhale
@@ -636,10 +637,10 @@ const BreathingOrb = memo(({ isPlaying }: { isPlaying: boolean }) => {
         }}
       >
         {/* Inner gradient layer */}
-        <m.div
+        <motion.div
           className="absolute inset-4 sm:inset-5 md:inset-6 rounded-full"
           style={{
-            background: 'radial-gradient(circle, rgba(34, 211, 238, 0.35) 0%, rgba(168, 85, 247, 0.2) 50%, transparent 100%)',
+            background: 'radial-gradient(circle, rgba(34, 211, 238, 0.35) 0%, rgba(59, 130, 246, 0.2) 50%, transparent 100%)',
             filter: 'blur(8px)',
           }}
           animate={isPlaying ? {
@@ -657,18 +658,18 @@ const BreathingOrb = memo(({ isPlaying }: { isPlaying: boolean }) => {
         <div
           className="absolute inset-8 sm:inset-10 md:inset-12 rounded-full"
           style={{
-            background: 'linear-gradient(135deg, rgba(34, 211, 238, 0.25) 0%, rgba(168, 85, 247, 0.2) 100%)',
+            background: 'linear-gradient(135deg, rgba(34, 211, 238, 0.25) 0%, rgba(59, 130, 246, 0.2) 100%)',
             border: '1px solid rgba(255, 255, 255, 0.1)',
           }}
         />
-      </m.div>
+      </motion.div>
 
       {/* Layer 1: Inner Energy Core with Radiating Rays */}
-      <m.div
+      <motion.div
         className="absolute w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full z-10"
         style={{
-          background: 'radial-gradient(circle, rgba(255, 255, 255, 0.95) 0%, rgba(34, 211, 238, 0.85) 35%, rgba(168, 85, 247, 0.5) 65%, transparent 100%)',
-          boxShadow: '0 0 30px rgba(255, 255, 255, 0.6), 0 0 60px rgba(34, 211, 238, 0.5), 0 0 90px rgba(168, 85, 247, 0.3)',
+          background: 'radial-gradient(circle, rgba(255, 255, 255, 0.95) 0%, rgba(34, 211, 238, 0.85) 35%, rgba(59, 130, 246, 0.5) 65%, transparent 100%)',
+          boxShadow: '0 0 30px rgba(255, 255, 255, 0.6), 0 0 60px rgba(34, 211, 238, 0.5), 0 0 90px rgba(59, 130, 246, 0.3)',
         }}
         animate={isPlaying ? {
           scale: [1, 1.12, 1],
@@ -678,7 +679,7 @@ const BreathingOrb = memo(({ isPlaying }: { isPlaying: boolean }) => {
       >
         {/* Radiating rays */}
         {coreRays.map((angle) => (
-          <m.div
+          <motion.div
             key={`ray-${angle}`}
             className="absolute left-1/2 top-1/2 origin-bottom"
             style={{
@@ -702,10 +703,10 @@ const BreathingOrb = memo(({ isPlaying }: { isPlaying: boolean }) => {
             }}
           />
         ))}
-      </m.div>
+      </motion.div>
 
       {/* Center bright dot */}
-      <m.div
+      <motion.div
         className="absolute w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full z-20"
         style={{
           background: 'radial-gradient(circle, white 0%, rgba(34, 211, 238, 0.9) 100%)',
@@ -739,23 +740,23 @@ const FloatingParticles = memo(() => {
     size: Math.random() * 2.5 + 1,
     duration: Math.random() * 25 + 18,
     delay: Math.random() * 12,
-    // Color variation: cyan, purple, or white
+    // Color variation: cyan, blue, or white
     color: i % 3 === 0
       ? 'rgba(34, 211, 238, 0.4)' // cyan
       : i % 3 === 1
-        ? 'rgba(168, 85, 247, 0.35)' // purple
+        ? 'rgba(59, 130, 246, 0.35)' // blue
         : 'rgba(255, 255, 255, 0.25)', // white
     glow: i % 3 === 0
       ? '0 0 6px rgba(34, 211, 238, 0.5)'
       : i % 3 === 1
-        ? '0 0 6px rgba(168, 85, 247, 0.4)'
+        ? '0 0 6px rgba(59, 130, 246, 0.4)'
         : '0 0 4px rgba(255, 255, 255, 0.3)',
   })), []);
 
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
       {particles.map((particle) => (
-        <m.div
+        <motion.div
           key={particle.id}
           className="absolute rounded-full"
           style={{
