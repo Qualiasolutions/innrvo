@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, memo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { m, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Pause, Trash2, Music, Clock, Mic, RotateCcw } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useModals } from '../contexts/ModalContext';
@@ -132,7 +132,7 @@ const MeditationCard: React.FC<MeditationCardProps> = memo(({
   const hasAudio = !!meditation.audio_url;
 
   return (
-    <m.div variants={cardVariants}>
+    <motion.div variants={cardVariants}>
       <GlassCard
         className={`!p-4 border transition-all duration-300 hover:shadow-[0_8px_32px_rgba(0,0,0,0.25)] ${
           isPlaying
@@ -240,7 +240,7 @@ const MeditationCard: React.FC<MeditationCardProps> = memo(({
           </div>
         </div>
       </GlassCard>
-    </m.div>
+    </motion.div>
   );
 });
 
@@ -248,7 +248,7 @@ MeditationCard.displayName = 'MeditationCard';
 
 // Loading Skeleton
 const MeditationSkeleton = () => (
-  <m.div variants={cardVariants}>
+  <motion.div variants={cardVariants}>
     <GlassCard className="!p-4 relative overflow-hidden">
       <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/5 to-transparent" />
       <div className="flex items-start gap-4">
@@ -263,12 +263,12 @@ const MeditationSkeleton = () => (
         </div>
       </div>
     </GlassCard>
-  </m.div>
+  </motion.div>
 );
 
 // Empty State
 const EmptyState: React.FC = () => (
-  <m.div
+  <motion.div
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
     className="text-center py-16"
@@ -282,18 +282,15 @@ const EmptyState: React.FC = () => (
     <p className="text-slate-400 max-w-sm mx-auto">
       Generate a meditation to see it in your library
     </p>
-  </m.div>
+  </motion.div>
 );
 
 // Main Component
 const LibraryPage: React.FC = () => {
-  console.log('[LibraryPage] Component rendering');
   const navigate = useNavigate();
   const { user, isSessionReady } = useAuth();
-  console.log('[LibraryPage] Auth:', { user: !!user, isSessionReady });
   const { setShowAuthModal } = useModals();
   const { setScript, setEnhancedScript, setRestoredScript, savedVoices, setSelectedVoice } = useApp();
-  console.log('[LibraryPage] App context loaded');
 
   const [meditations, setMeditations] = useState<MeditationHistory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -401,44 +398,39 @@ const LibraryPage: React.FC = () => {
   const meditationsWithAudio = filteredMeditations.filter(m => m.audio_url);
   const meditationsWithoutAudio = filteredMeditations.filter(m => !m.audio_url);
 
-  console.log('[LibraryPage] About to return JSX');
   return (
     <AppLayout className="flex flex-col">
-      {/* DEBUG: Remove after fix */}
-      <div className="fixed top-4 left-4 z-[999] bg-green-500 text-white p-2 rounded">
-        LibraryPage Loaded - User: {user ? 'Yes' : 'No'}
-      </div>
       <div className="flex-1 w-full max-w-4xl mx-auto px-4 py-8 md:py-12">
         {/* Header */}
         <div className="text-center mb-10">
-          <m.div
+          <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             className="inline-block px-4 py-1 mb-4 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-bold uppercase tracking-[0.4em] border border-emerald-500/20"
           >
             My Audios
-          </m.div>
-          <m.h1
+          </motion.div>
+          <motion.h1
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
             className="text-3xl md:text-4xl font-serif font-bold text-white mb-3"
           >
             Your Audio Library
-          </m.h1>
-          <m.p
+          </motion.h1>
+          <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
             className="text-slate-400 max-w-md mx-auto"
           >
             Listen to your saved meditations and audio generations
-          </m.p>
+          </motion.p>
         </div>
 
         {/* Not Logged In */}
         {!user && !loading && (
-          <m.div
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="text-center py-16"
@@ -456,12 +448,12 @@ const LibraryPage: React.FC = () => {
             >
               Sign In
             </button>
-          </m.div>
+          </motion.div>
         )}
 
         {/* Error State */}
         {error && (
-          <m.div
+          <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             className="mb-6 p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-center"
@@ -473,7 +465,7 @@ const LibraryPage: React.FC = () => {
             >
               Retry
             </button>
-          </m.div>
+          </motion.div>
         )}
 
         {user && (
@@ -482,7 +474,7 @@ const LibraryPage: React.FC = () => {
 
             {/* Loading State */}
             {loading && (
-              <m.div
+              <motion.div
                 className="space-y-3"
                 variants={containerVariants}
                 initial="hidden"
@@ -491,7 +483,7 @@ const LibraryPage: React.FC = () => {
                 {[1, 2, 3, 4, 5].map((i) => (
                   <MeditationSkeleton key={i} />
                 ))}
-              </m.div>
+              </motion.div>
             )}
 
             {/* Empty State */}
@@ -505,15 +497,15 @@ const LibraryPage: React.FC = () => {
                 {/* With Audio */}
                 {meditationsWithAudio.length > 0 && (
                   <div>
-                    <m.h3
+                    <motion.h3
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       className="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-4 flex items-center gap-2"
                     >
                       <Music className="w-4 h-4" />
                       Saved with Audio ({meditationsWithAudio.length})
-                    </m.h3>
-                    <m.div
+                    </motion.h3>
+                    <motion.div
                       className="space-y-3"
                       variants={containerVariants}
                       initial="hidden"
@@ -532,7 +524,7 @@ const LibraryPage: React.FC = () => {
                           />
                         ))}
                       </AnimatePresence>
-                    </m.div>
+                    </motion.div>
                   </div>
                 )}
 

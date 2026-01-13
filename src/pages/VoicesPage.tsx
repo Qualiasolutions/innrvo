@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { m, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Mic, Play, Pause, Trash2, Edit3, Check, X, Plus, Volume2, Loader2 } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -137,7 +137,7 @@ const VoiceCard: React.FC<VoiceCardProps> = memo(({
     (!voice.elevenlabs_voice_id && (voice.provider === 'fish-audio' || voice.provider === 'chatterbox'));
 
   return (
-    <m.div
+    <motion.div
       variants={cardVariants}
       whileHover={{ scale: 1.02, y: -4 }}
       whileTap={{ scale: 0.98 }}
@@ -277,7 +277,7 @@ const VoiceCard: React.FC<VoiceCardProps> = memo(({
           </div>
         </div>
       </GlassCard>
-    </m.div>
+    </motion.div>
   );
 });
 
@@ -285,7 +285,7 @@ VoiceCard.displayName = 'VoiceCard';
 
 // Loading Skeleton
 const VoiceCardSkeleton = () => (
-  <m.div variants={cardVariants}>
+  <motion.div variants={cardVariants}>
     <GlassCard className="!p-5 relative overflow-hidden">
       <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/5 to-transparent" />
       <div className="flex items-start justify-between mb-3">
@@ -305,12 +305,12 @@ const VoiceCardSkeleton = () => (
         </div>
       </div>
     </GlassCard>
-  </m.div>
+  </motion.div>
 );
 
 // Empty State
 const EmptyState: React.FC<{ onClone: () => void }> = ({ onClone }) => (
-  <m.div
+  <motion.div
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
     className="text-center py-16"
@@ -329,17 +329,14 @@ const EmptyState: React.FC<{ onClone: () => void }> = ({ onClone }) => (
       <Plus className="w-5 h-5" />
       Clone Your Voice
     </button>
-  </m.div>
+  </motion.div>
 );
 
 // Main Component
 const VoicesPage: React.FC = () => {
-  console.log('[VoicesPage] Component rendering');
   const navigate = useNavigate();
   const { user, isSessionReady } = useAuth();
-  console.log('[VoicesPage] Auth:', { user: !!user, isSessionReady });
-  const { selectedVoice, setSelectedVoice, savedVoices, setSavedVoices } = useApp();
-  console.log('[VoicesPage] App context loaded');
+  const { selectedVoice, setSelectedVoice, setSavedVoices } = useApp();
 
   const [voices, setVoices] = useState<VoiceProfile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -447,46 +444,37 @@ const VoicesPage: React.FC = () => {
 
   const handleClone = () => navigate('/clone');
 
-  console.log('[VoicesPage] About to return JSX');
   return (
     <AppLayout className="flex flex-col">
-      {/* DEBUG: Remove after fix */}
-      <div className="fixed top-4 left-4 z-[999] bg-red-500 text-white p-2 rounded">
-        VoicesPage Loaded - User: {user ? 'Yes' : 'No'}
-      </div>
       <div className="flex-1 w-full max-w-5xl mx-auto px-4 py-8 md:py-12">
-        {/* DEBUG: Test without animation */}
-        <div className="text-white text-2xl mb-4 bg-purple-500 p-4">
-          TEST: This should be visible without framer-motion
-        </div>
         {/* Header */}
         <div className="text-center mb-10">
-          <m.div
+          <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             className="inline-block px-4 py-1 mb-4 rounded-full bg-blue-500/10 text-blue-400 text-[10px] font-bold uppercase tracking-[0.4em] border border-blue-500/20"
           >
             Voice Library
-          </m.div>
-          <m.h1
+          </motion.div>
+          <motion.h1
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
             className="text-3xl md:text-4xl font-serif font-bold text-white mb-3"
           >
             Your Voices
-          </m.h1>
-          <m.p
+          </motion.h1>
+          <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
             className="text-slate-400 max-w-md mx-auto mb-6"
           >
             Select a voice for your meditations or clone a new one
-          </m.p>
+          </motion.p>
 
           {/* Clone Button */}
-          <m.button
+          <motion.button
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.3 }}
@@ -496,12 +484,12 @@ const VoicesPage: React.FC = () => {
           >
             <Plus className="w-5 h-5" />
             Clone New Voice
-          </m.button>
+          </motion.button>
         </div>
 
         {/* Error State */}
         {error && (
-          <m.div
+          <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             className="mb-6 p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-center"
@@ -513,12 +501,12 @@ const VoicesPage: React.FC = () => {
             >
               Retry
             </button>
-          </m.div>
+          </motion.div>
         )}
 
         {/* Not Logged In State */}
         {!user && !loading && (
-          <m.div
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="text-center py-16"
@@ -530,12 +518,12 @@ const VoicesPage: React.FC = () => {
             <p className="text-slate-400 mb-8 max-w-sm mx-auto">
               Create an account to clone and save your personalized voices
             </p>
-          </m.div>
+          </motion.div>
         )}
 
         {/* Loading State */}
         {loading && (
-          <m.div
+          <motion.div
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6"
             variants={containerVariants}
             initial="hidden"
@@ -544,7 +532,7 @@ const VoicesPage: React.FC = () => {
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <VoiceCardSkeleton key={i} />
             ))}
-          </m.div>
+          </motion.div>
         )}
 
         {/* Empty State */}
@@ -554,7 +542,7 @@ const VoicesPage: React.FC = () => {
 
         {/* Voice Grid */}
         {!loading && voices.length > 0 && (
-          <m.div
+          <motion.div
             data-onboarding="voice-list"
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6"
             variants={containerVariants}
@@ -574,12 +562,12 @@ const VoicesPage: React.FC = () => {
                 />
               ))}
             </AnimatePresence>
-          </m.div>
+          </motion.div>
         )}
 
         {/* Selected Voice Indicator */}
         {selectedVoice && (
-          <m.div
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="fixed bottom-6 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full bg-slate-900/90 backdrop-blur-xl border border-blue-500/30 shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
@@ -596,7 +584,7 @@ const VoicesPage: React.FC = () => {
                 Create Meditation
               </button>
             </div>
-          </m.div>
+          </motion.div>
         )}
       </div>
     </AppLayout>
