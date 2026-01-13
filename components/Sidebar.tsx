@@ -351,6 +351,11 @@ export const Sidebar = memo(({
                 label="Templates"
                 onClick={() => handleNavigation('/templates')}
               />
+              <MenuItem
+                icon={Icons.Voice}
+                label="Voices"
+                onClick={() => handleNavigation('/voices')}
+              />
               {isAdmin && (
                 <>
                   <div className="mx-1 my-2 h-px bg-gradient-to-r from-transparent via-purple-500/20 to-transparent" />
