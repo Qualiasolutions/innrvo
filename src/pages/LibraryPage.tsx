@@ -1,17 +1,16 @@
-import React, { useEffect, useState, useCallback, useRef, memo, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, memo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { m, AnimatePresence } from 'framer-motion';
-import { ChevronDown, ChevronUp, Star, Trash2, RotateCcw } from 'lucide-react';
-import { useApp } from '../contexts/AppContext';
-import { useLibrary } from '../contexts/LibraryContext';
+import { Play, Pause, Trash2, Music, Clock, Mic, RotateCcw } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 import { useModals } from '../contexts/ModalContext';
+import { useApp } from '../contexts/AppContext';
 import AppLayout from '../layouts/AppLayout';
 import GlassCard from '../../components/GlassCard';
-import AudioPreview from '../../components/ui/AudioPreview';
-import { getMeditationAudioSignedUrl, toggleMeditationFavorite, deleteMeditationHistory, MeditationHistory } from '../../lib/supabase';
+import { getMeditationHistoryPaginated, getMeditationAudioSignedUrl, toggleMeditationFavorite, deleteMeditationHistory, MeditationHistory } from '../../lib/supabase';
 
-// Animation variants for staggered meditation cards
-const listContainerVariants = {
+// Animation variants
+const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
@@ -19,369 +18,336 @@ const listContainerVariants = {
   }
 };
 
-const listItemVariants = {
+const cardVariants = {
   hidden: { opacity: 0, y: 16, scale: 0.98 },
   visible: {
     opacity: 1,
     y: 0,
     scale: 1,
-    transition: { type: 'spring', stiffness: 350, damping: 28 }
+    transition: { type: 'spring' as const, stiffness: 350, damping: 28 }
   }
 };
 
-/**
- * MeditationAudioCard - Individual meditation card with audio preview
- * Responsive design: compact on mobile, expanded on desktop
- */
-interface MeditationAudioCardProps {
+// Meditation Card Component
+interface MeditationCardProps {
   meditation: MeditationHistory;
-  isActive: boolean;
-  isExpanded: boolean;
-  signedUrl?: string;
-  onGetSignedUrl: () => Promise<string | null>;
+  isPlaying: boolean;
   onPlay: () => void;
-  onEnded: () => void;
-  onToggleFavorite: () => void;
+  onStop: () => void;
   onDelete: () => void;
-  onToggleExpand: () => void;
-  stopOthers: boolean;
+  onRestore: () => void;
 }
 
-const MeditationAudioCard: React.FC<MeditationAudioCardProps> = memo(({
+const MeditationCard: React.FC<MeditationCardProps> = memo(({
   meditation,
-  isActive,
-  isExpanded,
-  signedUrl,
-  onGetSignedUrl,
+  isPlaying,
   onPlay,
-  onEnded,
-  onToggleFavorite,
+  onStop,
   onDelete,
-  onToggleExpand,
-  stopOthers,
+  onRestore,
 }) => {
-  const [localSignedUrl, setLocalSignedUrl] = useState<string | null>(signedUrl || null);
-  const [isLoadingUrl, setIsLoadingUrl] = useState(false);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [isLoadingAudio, setIsLoadingAudio] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Fetch signed URL when card becomes active or on first interaction
-  const ensureSignedUrl = useCallback(async () => {
-    if (localSignedUrl) return localSignedUrl;
-    if (isLoadingUrl) return null;
+  const scriptPreview = meditation.title || meditation.enhanced_script || meditation.prompt || 'Untitled meditation';
+  const formattedDate = new Date(meditation.created_at).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  });
 
-    setIsLoadingUrl(true);
-    const url = await onGetSignedUrl();
-    setLocalSignedUrl(url);
-    setIsLoadingUrl(false);
-    return url;
-  }, [localSignedUrl, isLoadingUrl, onGetSignedUrl]);
-
-  // Update local URL when prop changes
-  useEffect(() => {
-    if (signedUrl) setLocalSignedUrl(signedUrl);
-  }, [signedUrl]);
-
-  const scriptPreview = meditation.enhanced_script || meditation.prompt;
-  const formattedDate = new Date(meditation.created_at).toLocaleDateString();
   const durationDisplay = meditation.duration_seconds
     ? `${Math.floor(meditation.duration_seconds / 60)}:${String(meditation.duration_seconds % 60).padStart(2, '0')}`
-    : null;
+    : meditation.audio_duration
+      ? `${Math.floor(meditation.audio_duration / 60)}:${String(meditation.audio_duration % 60).padStart(2, '0')}`
+      : null;
+
+  // Load audio URL
+  const loadAudio = useCallback(async () => {
+    if (!meditation.audio_url || audioUrl) return;
+
+    setIsLoadingAudio(true);
+    try {
+      const url = await getMeditationAudioSignedUrl(meditation.audio_url);
+      if (url) {
+        setAudioUrl(url);
+      }
+    } catch (error) {
+      console.error('[MeditationCard] Failed to load audio:', error);
+    } finally {
+      setIsLoadingAudio(false);
+    }
+  }, [meditation.audio_url, audioUrl]);
+
+  // Handle play/pause
+  const handlePlayPause = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    if (isPlaying) {
+      audioRef.current?.pause();
+      onStop();
+      return;
+    }
+
+    if (!audioUrl) {
+      await loadAudio();
+    }
+
+    // Will trigger play once audioUrl is set via useEffect below
+    onPlay();
+  };
+
+  // Start playback when audioUrl is loaded and we're supposed to be playing
+  useEffect(() => {
+    if (audioUrl && isPlaying && audioRef.current) {
+      audioRef.current.play().catch(console.error);
+    }
+  }, [audioUrl, isPlaying]);
+
+  // Stop when no longer the active player
+  useEffect(() => {
+    if (!isPlaying && audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+  }, [isPlaying]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+    };
+  }, []);
+
+  const hasAudio = !!meditation.audio_url;
 
   return (
-    <GlassCard
-      className={`!p-0 !rounded-xl overflow-hidden transition-all duration-300 hover:shadow-[0_8px_32px_rgba(0,0,0,0.25)] ${
-        isActive ? 'ring-1 ring-emerald-500/30 shadow-[0_0_24px_rgba(16,185,129,0.1)]' : 'hover:border-white/10'
-      }`}
-      hover={false}
-    >
-      {/* Main content row */}
-      <div className="p-4">
-        {/* Desktop layout: horizontal */}
-        <div className="hidden sm:flex items-start gap-4">
-          {/* Audio Preview (full width progress bar) */}
+    <m.div variants={cardVariants}>
+      <GlassCard
+        className={`!p-4 border transition-all duration-300 hover:shadow-[0_8px_32px_rgba(0,0,0,0.25)] ${
+          isPlaying
+            ? 'border-emerald-500/40 bg-emerald-500/5 shadow-[0_0_30px_rgba(16,185,129,0.1)]'
+            : 'border-white/5 hover:border-white/15'
+        }`}
+        hover={false}
+      >
+        {/* Hidden audio element */}
+        {audioUrl && (
+          <audio
+            ref={audioRef}
+            src={audioUrl}
+            onEnded={onStop}
+            onError={() => {
+              console.error('[MeditationCard] Audio playback error');
+              onStop();
+            }}
+          />
+        )}
+
+        <div className="flex items-start gap-4">
+          {/* Play Button */}
+          <button
+            onClick={handlePlayPause}
+            disabled={!hasAudio || isLoadingAudio}
+            className={`shrink-0 w-12 h-12 rounded-xl flex items-center justify-center transition-all ${
+              !hasAudio
+                ? 'bg-slate-500/10 text-slate-600 cursor-not-allowed'
+                : isPlaying
+                  ? 'bg-emerald-500/30 text-emerald-300 shadow-[0_0_20px_rgba(16,185,129,0.3)]'
+                  : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20'
+            }`}
+          >
+            {isLoadingAudio ? (
+              <div className="w-5 h-5 border-2 border-emerald-400/30 border-t-emerald-400 rounded-full animate-spin" />
+            ) : isPlaying ? (
+              <Pause className="w-5 h-5" />
+            ) : (
+              <Play className="w-5 h-5 ml-0.5" />
+            )}
+          </button>
+
+          {/* Content */}
           <div className="flex-1 min-w-0">
-            {/* Script preview */}
-            <p className="text-white text-sm whitespace-pre-wrap mb-3 line-clamp-2">
+            <p className="text-white text-sm font-medium line-clamp-2 mb-2">
               {scriptPreview}
             </p>
 
-            {/* Audio player */}
-            {localSignedUrl ? (
-              <AudioPreview
-                audioUrl={localSignedUrl}
-                knownDuration={meditation.duration_seconds}
-                onPlay={onPlay}
-                onEnded={onEnded}
-                compact
-                accentColor={meditation.is_favorite ? 'amber' : 'emerald'}
-                stopPlayback={stopOthers}
-              />
-            ) : (
-              <button
-                onClick={ensureSignedUrl}
-                disabled={isLoadingUrl}
-                className="w-full py-2 px-4 rounded-lg bg-emerald-500/10 text-emerald-400 text-sm hover:bg-emerald-500/20 transition-colors flex items-center justify-center gap-2"
-              >
-                {isLoadingUrl ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-emerald-400/30 border-t-emerald-400 rounded-full animate-spin" />
-                    Loading...
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M8 5v14l11-7z" />
-                    </svg>
-                    Load Preview
-                  </>
-                )}
-              </button>
-            )}
-
-            {/* Metadata row */}
-            <div className="flex items-center gap-3 text-xs text-slate-500 mt-2">
-              <span>{formattedDate}</span>
-              {durationDisplay && <span>{durationDisplay}</span>}
+            {/* Metadata */}
+            <div className="flex items-center gap-3 text-xs text-slate-500 flex-wrap">
+              <span className="flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                {formattedDate}
+              </span>
+              {durationDisplay && (
+                <span>{durationDisplay}</span>
+              )}
               {meditation.voice_name && (
-                <span className="text-cyan-400">{meditation.voice_name}</span>
+                <span className="flex items-center gap-1 text-cyan-400">
+                  <Mic className="w-3 h-3" />
+                  {meditation.voice_name}
+                </span>
+              )}
+              {meditation.content_category && meditation.content_category !== 'meditation' && (
+                <span className="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400">
+                  {meditation.content_category}
+                </span>
               )}
             </div>
           </div>
 
-          {/* Action buttons (desktop) */}
-          <div className="flex items-center gap-1 flex-shrink-0">
+          {/* Actions */}
+          <div className="flex items-center gap-1 shrink-0">
+            {!hasAudio && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onRestore(); }}
+                className="p-2 rounded-lg bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20 transition-colors"
+                title="Restore script"
+              >
+                <RotateCcw className="w-4 h-4" />
+              </button>
+            )}
+{/* Favorites button hidden */}
             <button
-              onClick={onToggleFavorite}
-              className={`p-2 rounded-lg transition-colors ${
-                meditation.is_favorite
-                  ? 'text-amber-400 bg-amber-500/20'
-                  : 'text-slate-500 hover:text-amber-400 hover:bg-white/5'
-              }`}
-              title={meditation.is_favorite ? 'Remove from favorites' : 'Add to favorites'}
-            >
-              <Star className="w-4 h-4" fill={meditation.is_favorite ? 'currentColor' : 'none'} />
-            </button>
-            <button
-              onClick={onDelete}
-              className="p-2 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-white/5 transition-colors"
-              title="Delete meditation"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (confirm('Delete this meditation?')) {
+                  onDelete();
+                }
+              }}
+              className="p-2 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+              title="Delete"
             >
               <Trash2 className="w-4 h-4" />
             </button>
           </div>
         </div>
-
-        {/* Mobile layout: vertical with expand/collapse */}
-        <div className="sm:hidden">
-          {/* Header row with expand toggle */}
-          <button
-            onClick={onToggleExpand}
-            className="w-full flex items-start justify-between gap-3 text-left"
-          >
-            <div className="flex-1 min-w-0">
-              <p className={`text-white text-sm whitespace-pre-wrap ${isExpanded ? '' : 'line-clamp-2'}`}>
-                {scriptPreview}
-              </p>
-              <div className="flex items-center gap-2 text-xs text-slate-500 mt-1">
-                <span>{formattedDate}</span>
-                {durationDisplay && <span>• {durationDisplay}</span>}
-              </div>
-            </div>
-            <div className="text-slate-400 flex-shrink-0 mt-1">
-              {isExpanded ? (
-                <ChevronUp className="w-5 h-5" />
-              ) : (
-                <ChevronDown className="w-5 h-5" />
-              )}
-            </div>
-          </button>
-
-          {/* Expanded content */}
-          <AnimatePresence>
-            {isExpanded && (
-              <m.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.2 }}
-                className="overflow-hidden"
-              >
-                <div className="pt-4 space-y-3">
-                  {/* Voice name badge */}
-                  {meditation.voice_name && (
-                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-cyan-500/10 text-cyan-400 text-xs">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                      </svg>
-                      {meditation.voice_name}
-                    </div>
-                  )}
-
-                  {/* Audio player (full size on mobile) */}
-                  {localSignedUrl ? (
-                    <AudioPreview
-                      audioUrl={localSignedUrl}
-                      knownDuration={meditation.duration_seconds}
-                      onPlay={onPlay}
-                      onEnded={onEnded}
-                      accentColor={meditation.is_favorite ? 'amber' : 'emerald'}
-                      stopPlayback={stopOthers}
-                    />
-                  ) : (
-                    <button
-                      onClick={ensureSignedUrl}
-                      disabled={isLoadingUrl}
-                      className="w-full py-3 px-4 rounded-xl bg-emerald-500/10 text-emerald-400 text-sm hover:bg-emerald-500/20 transition-colors flex items-center justify-center gap-2"
-                    >
-                      {isLoadingUrl ? (
-                        <>
-                          <div className="w-4 h-4 border-2 border-emerald-400/30 border-t-emerald-400 rounded-full animate-spin" />
-                          Loading audio...
-                        </>
-                      ) : (
-                        <>
-                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M8 5v14l11-7z" />
-                          </svg>
-                          Load Audio Preview
-                        </>
-                      )}
-                    </button>
-                  )}
-
-                  {/* Action buttons (mobile - full width) */}
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={onToggleFavorite}
-                      className={`flex-1 py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-colors ${
-                        meditation.is_favorite
-                          ? 'bg-amber-500/20 text-amber-400'
-                          : 'bg-white/5 text-slate-400 hover:bg-white/10'
-                      }`}
-                    >
-                      <Star className="w-4 h-4" fill={meditation.is_favorite ? 'currentColor' : 'none'} />
-                      {meditation.is_favorite ? 'Favorited' : 'Favorite'}
-                    </button>
-                    <button
-                      onClick={onDelete}
-                      className="py-2.5 px-4 rounded-xl bg-white/5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              </m.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </div>
-    </GlassCard>
+      </GlassCard>
+    </m.div>
   );
 });
 
-MeditationAudioCard.displayName = 'MeditationAudioCard';
+MeditationCard.displayName = 'MeditationCard';
 
+// Loading Skeleton
+const MeditationSkeleton = () => (
+  <m.div variants={cardVariants}>
+    <GlassCard className="!p-4 relative overflow-hidden">
+      <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/5 to-transparent" />
+      <div className="flex items-start gap-4">
+        <div className="w-12 h-12 rounded-xl bg-white/10 animate-pulse" />
+        <div className="flex-1">
+          <div className="h-4 w-3/4 rounded bg-white/10 animate-pulse mb-2" />
+          <div className="h-3 w-1/2 rounded bg-white/10 animate-pulse" />
+        </div>
+        <div className="flex gap-1">
+          <div className="w-8 h-8 rounded-lg bg-white/10 animate-pulse" />
+          <div className="w-8 h-8 rounded-lg bg-white/10 animate-pulse" />
+        </div>
+      </div>
+    </GlassCard>
+  </m.div>
+);
+
+// Empty State
+const EmptyState: React.FC = () => (
+  <m.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    className="text-center py-16"
+  >
+    <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-emerald-500/20 to-teal-500/20 flex items-center justify-center">
+      <Music className="w-10 h-10 text-emerald-400" />
+    </div>
+    <h3 className="text-xl font-semibold text-white mb-2">
+      No meditations yet
+    </h3>
+    <p className="text-slate-400 max-w-sm mx-auto">
+      Generate a meditation to see it in your library
+    </p>
+  </m.div>
+);
+
+// Main Component
 const LibraryPage: React.FC = () => {
   const navigate = useNavigate();
-
-  // Get library data from LibraryContext (not AppContext)
-  const {
-    meditationHistory,
-    setMeditationHistory,
-    isLoadingHistory,
-    hasMoreHistory,
-    loadMoreHistory,
-    refreshHistory,
-  } = useLibrary();
-
-  // Get other app state from AppContext
-  const {
-    user,
-    setScript,
-    setEnhancedScript,
-    setRestoredScript,
-    savedVoices,
-    setSelectedVoice,
-  } = useApp();
-
+  const { user, isSessionReady } = useAuth();
   const { setShowAuthModal } = useModals();
+  const { setScript, setEnhancedScript, setRestoredScript, savedVoices, setSelectedVoice } = useApp();
 
-  const [libraryTab, setLibraryTab] = useState<'all' | 'favorites'>('all');
-  const [activePreviewId, setActivePreviewId] = useState<string | null>(null);
-  const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
+  const [meditations, setMeditations] = useState<MeditationHistory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [activeTab] = useState<'all' | 'favorites'>('all');
+  const [playingId, setPlayingId] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
 
-  // Load history on mount
-  useEffect(() => {
-    if (user && meditationHistory.length === 0) {
-      refreshHistory();
+  // Fetch meditations directly from Supabase
+  const loadMeditations = useCallback(async (pageNum = 0, append = false) => {
+    if (!user || !isSessionReady) {
+      setLoading(false);
+      return;
     }
-  }, [user, meditationHistory.length, refreshHistory]);
 
-  // Get signed URL for audio preview
-  const getSignedUrl = useCallback(async (meditation: MeditationHistory): Promise<string | null> => {
-    if (!meditation.audio_url) return null;
-
-    // Return cached URL if available
-    if (signedUrls[meditation.id]) {
-      return signedUrls[meditation.id];
+    if (pageNum === 0) {
+      setLoading(true);
+    } else {
+      setLoadingMore(true);
     }
+    setError(null);
 
     try {
-      const signedUrl = await getMeditationAudioSignedUrl(meditation.audio_url);
-      if (signedUrl) {
-        setSignedUrls(prev => ({ ...prev, [meditation.id]: signedUrl }));
-        return signedUrl;
+      console.log('[LibraryPage] Fetching meditations, page:', pageNum);
+      const result = await getMeditationHistoryPaginated(pageNum, 20);
+      console.log('[LibraryPage] Got', result.data.length, 'meditations');
+
+      if (append) {
+        setMeditations(prev => [...prev, ...result.data]);
+      } else {
+        setMeditations(result.data);
       }
-    } catch (error) {
-      console.error('Error getting signed URL:', error);
+      setHasMore(result.hasMore);
+      setPage(pageNum);
+    } catch (err) {
+      console.error('[LibraryPage] Failed to load meditations:', err);
+      setError('Failed to load your library. Please try again.');
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
     }
-    return null;
-  }, [signedUrls]);
+  }, [user, isSessionReady]);
 
-  // Handle preview play - stops other previews
-  const handlePreviewPlay = useCallback((meditationId: string) => {
-    setActivePreviewId(meditationId);
-  }, []);
+  useEffect(() => {
+    loadMeditations();
+  }, [loadMeditations]);
 
-  // Handle preview end
-  const handlePreviewEnded = useCallback((meditationId: string) => {
-    if (activePreviewId === meditationId) {
-      setActivePreviewId(null);
-    }
-  }, [activePreviewId]);
-
-  // Toggle expanded card (for mobile view)
-  const toggleExpandedCard = useCallback((meditationId: string) => {
-    setExpandedCardId(prev => prev === meditationId ? null : meditationId);
-  }, []);
-
-  const handleToggleFavorite = async (id: string) => {
+  // Handle toggle favorite
+  const handleToggleFavorite = useCallback(async (id: string) => {
     const success = await toggleMeditationFavorite(id);
     if (success) {
-      setMeditationHistory(
-        meditationHistory.map(m => m.id === id ? { ...m, is_favorite: !m.is_favorite } : m)
+      setMeditations(prev =>
+        prev.map(m => m.id === id ? { ...m, is_favorite: !m.is_favorite } : m)
       );
     }
-  };
+  }, []);
 
-  const handleDeleteMeditation = async (id: string) => {
-    // Stop preview if playing
-    if (activePreviewId === id) {
-      setActivePreviewId(null);
+  // Handle delete
+  const handleDelete = useCallback(async (id: string) => {
+    if (playingId === id) {
+      setPlayingId(null);
     }
-    // Remove signed URL cache
-    setSignedUrls(prev => {
-      const { [id]: _, ...rest } = prev;
-      return rest;
-    });
     const success = await deleteMeditationHistory(id);
     if (success) {
-      setMeditationHistory(meditationHistory.filter(m => m.id !== id));
+      setMeditations(prev => prev.filter(m => m.id !== id));
     }
-  };
+  }, [playingId]);
 
-  const handleRestore = (meditation: MeditationHistory) => {
+  // Handle restore script
+  const handleRestore = useCallback((meditation: MeditationHistory) => {
     const scriptToRestore = meditation.enhanced_script || meditation.prompt;
     setScript(meditation.prompt);
     setEnhancedScript(scriptToRestore);
@@ -393,165 +359,191 @@ const LibraryPage: React.FC = () => {
         setSelectedVoice({
           id: matchingVoice.id,
           name: matchingVoice.name,
-          provider: 'chatterbox',
+          provider: matchingVoice.elevenlabs_voice_id ? 'elevenlabs' : 'browser',
           voiceName: matchingVoice.name,
-          description: 'Cloned voice',
+          description: matchingVoice.description || 'Your voice',
           isCloned: true,
-          providerVoiceId: matchingVoice.provider_voice_id,
+          elevenLabsVoiceId: matchingVoice.elevenlabs_voice_id,
         });
       }
     }
 
     navigate('/');
+  }, [setScript, setEnhancedScript, setRestoredScript, savedVoices, setSelectedVoice, navigate]);
+
+  // Load more
+  const handleLoadMore = () => {
+    if (!loadingMore && hasMore) {
+      loadMeditations(page + 1, true);
+    }
   };
 
-  const handleLoadMore = async () => {
-    setIsLoadingMore(true);
-    await loadMoreHistory();
-    setIsLoadingMore(false);
-  };
-
-  // Cleanup on unmount - reset active preview
-  useEffect(() => {
-    return () => {
-      setActivePreviewId(null);
-    };
-  }, []);
-
-  const filteredMeditations = libraryTab === 'favorites'
-    ? meditationHistory.filter(m => m.is_favorite)
-    : meditationHistory;
+  // Filter meditations
+  const filteredMeditations = activeTab === 'favorites'
+    ? meditations.filter(m => m.is_favorite)
+    : meditations;
 
   const meditationsWithAudio = filteredMeditations.filter(m => m.audio_url);
   const meditationsWithoutAudio = filteredMeditations.filter(m => !m.audio_url);
 
   return (
-    <AppLayout showBackButton backTo="/" className="flex flex-col p-6 overflow-y-auto">
-      <div className="flex-1 flex flex-col items-center justify-center pt-16 md:pt-0 max-w-4xl mx-auto w-full">
-        <div className="inline-block px-4 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-bold uppercase tracking-[0.4em] mb-6">Library</div>
-        <h2 className="text-3xl md:text-5xl font-extralight text-center mb-4 tracking-tight">
-          <span className="bg-gradient-to-r from-emerald-300 via-cyan-200 to-teal-300 bg-clip-text text-transparent">My Library</span>
-        </h2>
-        <p className="text-slate-500 text-center mb-12 max-w-lg">Your saved meditations and audio generations</p>
+    <AppLayout className="flex flex-col">
+      <div className="flex-1 w-full max-w-4xl mx-auto px-4 py-8 md:py-12">
+        {/* Header */}
+        <div className="text-center mb-10">
+          <m.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="inline-block px-4 py-1 mb-4 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-bold uppercase tracking-[0.4em] border border-emerald-500/20"
+          >
+            Library
+          </m.div>
+          <m.h1
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-3xl md:text-4xl font-serif font-bold text-white mb-3"
+          >
+            Your Meditations
+          </m.h1>
+          <m.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="text-slate-400 max-w-md mx-auto"
+          >
+            Listen to your saved meditations and audio generations
+          </m.p>
+        </div>
 
-        {user ? (
-          <div className="w-full">
-            {/* Tab Switcher */}
-            <div className="flex justify-center gap-2 mb-8">
-              <button
-                onClick={() => setLibraryTab('all')}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
-                  libraryTab === 'all'
-                    ? 'bg-emerald-500/20 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.15)]'
-                    : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'
-                }`}
-              >
-                My Audios
-              </button>
-              <button
-                onClick={() => setLibraryTab('favorites')}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
-                  libraryTab === 'favorites'
-                    ? 'bg-amber-500/20 text-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.15)]'
-                    : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'
-                }`}
-              >
-                Favorites
-              </button>
+        {/* Not Logged In */}
+        {!user && !loading && (
+          <m.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center py-16"
+          >
+            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-cyan-500/20 to-purple-500/20 flex items-center justify-center">
+              <Music className="w-10 h-10 text-cyan-400" />
             </div>
+            <h3 className="text-xl font-semibold text-white mb-2">Sign in to access your library</h3>
+            <p className="text-slate-400 mb-8 max-w-sm mx-auto">
+              Create an account to save and listen to your meditations
+            </p>
+            <button
+              onClick={() => setShowAuthModal(true)}
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-medium hover:shadow-lg hover:shadow-cyan-500/25 transition-all hover:scale-105 active:scale-95"
+            >
+              Sign In
+            </button>
+          </m.div>
+        )}
 
-            {isLoadingHistory ? (
-              <div className="flex justify-center py-12">
-                <div className="w-8 h-8 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
-              </div>
-            ) : filteredMeditations.length === 0 ? (
-              <GlassCard className="!p-8 !rounded-2xl text-center">
-                <div className="w-16 h-16 rounded-full bg-slate-500/10 flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                  </svg>
-                </div>
-                <h3 className="text-lg font-bold text-white mb-2">
-                  {libraryTab === 'favorites' ? 'No favorites yet' : 'No meditations yet'}
-                </h3>
-                <p className="text-slate-400 text-sm">
-                  {libraryTab === 'favorites'
-                    ? 'Mark meditations as favorites to see them here'
-                    : 'Generate a meditation with a cloned voice to save it here'}
-                </p>
-              </GlassCard>
-            ) : (
-              <div data-onboarding="library-list" className="space-y-6">
+        {/* Error State */}
+        {error && (
+          <m.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-center"
+          >
+            {error}
+            <button
+              onClick={() => loadMeditations()}
+              className="ml-2 underline hover:no-underline"
+            >
+              Retry
+            </button>
+          </m.div>
+        )}
+
+        {user && (
+          <>
+{/* Tab Switcher - Hidden for now */}
+
+            {/* Loading State */}
+            {loading && (
+              <m.div
+                className="space-y-3"
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+              >
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <MeditationSkeleton key={i} />
+                ))}
+              </m.div>
+            )}
+
+            {/* Empty State */}
+            {!loading && filteredMeditations.length === 0 && (
+              <EmptyState />
+            )}
+
+            {/* Meditation List */}
+            {!loading && filteredMeditations.length > 0 && (
+              <div className="space-y-6" data-onboarding="library-list">
                 {/* With Audio */}
                 {meditationsWithAudio.length > 0 && (
                   <div>
                     <m.h3
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.3 }}
                       className="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-4 flex items-center gap-2"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                      </svg>
+                      <Music className="w-4 h-4" />
                       Saved with Audio ({meditationsWithAudio.length})
                     </m.h3>
                     <m.div
-                      className="grid gap-4"
-                      variants={listContainerVariants}
+                      className="space-y-3"
+                      variants={containerVariants}
                       initial="hidden"
                       animate="visible"
                     >
-                      {meditationsWithAudio.map((meditation) => (
-                        <m.div key={meditation.id} variants={listItemVariants}>
-                          <MeditationAudioCard
+                      <AnimatePresence mode="popLayout">
+                        {meditationsWithAudio.map((meditation) => (
+                          <MeditationCard
+                            key={meditation.id}
                             meditation={meditation}
-                            isActive={activePreviewId === meditation.id}
-                            isExpanded={expandedCardId === meditation.id}
-                            signedUrl={signedUrls[meditation.id]}
-                            onGetSignedUrl={() => getSignedUrl(meditation)}
-                            onPlay={() => handlePreviewPlay(meditation.id)}
-                            onEnded={() => handlePreviewEnded(meditation.id)}
+                            isPlaying={playingId === meditation.id}
+                            onPlay={() => setPlayingId(meditation.id)}
+                            onStop={() => setPlayingId(null)}
                             onToggleFavorite={() => handleToggleFavorite(meditation.id)}
-                            onDelete={() => handleDeleteMeditation(meditation.id)}
-                            onToggleExpand={() => toggleExpandedCard(meditation.id)}
-                            stopOthers={activePreviewId !== null && activePreviewId !== meditation.id}
+                            onDelete={() => handleDelete(meditation.id)}
+                            onRestore={() => handleRestore(meditation)}
                           />
-                        </m.div>
-                      ))}
+                        ))}
+                      </AnimatePresence>
                     </m.div>
                   </div>
                 )}
 
-                {/* Without Audio */}
-                {meditationsWithoutAudio.length > 0 && libraryTab === 'all' && (
+                {/* Without Audio (Scripts only) */}
+                {meditationsWithoutAudio.length > 0 && activeTab === 'all' && (
                   <div>
                     <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      History ({meditationsWithoutAudio.length})
+                      <Clock className="w-4 h-4" />
+                      Script History ({meditationsWithoutAudio.length})
                     </h3>
-                    <div className="grid gap-3">
+                    <div className="space-y-2">
                       {meditationsWithoutAudio.slice(0, 10).map((meditation) => (
-                        <div key={meditation.id} className="p-3 rounded-xl bg-white/5 border border-white/5">
-                          <div className="flex items-start gap-3">
-                            <div className="w-8 h-8 rounded-full bg-slate-500/20 flex items-center justify-center flex-shrink-0">
-                              <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                              </svg>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-slate-400 text-sm whitespace-pre-wrap line-clamp-2">{meditation.enhanced_script || meditation.prompt}</p>
-                              <p className="text-xs text-slate-600 mt-1">{new Date(meditation.created_at).toLocaleDateString()}</p>
-                            </div>
-                            <button
-                              onClick={() => handleRestore(meditation)}
-                              className="px-3 py-1.5 rounded-lg bg-cyan-500/20 text-cyan-400 text-xs hover:bg-cyan-500/30 transition-colors"
-                            >
-                              Restore
-                            </button>
+                        <div
+                          key={meditation.id}
+                          className="p-3 rounded-xl bg-white/5 border border-white/5 flex items-start gap-3"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-slate-400 line-clamp-2">
+                              {meditation.enhanced_script || meditation.prompt}
+                            </p>
+                            <p className="text-xs text-slate-600 mt-1">
+                              {new Date(meditation.created_at).toLocaleDateString()}
+                            </p>
                           </div>
+                          <button
+                            onClick={() => handleRestore(meditation)}
+                            className="shrink-0 px-3 py-1.5 rounded-lg bg-cyan-500/20 text-cyan-400 text-xs font-medium hover:bg-cyan-500/30 transition-colors"
+                          >
+                            Restore
+                          </button>
                         </div>
                       ))}
                     </div>
@@ -559,48 +551,27 @@ const LibraryPage: React.FC = () => {
                 )}
 
                 {/* Load More */}
-                {hasMoreHistory && libraryTab === 'all' && (
+                {hasMore && activeTab === 'all' && (
                   <div className="flex justify-center pt-4">
                     <button
                       onClick={handleLoadMore}
-                      disabled={isLoadingMore}
-                      className="px-6 py-3 rounded-full bg-white/5 hover:bg-white/10 text-white font-medium text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      disabled={loadingMore}
+                      className="px-6 py-3 rounded-full bg-white/5 hover:bg-white/10 text-white font-medium text-sm transition-all disabled:opacity-50 flex items-center gap-2"
                     >
-                      {isLoadingMore ? (
+                      {loadingMore ? (
                         <>
                           <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                           Loading...
                         </>
                       ) : (
-                        <>
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                          </svg>
-                          Load More
-                        </>
+                        'Load More'
                       )}
                     </button>
                   </div>
                 )}
               </div>
             )}
-          </div>
-        ) : (
-          <GlassCard className="!p-8 !rounded-2xl text-center max-w-md">
-            <div className="w-20 h-20 rounded-full bg-cyan-500/10 flex items-center justify-center mx-auto mb-6">
-              <svg className="w-10 h-10 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
-              </svg>
-            </div>
-            <h3 className="text-xl font-bold text-white mb-2">Sign in to access your library</h3>
-            <p className="text-slate-400 mb-6">Create an account to save and revisit your meditations</p>
-            <button
-              onClick={() => setShowAuthModal(true)}
-              className="px-6 py-3 rounded-full bg-gradient-to-r from-cyan-600 to-purple-600 text-white font-bold text-sm hover:scale-105 active:scale-95 transition-all"
-            >
-              Sign In
-            </button>
-          </GlassCard>
+          </>
         )}
       </div>
     </AppLayout>

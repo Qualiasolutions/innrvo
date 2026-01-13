@@ -231,12 +231,22 @@ export interface MeditationHistory {
   enhanced_script?: string;
   voice_id?: string;
   voice_name?: string;
+  voice_profile_id?: string;
   background_track_id?: string;
   background_track_name?: string;
   duration_seconds?: number;
+  audio_duration?: number;
   audio_tags_used?: string[];
   audio_url?: string;
   is_favorite?: boolean;
+  content_category?: 'meditation' | 'affirmation' | 'self_hypnosis' | 'guided_journey' | 'story';
+  content_sub_type?: string;
+  meditation_type?: string;
+  hypnosis_depth?: 'light' | 'standard' | 'therapeutic';
+  target_age_group?: 'toddler' | 'young_child';
+  timing_map?: Record<string, unknown>;
+  background_music_url?: string;
+  nature_sound_url?: string;
   created_at: string;
   updated_at: string;
 }
