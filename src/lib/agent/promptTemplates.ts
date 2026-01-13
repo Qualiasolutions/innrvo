@@ -118,18 +118,17 @@ function calculateJourneyWordCount(durationMinutes: number): WordCountConfig {
 
 function calculateStoryWordCount(durationMinutes: number, ageGroup: StoryAgeGroup): WordCountConfig {
   const ageInfo = getStoryAgeGroup(ageGroup);
-  const wordLimits = ageInfo?.structure.wordCount || { min: 200, max: 600 };
 
-  // Calculate based on duration at ~1.2 words/sec reading pace
-  const durationBasedWords = Math.round(durationMinutes * 60 * 1.2);
-  const targetWords = Math.min(wordLimits.max, Math.max(wordLimits.min, durationBasedWords));
-  const minWords = Math.max(wordLimits.min, Math.round(targetWords * 0.9));
-  const maxWords = Math.min(wordLimits.max, Math.round(targetWords * 1.1));
+  // Duration takes priority - calculate based on ~1.2 words/sec reading pace
+  // User's requested duration should be honored regardless of age group defaults
+  const targetWords = Math.round(durationMinutes * 60 * 1.2);
+  const minWords = Math.round(targetWords * 0.9);
+  const maxWords = Math.round(targetWords * 1.1);
 
   return {
     wordRange: `${minWords}-${maxWords}`,
     targetWords,
-    structure: `TARGET: ${minWords}-${maxWords} words (age-appropriate for ${ageInfo?.ageRange || '2-8 years'})`,
+    structure: `TARGET: ${minWords}-${maxWords} words for ${durationMinutes} minute story (${ageInfo?.ageRange || '2-8 years'})`,
   };
 }
 

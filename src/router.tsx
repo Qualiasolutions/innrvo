@@ -6,7 +6,7 @@ const HomePage = lazy(() => import('./pages/HomePage'));
 const PlayerPage = lazy(() => import('./pages/PlayerPage'));
 const LibraryPage = lazy(() => import('./pages/LibraryPage'));
 const TemplatesPage = lazy(() => import('./pages/TemplatesPage'));
-const VoicesPage = lazy(() => import('./pages/VoicePage'));
+const VoicesPage = lazy(() => import('./pages/VoicesPage'));
 const ClonePage = lazy(() => import('./pages/ClonePage'));
 const HowItWorksPage = lazy(() => import('./pages/HowItWorksPage'));
 const AboutPage = lazy(() => import('./pages/AboutPage'));
@@ -30,7 +30,7 @@ const routeImports: Record<string, () => Promise<unknown>> = {
   '/play': () => import('./pages/PlayerPage'),
   '/library': () => import('./pages/LibraryPage'),
   '/templates': () => import('./pages/TemplatesPage'),
-  '/voices': () => import('./pages/VoicePage'),
+  '/voices': () => import('./pages/VoicesPage'),
   '/clone': () => import('./pages/ClonePage'),
   '/how-it-works': () => import('./pages/HowItWorksPage'),
   '/about': () => import('./pages/AboutPage'),
