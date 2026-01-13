@@ -87,14 +87,16 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
     <div className={`min-h-screen bg-[#020617] ${className}`}>
       <Starfield />
 
-      {/* Hamburger Menu Button */}
-      <button
-        onClick={() => setIsNavOpen(true)}
-        className="fixed top-6 left-6 md:top-8 md:left-8 z-[100] w-12 h-12 min-w-[44px] min-h-[44px] rounded-full border border-white/[0.06] bg-white/[0.02] flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/[0.08] hover:border-blue-500/20 transition-all"
-        aria-label="Open navigation"
-      >
-        <NavIcons.Menu />
-      </button>
+      {/* Hamburger Menu Button - hidden when sidebar is open */}
+      {!isNavOpen && (
+        <button
+          onClick={() => setIsNavOpen(true)}
+          className="fixed top-6 left-6 md:top-8 md:left-8 z-[100] w-12 h-12 min-w-[44px] min-h-[44px] rounded-full border border-white/[0.06] bg-white/[0.02] flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/[0.08] hover:border-blue-500/20 transition-all"
+          aria-label="Open navigation"
+        >
+          <NavIcons.Menu />
+        </button>
+      )}
 
       {/* Back Button (shown alongside menu if needed) */}
       {showBackButton && (
