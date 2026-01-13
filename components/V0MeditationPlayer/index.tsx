@@ -36,7 +36,6 @@ const PREFERS_REDUCED_MOTION = typeof window !== 'undefined' &&
 // Optimized particle counts for smooth 60fps - reduced on mobile and when reduced motion preferred
 const PARTICLE_COUNT = PREFERS_REDUCED_MOTION ? 4 : (IS_MOBILE ? 6 : 16);
 const ORBIT_PARTICLE_COUNT = PREFERS_REDUCED_MOTION ? 4 : (IS_MOBILE ? 6 : 12);
-const SHOOTING_STAR_COUNT_MOBILE = PREFERS_REDUCED_MOTION ? 2 : (IS_MOBILE ? 3 : 6);
 
 interface MeditationPlayerProps {
   // Playback control
@@ -458,15 +457,11 @@ const ORB_CONFIG = {
   orbSize: 'w-[160px] h-[160px] sm:w-[180px] sm:h-[180px] md:w-[200px] md:h-[200px] lg:w-[220px] lg:h-[220px]',
 };
 
-// Shooting star count for ambient effect (uses mobile-optimized count)
-const SHOOTING_STAR_COUNT = SHOOTING_STAR_COUNT_MOBILE;
-
 /**
- * BreathingOrb - Awe-inspiring 5-layer breathing visualization
+ * BreathingOrb - 4-layer breathing visualization
  *
  * Layers (outer to inner):
- * 5. Ambient Glow Field - soft surrounding blur
- * 4. Shooting Stars - diagonal streaks across the orb area
+ * 4. Ambient Glow Field - soft surrounding blur
  * 3. Particle Orbit - circling energy particles
  * 2. Main Orb - primary breathing element
  * 1. Inner Core - bright center with radiating rays
@@ -489,25 +484,9 @@ const BreathingOrb = memo(({ isPlaying }: { isPlaying: boolean }) => {
   // Generate ray angles for inner core
   const coreRays = useMemo(() => [...Array(12)].map((_, i) => i * 30), []);
 
-  // Generate shooting stars
-  const shootingStars = useMemo(() =>
-    [...Array(SHOOTING_STAR_COUNT)].map((_, i) => ({
-      id: i,
-      startX: -20 + Math.random() * 40, // Start position offset from center
-      startY: -150 - Math.random() * 100, // Start above the orb
-      angle: 25 + Math.random() * 20, // Diagonal angle (25-45 degrees)
-      length: 60 + Math.random() * 80, // Trail length
-      duration: 1.5 + Math.random() * 2, // Animation duration
-      delay: i * 0.8 + Math.random() * 3, // Staggered delays
-      size: 1.5 + Math.random() * 1.5, // Star head size
-      isCyan: i % 2 === 0, // Alternate colors
-    })),
-    []
-  );
-
   return (
     <div className="relative flex items-center justify-center">
-      {/* Layer 5: Ambient Glow Field */}
+      {/* Layer 4: Ambient Glow Field */}
       <motion.div
         className="absolute w-[240px] h-[240px] sm:w-[280px] sm:h-[280px] md:w-[320px] md:h-[320px] lg:w-[350px] lg:h-[350px] rounded-full"
         style={{
@@ -525,45 +504,6 @@ const BreathingOrb = memo(({ isPlaying }: { isPlaying: boolean }) => {
           ease: 'easeInOut',
         }}
       />
-
-      {/* Layer 4: Professional Shooting Stars - smooth diagonal streaks */}
-      <div className="absolute w-[500px] h-[500px] sm:w-[600px] sm:h-[600px] overflow-hidden pointer-events-none">
-        {shootingStars.map((star) => (
-          <motion.div
-            key={`star-${star.id}`}
-            className="absolute left-1/2 top-1/2"
-            style={{
-              width: star.length * 1.2,
-              height: star.size * 0.8,
-              marginLeft: star.startX,
-              marginTop: star.startY,
-              background: star.isCyan
-                ? 'linear-gradient(90deg, transparent 0%, rgba(34, 211, 238, 0.05) 15%, rgba(34, 211, 238, 0.6) 70%, rgba(255, 255, 255, 0.95) 100%)'
-                : 'linear-gradient(90deg, transparent 0%, rgba(59, 130, 246, 0.05) 15%, rgba(59, 130, 246, 0.6) 70%, rgba(255, 255, 255, 0.95) 100%)',
-              borderRadius: '4px',
-              transform: `rotate(${star.angle}deg)`,
-              boxShadow: star.isCyan
-                ? '0 0 12px rgba(34, 211, 238, 0.5), 0 0 24px rgba(34, 211, 238, 0.25), 0 0 4px rgba(255,255,255,0.8)'
-                : '0 0 12px rgba(59, 130, 246, 0.5), 0 0 24px rgba(59, 130, 246, 0.25), 0 0 4px rgba(255,255,255,0.8)',
-            }}
-            initial={{ x: 0, y: 0, opacity: 0, scale: 0.8 }}
-            animate={isPlaying ? {
-              x: [0, 350],
-              y: [0, 210],
-              opacity: [0, 0.9, 0.9, 0],
-              scale: [0.8, 1, 1, 0.6],
-            } : { x: 0, y: 0, opacity: 0, scale: 0.8 }}
-            transition={{
-              duration: star.duration * 1.3,
-              delay: star.delay,
-              repeat: Infinity,
-              repeatDelay: 5 + Math.random() * 8,
-              ease: [0.25, 0.1, 0.25, 1],
-              times: [0, 0.08, 0.85, 1],
-            }}
-          />
-        ))}
-      </div>
 
       {/* Layer 3: Particle Orbit System */}
       <div className="absolute w-[180px] h-[180px] sm:w-[200px] sm:h-[200px] md:w-[220px] md:h-[220px]">

@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, memo } from 'react';
+import React, { useMemo, memo } from 'react';
 
 type StarType = 'normal' | 'glitcher' | 'artifact' | 'pulsar';
 
@@ -16,13 +16,6 @@ interface Star {
   glowSpread: string;
   animClass: string;
   baseOpacity: number;
-}
-
-interface ShootingStar {
-  id: number;
-  startX: number;
-  startY: number;
-  duration: number;
 }
 
 // Memoized star component to prevent unnecessary re-renders
@@ -53,8 +46,6 @@ const Star = memo<{ star: Star }>(({ star }) => (
 Star.displayName = 'Star';
 
 const Starfield: React.FC = () => {
-  const [shootingStars, setShootingStars] = useState<ShootingStar[]>([]);
-
   // Detect mobile for performance optimization - memoized
   const isMobile = useMemo(() =>
     typeof window !== 'undefined' && window.innerWidth < 768,
@@ -137,57 +128,11 @@ const Starfield: React.FC = () => {
     });
   }, [starCount]);
 
-  // Shooting stars effect - triggers every 3-6 seconds
-  useEffect(() => {
-    if (isMobile) return; // Disable on mobile for performance
-
-    const triggerShootingStar = () => {
-      const newStar: ShootingStar = {
-        id: Date.now(),
-        startX: Math.random() * 70 + 10, // 10-80% from left
-        startY: Math.random() * 40, // top 40% of screen
-        duration: Math.random() * 0.5 + 0.8 // 0.8-1.3s
-      };
-      setShootingStars(prev => [...prev, newStar]);
-
-      // Remove after animation completes
-      setTimeout(() => {
-        setShootingStars(prev => prev.filter(s => s.id !== newStar.id));
-      }, newStar.duration * 1000 + 100);
-    };
-
-    // Initial delay before first shooting star
-    const initialDelay = setTimeout(triggerShootingStar, 2000);
-
-    // Recurring shooting stars
-    const interval = setInterval(() => {
-      triggerShootingStar();
-    }, 3000 + Math.random() * 3000);
-
-    return () => {
-      clearTimeout(initialDelay);
-      clearInterval(interval);
-    };
-  }, [isMobile]);
-
   return (
     <div className={`stars-container ${!isMobile ? 'starfield-scanlines' : ''}`}>
       {/* Stars - using memoized Star component */}
       {stars.map((star) => (
         <Star key={star.id} star={star} />
-      ))}
-
-      {/* Shooting stars */}
-      {shootingStars.map((star) => (
-        <div
-          key={star.id}
-          className="shooting-star"
-          style={{
-            top: `${star.startY}%`,
-            left: `${star.startX}%`,
-            '--duration': `${star.duration}s`
-          } as React.CSSProperties}
-        />
       ))}
 
       {/* Dark overlay for the background image */}
