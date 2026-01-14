@@ -1,14 +1,45 @@
 import { lazy, Suspense, useEffect, ComponentType } from 'react';
-import { createBrowserRouter, RouterProvider, Outlet, ScrollRestoration, useLocation } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, Outlet, ScrollRestoration, useLocation, useRouteError } from 'react-router-dom';
 
 // ============================================================================
 // Chunk Loading Error Recovery
 // ============================================================================
 
 /**
+ * Check if an error is related to stale chunks after deployment
+ */
+function isChunkLoadError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const msg = error.message.toLowerCase();
+  return (
+    msg.includes('dynamically imported module') ||
+    msg.includes('failed to fetch') ||
+    msg.includes('loading chunk') ||
+    msg.includes('cross-origin') ||
+    msg.includes('cors') ||
+    msg.includes('script load') ||
+    msg.includes('loading css chunk') ||
+    msg.includes('unexpected token') // Often happens with stale HTML
+  );
+}
+
+/**
+ * Auto-refresh once for chunk errors, with infinite loop protection
+ */
+function handleChunkError(): boolean {
+  const hasRefreshed = sessionStorage.getItem('chunk_refresh');
+  if (!hasRefreshed) {
+    sessionStorage.setItem('chunk_refresh', 'true');
+    window.location.reload();
+    return true; // Will reload
+  }
+  // Already tried, clear flag
+  sessionStorage.removeItem('chunk_refresh');
+  return false;
+}
+
+/**
  * Wraps lazy imports to handle chunk loading failures after deployments.
- * When a new version is deployed, old chunk hashes become invalid.
- * This detects the error and refreshes once to get the new chunks.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function lazyWithRetry<T extends ComponentType<any>>(
@@ -16,23 +47,8 @@ function lazyWithRetry<T extends ComponentType<any>>(
 ): React.LazyExoticComponent<T> {
   return lazy(() =>
     importFn().catch((error: Error) => {
-      // Check if this is a chunk loading error
-      const isChunkError =
-        error.message.includes('dynamically imported module') ||
-        error.message.includes('Failed to fetch') ||
-        error.message.includes('Loading chunk');
-
-      if (isChunkError) {
-        // Check if we already tried refreshing (prevent infinite loops)
-        const hasRefreshed = sessionStorage.getItem('chunk_refresh');
-        if (!hasRefreshed) {
-          sessionStorage.setItem('chunk_refresh', 'true');
-          window.location.reload();
-          // Return a never-resolving promise while reloading
-          return new Promise(() => {});
-        }
-        // Already refreshed once, clear flag and let error propagate
-        sessionStorage.removeItem('chunk_refresh');
+      if (isChunkLoadError(error) && handleChunkError()) {
+        return new Promise(() => {}); // Never resolves while reloading
       }
       throw error;
     })
@@ -42,6 +58,75 @@ function lazyWithRetry<T extends ComponentType<any>>(
 // Clear refresh flag on successful page load
 if (typeof window !== 'undefined') {
   sessionStorage.removeItem('chunk_refresh');
+}
+
+// ============================================================================
+// Error Boundary for Routes
+// ============================================================================
+
+/**
+ * Friendly error UI that auto-refreshes for deployment errors
+ */
+function RouteErrorBoundary() {
+  const error = useRouteError();
+
+  // Check if this is a chunk/deployment error
+  const isDeploymentError = isChunkLoadError(error);
+
+  useEffect(() => {
+    if (isDeploymentError) {
+      // Auto-refresh after showing message briefly
+      const timer = setTimeout(() => {
+        if (handleChunkError()) return;
+        // If we already refreshed, just reload without the flag logic
+        window.location.reload();
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [isDeploymentError]);
+
+  return (
+    <div className="fixed inset-0 z-[200] bg-[#020617] flex items-center justify-center p-6">
+      <div className="max-w-md text-center">
+        {isDeploymentError ? (
+          <>
+            <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-sky-500/10 flex items-center justify-center">
+              <svg className="w-8 h-8 text-sky-400 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+            </div>
+            <h1 className="text-xl font-semibold text-white mb-2">
+              Updating to latest version...
+            </h1>
+            <p className="text-slate-400 text-sm">
+              A new version was deployed. Refreshing automatically.
+            </p>
+          </>
+        ) : (
+          <>
+            <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-red-500/10 flex items-center justify-center">
+              <svg className="w-8 h-8 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <h1 className="text-xl font-semibold text-white mb-2">
+              Something went wrong
+            </h1>
+            <p className="text-slate-400 text-sm mb-6">
+              We encountered an unexpected error. Please try again.
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-6 py-3 bg-sky-500 hover:bg-sky-600 text-white font-medium rounded-xl transition-colors"
+            >
+              Refresh Page
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
 }
 
 // Lazy load all pages for code splitting (with chunk error recovery)
@@ -149,6 +234,7 @@ export const router = createBrowserRouter([
   {
     path: '/',
     element: <RootLayout />,
+    errorElement: <RouteErrorBoundary />,
     children: [
       {
         index: true,
