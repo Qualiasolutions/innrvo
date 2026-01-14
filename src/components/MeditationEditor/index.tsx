@@ -122,29 +122,26 @@ export const MeditationEditor = memo<MeditationEditorProps>(
       isActive: true,
     });
 
-    // Sync script prop with local state when it changes from props (external changes only)
+    // Sync script prop with local state ONLY when it changes externally (not from user edits)
     useEffect(() => {
-      if (script !== lastExternalScriptRef.current) {
-        lastExternalScriptRef.current = script;
-        setEditedScript(script);
-        // Also sync editor content for external changes (sanitized HTML from useAudioTags)
-        if (editorRef.current) {
-          editorRef.current.innerHTML = styledContentHtml;
-        }
-      }
-    }, [script, styledContentHtml]);
-
-    // Sync styled content to editor ONLY after user stops typing (debounced)
-    // This prevents cursor jumping during active editing
-    // Note: styledContentHtml is sanitized by useAudioTags (escapeHtml + controlled spans)
-    useEffect(() => {
-      // Skip if user is actively editing
+      // Skip during active user editing - we don't want to reset their work
       if (isUserEditingRef.current) {
         return;
       }
-      // Sync when not editing (initial render or after debounce completes)
-      if (editorRef.current) {
+      // Only sync when the external script prop actually changed
+      if (script !== lastExternalScriptRef.current) {
+        lastExternalScriptRef.current = script;
+        setEditedScript(script);
+      }
+    }, [script]);
+
+    // Set initial content on mount only - never update innerHTML during user interaction
+    // All subsequent updates happen via onBlur handler to prevent cursor jumping
+    const hasInitializedRef = useRef(false);
+    useEffect(() => {
+      if (!hasInitializedRef.current && editorRef.current) {
         editorRef.current.innerHTML = styledContentHtml;
+        hasInitializedRef.current = true;
       }
     }, [styledContentHtml]);
 
@@ -174,8 +171,8 @@ export const MeditationEditor = memo<MeditationEditorProps>(
           }
 
           // Update state immediately for responsive UI
+          // Note: don't update lastExternalScriptRef - it tracks external prop changes only
           setEditedScript(text);
-          lastExternalScriptRef.current = text;
 
           // Reset editing flag after delay (for external sync protection)
           editingTimeoutRef.current = setTimeout(() => {
