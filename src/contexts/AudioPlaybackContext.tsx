@@ -32,6 +32,9 @@ interface AudioPlaybackContextType {
   gainNodeRef: React.MutableRefObject<GainNode | null>;
   backgroundAudioRef: React.MutableRefObject<HTMLAudioElement | null>;
   natureSoundAudioRef: React.MutableRefObject<HTMLAudioElement | null>;
+  // iOS volume fix: GainNodes for background/nature sounds (HTMLAudioElement.volume is read-only on iOS)
+  backgroundGainNodeRef: React.MutableRefObject<GainNode | null>;
+  natureSoundGainNodeRef: React.MutableRefObject<GainNode | null>;
 
   // Audio settings
   backgroundVolume: number;
@@ -92,6 +95,9 @@ export const AudioPlaybackProvider: React.FC<AudioPlaybackProviderProps> = ({ ch
   const gainNodeRef = useRef<GainNode | null>(null);
   const backgroundAudioRef = useRef<HTMLAudioElement | null>(null);
   const natureSoundAudioRef = useRef<HTMLAudioElement | null>(null);
+  // iOS volume fix: GainNodes for background/nature sounds
+  const backgroundGainNodeRef = useRef<GainNode | null>(null);
+  const natureSoundGainNodeRef = useRef<GainNode | null>(null);
 
   // Memoize context value - only changes when state actually changes
   const value = useMemo<AudioPlaybackContextType>(() => ({
@@ -111,6 +117,8 @@ export const AudioPlaybackProvider: React.FC<AudioPlaybackProviderProps> = ({ ch
     gainNodeRef,
     backgroundAudioRef,
     natureSoundAudioRef,
+    backgroundGainNodeRef,
+    natureSoundGainNodeRef,
     backgroundVolume,
     setBackgroundVolume,
     voiceVolume,

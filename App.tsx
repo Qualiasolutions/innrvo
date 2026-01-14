@@ -176,8 +176,15 @@ const App: React.FC = () => {
   // Onboarding context for restart tour functionality
   const { restartOnboarding } = useOnboarding();
 
-  // Audio playback context - shared ref for nature sound (allows PlayerPage to stop it on close)
-  const { natureSoundAudioRef } = useAudioPlayback();
+  // Audio playback context - shared refs for audio (allows PlayerPage to stop them on close)
+  // iOS fix: use gain nodes for volume control (HTMLAudioElement.volume is read-only on iOS Safari)
+  const {
+    backgroundAudioRef,
+    natureSoundAudioRef,
+    backgroundGainNodeRef,
+    natureSoundGainNodeRef,
+    audioContextRef: sharedAudioContextRef
+  } = useAudioPlayback();
 
   // Streaming generation context - for early redirect to player while generating
   const {
@@ -261,7 +268,7 @@ const App: React.FC = () => {
   const lastWordIndexRef = useRef(-1); // Track last word index to avoid unnecessary state updates
 
   // Background music refs
-  const backgroundAudioRef = useRef<HTMLAudioElement | null>(null);
+  // Note: backgroundAudioRef comes from AudioPlaybackContext (allows cleanup from PlayerPage)
   const preloadedMusicRef = useRef<Map<string, { audio: HTMLAudioElement; ready: boolean }>>(new Map());
   const [backgroundVolume, setBackgroundVolume] = useState(0.3); // 30% default
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
@@ -1179,7 +1186,7 @@ const App: React.FC = () => {
     audio.load();
   }, [backgroundVolume]);
 
-  // Start background music (uses preloaded audio if available for instant start)
+  // Start background music with Web Audio API for iOS volume support
   const startBackgroundMusic = async (track: BackgroundTrack) => {
     // Stop any existing background music
     stopBackgroundMusic();
@@ -1191,6 +1198,34 @@ const App: React.FC = () => {
       return;
     }
 
+    // iOS fix: Connect through Web Audio API for volume control
+    // HTMLAudioElement.volume is read-only on iOS Safari
+    const connectToWebAudio = (audio: HTMLAudioElement) => {
+      try {
+        // Ensure AudioContext exists
+        if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
+          audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+        }
+        const ctx = audioContextRef.current;
+
+        // Create gain node for volume control
+        const gainNode = ctx.createGain();
+        gainNode.gain.value = backgroundVolume;
+        backgroundGainNodeRef.current = gainNode;
+
+        // Connect audio element to Web Audio API
+        const source = ctx.createMediaElementSource(audio);
+        source.connect(gainNode);
+        gainNode.connect(ctx.destination);
+
+        console.log('[Music] Connected to Web Audio API for iOS volume support');
+      } catch (err) {
+        // Fallback: MediaElementSource may fail if already connected or CORS issue
+        console.warn('[Music] Web Audio connection failed, using native volume:', err);
+        audio.volume = backgroundVolume;
+      }
+    };
+
     try {
       // Check for preloaded audio first
       const preloaded = preloadedMusicRef.current.get(track.id);
@@ -1200,14 +1235,14 @@ const App: React.FC = () => {
         // Use preloaded audio - instant start!
         console.log('[Music] Using preloaded track:', track.name);
         audio = preloaded.audio;
-        audio.volume = backgroundVolume; // Update volume in case it changed
+        audio.crossOrigin = 'anonymous'; // Required for Web Audio API
         audio.currentTime = 0; // Reset to start
         preloadedMusicRef.current.delete(track.id);
       } else if (preloaded && !preloaded.ready) {
         // Preloading in progress - wait for it
         console.log('[Music] Waiting for preload to complete:', track.name);
         audio = preloaded.audio;
-        audio.volume = backgroundVolume;
+        audio.crossOrigin = 'anonymous'; // Required for Web Audio API
         await new Promise<void>((resolve, reject) => {
           audio.oncanplaythrough = () => resolve();
           audio.onerror = () => reject(new Error('Preload failed'));
@@ -1219,7 +1254,7 @@ const App: React.FC = () => {
         audio = new Audio();
         audio.preload = 'auto';
         audio.loop = true;
-        audio.volume = backgroundVolume;
+        audio.crossOrigin = 'anonymous'; // Required for Web Audio API
         audio.src = track.audioUrl;
       }
 
@@ -1245,6 +1280,9 @@ const App: React.FC = () => {
 
       backgroundAudioRef.current = audio;
 
+      // Connect to Web Audio API after audio is ready
+      audio.addEventListener('canplaythrough', () => connectToWebAudio(audio), { once: true });
+
       // Play (may need to wait if not preloaded)
       await audio.play();
       console.log('[Music] Play called successfully');
@@ -1261,7 +1299,7 @@ const App: React.FC = () => {
           console.log('[Music] Retrying with fresh audio element...');
           const audio = new Audio(track.audioUrl);
           audio.loop = true;
-          audio.volume = backgroundVolume;
+          audio.crossOrigin = 'anonymous'; // Required for Web Audio API
           audio.onplay = () => {
             setIsMusicPlaying(true);
             setMusicError(null);
@@ -1272,6 +1310,8 @@ const App: React.FC = () => {
             setMusicError(`Failed to load: ${track.name}`);
           };
           backgroundAudioRef.current = audio;
+          // Connect to Web Audio API for iOS volume support
+          audio.addEventListener('canplaythrough', () => connectToWebAudio(audio), { once: true });
           await audio.play();
           console.log('[Music] Fallback play successful');
         } catch (fallbackError) {
@@ -1291,6 +1331,8 @@ const App: React.FC = () => {
       backgroundAudioRef.current.currentTime = 0;
       backgroundAudioRef.current = null;
     }
+    // Clean up gain node (iOS volume fix)
+    backgroundGainNodeRef.current = null;
     setIsMusicPlaying(false);
   };
 
@@ -1353,17 +1395,21 @@ const App: React.FC = () => {
   }, []);
 
   // Update background volume (wrapped in useCallback for prop stability)
+  // iOS fix: Uses GainNode for volume control (HTMLAudioElement.volume is read-only on iOS)
   const updateBackgroundVolume = useCallback((volume: number) => {
     setBackgroundVolume(volume);
-    // Update audio element volume in real-time
-    if (backgroundAudioRef.current) {
+    // Use GainNode for iOS support
+    if (backgroundGainNodeRef.current) {
+      backgroundGainNodeRef.current.gain.value = volume;
+    } else if (backgroundAudioRef.current) {
+      // Fallback for non-iOS or if Web Audio not connected
       backgroundAudioRef.current.volume = volume;
     }
-  }, []);
+  }, [backgroundAudioRef, backgroundGainNodeRef]);
 
   // ========== Nature Sound Functions ==========
 
-  // Start nature sound
+  // Start nature sound with Web Audio API for iOS volume support
   const startNatureSound = async (sound: NatureSound) => {
     stopNatureSound();
     if (sound.id === 'none' || !sound.audioUrl) return;
@@ -1371,8 +1417,40 @@ const App: React.FC = () => {
     try {
       const audio = new Audio(sound.audioUrl);
       audio.loop = true;
-      audio.volume = natureSoundVolume;
+      audio.crossOrigin = 'anonymous'; // Required for Web Audio API
       natureSoundAudioRef.current = audio;
+
+      // iOS fix: Connect through Web Audio API for volume control
+      // HTMLAudioElement.volume is read-only on iOS Safari
+      const connectToWebAudio = () => {
+        try {
+          // Ensure AudioContext exists
+          if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
+            audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+          }
+          const ctx = audioContextRef.current;
+
+          // Create gain node for volume control
+          const gainNode = ctx.createGain();
+          gainNode.gain.value = natureSoundVolume;
+          natureSoundGainNodeRef.current = gainNode;
+
+          // Connect audio element to Web Audio API
+          const source = ctx.createMediaElementSource(audio);
+          source.connect(gainNode);
+          gainNode.connect(ctx.destination);
+
+          console.log('[Nature Sound] Connected to Web Audio API for iOS volume support');
+        } catch (err) {
+          // Fallback: MediaElementSource may fail if already connected or CORS issue
+          console.warn('[Nature Sound] Web Audio connection failed, using native volume:', err);
+          audio.volume = natureSoundVolume;
+        }
+      };
+
+      // Connect after audio is ready to avoid CORS issues
+      audio.addEventListener('canplaythrough', connectToWebAudio, { once: true });
+
       // Only play if meditation is playing
       if (isPlaying) {
         await audio.play();
@@ -1388,16 +1466,22 @@ const App: React.FC = () => {
       natureSoundAudioRef.current.pause();
       natureSoundAudioRef.current = null;
     }
+    // Clean up gain node
+    natureSoundGainNodeRef.current = null;
   };
 
   // Update nature sound volume (wrapped in useCallback for prop stability)
+  // iOS fix: Uses GainNode for volume control (HTMLAudioElement.volume is read-only on iOS)
   const updateNatureSoundVolume = useCallback((volume: number) => {
     setNatureSoundVolume(volume);
-    // Update audio element volume in real-time
-    if (natureSoundAudioRef.current) {
+    // Use GainNode for iOS support
+    if (natureSoundGainNodeRef.current) {
+      natureSoundGainNodeRef.current.gain.value = volume;
+    } else if (natureSoundAudioRef.current) {
+      // Fallback for non-iOS or if Web Audio not connected
       natureSoundAudioRef.current.volume = volume;
     }
-  }, []);
+  }, [natureSoundAudioRef, natureSoundGainNodeRef]);
 
   // Toggle nature sound preview
   const togglePreviewNatureSound = (sound: NatureSound) => {
