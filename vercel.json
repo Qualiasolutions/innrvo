@@ -5,6 +5,18 @@
   "installCommand": "npm install",
   "redirects": [
     {
+      "source": "/",
+      "has": [{ "type": "host", "value": "www.innrvo.com" }],
+      "destination": "https://innrvo.com/",
+      "statusCode": 308
+    },
+    {
+      "source": "/:path(.*)",
+      "has": [{ "type": "host", "value": "www.innrvo.com" }],
+      "destination": "https://innrvo.com/:path",
+      "statusCode": 308
+    },
+    {
       "source": "/library",
       "destination": "/my-audios",
       "statusCode": 301
@@ -13,12 +25,6 @@
       "source": "/voices",
       "destination": "/your-voices",
       "statusCode": 301
-    },
-    {
-      "source": "/:path*",
-      "has": [{ "type": "host", "value": "www.innrvo.com" }],
-      "destination": "https://innrvo.com/:path*",
-      "statusCode": 308
     }
   ],
   "rewrites": [
