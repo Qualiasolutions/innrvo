@@ -1,7 +1,7 @@
 /**
  * Hook for fetching meditation templates from database
  * Uses in-memory session cache with 1-hour TTL
- * Falls back to hardcoded constants.tsx if database is empty
+ * Database is the single source of truth - no fallback to constants
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -11,7 +11,6 @@ import {
   setCachedTemplates,
   clearTemplateCache,
 } from '../lib/templateCache';
-import { TEMPLATE_CATEGORIES } from '../../constants';
 import type { TemplateCategory, TemplateSubgroup, Template } from '../lib/adminSupabase';
 
 const DEBUG = import.meta.env?.DEV ?? false;
@@ -28,7 +27,7 @@ export interface UseTemplatesResult {
 
 /**
  * Fetch templates from database with caching
- * Falls back to constants.tsx if database is empty
+ * Database is the single source of truth
  */
 export function useTemplates(): UseTemplatesResult {
   const [categories, setCategories] = useState<TemplateCategory[]>([]);
@@ -53,8 +52,8 @@ export function useTemplates(): UseTemplatesResult {
     }
 
     if (!supabase) {
-      if (DEBUG) console.log('[useTemplates] No supabase, using fallback');
-      useFallback();
+      if (DEBUG) console.log('[useTemplates] No supabase client');
+      setError('Database not configured');
       setIsLoading(false);
       return;
     }
@@ -77,14 +76,6 @@ export function useTemplates(): UseTemplatesResult {
       const dbSubgroups = subgroupsRes.data || [];
       const dbTemplates = templatesRes.data || [];
 
-      // If database is empty, use fallback
-      if (dbCategories.length === 0 || dbTemplates.length === 0) {
-        if (DEBUG) console.log('[useTemplates] Database empty, using fallback');
-        useFallback();
-        setIsLoading(false);
-        return;
-      }
-
       // Cache the results
       setCachedTemplates(dbCategories, dbSubgroups, dbTemplates);
 
@@ -97,69 +88,10 @@ export function useTemplates(): UseTemplatesResult {
       const message = err instanceof Error ? err.message : 'Failed to fetch templates';
       console.error('[useTemplates] Error:', message);
       setError(message);
-
-      // Use fallback on error
-      useFallback();
     } finally {
       setIsLoading(false);
     }
   }, []);
-
-  // Convert constants.tsx format to database format
-  const useFallback = () => {
-    // Transform TEMPLATE_CATEGORIES from constants.tsx to flat structures
-    const fallbackCategories: TemplateCategory[] = TEMPLATE_CATEGORIES.map((cat, idx) => ({
-      id: cat.id,
-      name: cat.name,
-      description: cat.description,
-      icon: cat.icon,
-      color: cat.color,
-      display_order: idx + 1,
-      is_active: true,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    }));
-
-    const fallbackSubgroups: TemplateSubgroup[] = [];
-    const fallbackTemplates: Template[] = [];
-
-    TEMPLATE_CATEGORIES.forEach(cat => {
-      cat.subgroups.forEach((subgroup, sgIdx) => {
-        const subgroupId = `${cat.id}-${subgroup.id}`;
-        fallbackSubgroups.push({
-          id: subgroupId,
-          category_id: cat.id,
-          name: subgroup.name,
-          description: subgroup.description,
-          display_order: sgIdx + 1,
-          is_active: true,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        });
-
-        subgroup.templates.forEach((template, tIdx) => {
-          fallbackTemplates.push({
-            id: template.id,
-            category_id: cat.id,
-            subgroup_id: subgroupId,
-            legacy_id: template.id,
-            title: template.title,
-            description: template.description,
-            prompt: template.prompt,
-            display_order: tIdx + 1,
-            is_active: true,
-            usage_count: 0,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          });
-        });
-      });
-    });
-
-    setCategories(fallbackCategories);
-    setSubgroups(fallbackSubgroups);
-    setTemplates(fallbackTemplates);
-  };
 
   useEffect(() => {
     fetchTemplates();

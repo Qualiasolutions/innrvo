@@ -3,6 +3,8 @@
  * Reduces database queries by caching tab data with 5-minute TTL
  */
 
+import { clearTemplateCache } from './templateCache';
+
 const DEBUG = import.meta.env?.DEV ?? false;
 
 interface CacheEntry<T> {
@@ -133,6 +135,7 @@ export function invalidateVoiceProfileCaches(): void {
 
 /**
  * Invalidate template-related caches
+ * Clears both admin cache and frontend template cache
  */
 export function invalidateTemplateCaches(): void {
   invalidateCacheKeys([
@@ -141,6 +144,9 @@ export function invalidateTemplateCaches(): void {
     CACHE_KEYS.TEMPLATE_SUBGROUPS,
     CACHE_KEYS.TEMPLATE_STATS,
   ]);
+  // Also clear frontend template cache
+  clearTemplateCache();
+  if (DEBUG) console.log('[adminDataCache] Cleared frontend template cache');
 }
 
 /**
