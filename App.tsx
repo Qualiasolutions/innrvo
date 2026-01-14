@@ -1229,13 +1229,14 @@ const App: React.FC = () => {
     setPreviewingTrackId(null);
   }, []);
 
-  // Update background volume
-  const updateBackgroundVolume = (volume: number) => {
+  // Update background volume (wrapped in useCallback for prop stability)
+  const updateBackgroundVolume = useCallback((volume: number) => {
     setBackgroundVolume(volume);
+    // Update audio element volume in real-time
     if (backgroundAudioRef.current) {
       backgroundAudioRef.current.volume = volume;
     }
-  };
+  }, []);
 
   // ========== Nature Sound Functions ==========
 
@@ -1266,13 +1267,14 @@ const App: React.FC = () => {
     }
   };
 
-  // Update nature sound volume
-  const updateNatureSoundVolume = (volume: number) => {
+  // Update nature sound volume (wrapped in useCallback for prop stability)
+  const updateNatureSoundVolume = useCallback((volume: number) => {
     setNatureSoundVolume(volume);
+    // Update audio element volume in real-time
     if (natureSoundAudioRef.current) {
       natureSoundAudioRef.current.volume = volume;
     }
-  };
+  }, []);
 
   // Toggle nature sound preview
   const togglePreviewNatureSound = (sound: NatureSound) => {

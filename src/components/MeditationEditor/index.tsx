@@ -108,8 +108,11 @@ export const MeditationEditor = memo<MeditationEditorProps>(
     const { restoreCursorPosition, insertAtCursor } = useEditorCursor(editorRef);
 
     // Track if user is actively editing to prevent re-render conflicts
+    // Use a debounce timer instead of RAF for more reliable timing
     const isUserEditingRef = useRef(false);
     const lastExternalScriptRef = useRef(script);
+    const editingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const EDITING_DEBOUNCE_MS = 500; // Wait 500ms after last keystroke before syncing
 
     // Keyboard shortcuts
     useKeyboard({
@@ -119,24 +122,43 @@ export const MeditationEditor = memo<MeditationEditorProps>(
       isActive: true,
     });
 
-    // Sync script prop with local state when it changes from props
+    // Sync script prop with local state when it changes from props (external changes only)
     useEffect(() => {
       if (script !== lastExternalScriptRef.current) {
         lastExternalScriptRef.current = script;
         setEditedScript(script);
+        // Also sync editor content for external changes (sanitized HTML from useAudioTags)
+        if (editorRef.current) {
+          editorRef.current.innerHTML = styledContentHtml;
+        }
       }
-    }, [script]);
+    }, [script, styledContentHtml]);
 
-    // Sync styled content to editor when content changes (from any source)
-    // Skip during active editing to avoid fighting the browser's DOM updates
+    // Sync styled content to editor ONLY after user stops typing (debounced)
+    // This prevents cursor jumping during active editing
+    // Note: styledContentHtml is sanitized by useAudioTags (escapeHtml + controlled spans)
     useEffect(() => {
-      if (editorRef.current && !isUserEditingRef.current) {
+      // Skip if user is actively editing
+      if (isUserEditingRef.current) {
+        return;
+      }
+      // Sync when not editing (initial render or after debounce completes)
+      if (editorRef.current) {
         editorRef.current.innerHTML = styledContentHtml;
       }
     }, [styledContentHtml]);
 
-    // Handle content input with RAF batching to prevent rapid re-renders on mobile
-    const pendingInputRef = useRef<number | null>(null);
+    // Cleanup editing timeout on unmount
+    useEffect(() => {
+      return () => {
+        if (editingTimeoutRef.current) {
+          clearTimeout(editingTimeoutRef.current);
+        }
+      };
+    }, []);
+
+    // Handle content input with debounced styling sync
+    // innerHTML updates use sanitized content from useAudioTags (escapeHtml + controlled spans)
     const handleInput = useCallback(
       (e: React.FormEvent<HTMLDivElement>) => {
         try {
@@ -146,29 +168,48 @@ export const MeditationEditor = memo<MeditationEditorProps>(
           const target = e.currentTarget;
           const text = target.innerText;
 
-          // Cancel any pending update
-          if (pendingInputRef.current !== null) {
-            cancelAnimationFrame(pendingInputRef.current);
+          // Clear any pending editing timeout
+          if (editingTimeoutRef.current) {
+            clearTimeout(editingTimeoutRef.current);
           }
 
-          // Batch updates via requestAnimationFrame to prevent rapid re-renders
-          pendingInputRef.current = requestAnimationFrame(() => {
-            setEditedScript(text);
-            lastExternalScriptRef.current = text; // Track as external to prevent re-sync
-            pendingInputRef.current = null;
+          // Update state immediately for responsive UI
+          setEditedScript(text);
+          lastExternalScriptRef.current = text;
 
-            // Reset editing flag after state update
-            requestAnimationFrame(() => {
-              isUserEditingRef.current = false;
-            });
-          });
+          // Debounce the end of editing - wait for user to stop typing
+          // before allowing styling sync (which could move cursor)
+          editingTimeoutRef.current = setTimeout(() => {
+            isUserEditingRef.current = false;
+            editingTimeoutRef.current = null;
+            // Apply audio tag styling after user stops typing
+            if (editorRef.current) {
+              // Save cursor position before update
+              const selection = window.getSelection();
+              const cursorPos = selection?.rangeCount ? (() => {
+                const range = selection.getRangeAt(0);
+                const preCaretRange = range.cloneRange();
+                preCaretRange.selectNodeContents(editorRef.current!);
+                preCaretRange.setEnd(range.startContainer, range.startOffset);
+                return preCaretRange.toString().length;
+              })() : null;
+
+              // Update with styled content (sanitized by useAudioTags)
+              editorRef.current.innerHTML = styledContentHtml;
+
+              // Restore cursor position
+              if (cursorPos !== null) {
+                restoreCursorPosition(cursorPos);
+              }
+            }
+          }, EDITING_DEBOUNCE_MS);
         } catch (err) {
           // Silently handle any DOM access errors on mobile
           console.warn('Input handling error:', err);
           isUserEditingRef.current = false;
         }
       },
-      []
+      [styledContentHtml, restoreCursorPosition]
     );
 
     // Handle keyboard events for backspace/delete on tags
