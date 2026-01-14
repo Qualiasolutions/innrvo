@@ -102,7 +102,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://vercel.live blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' data: blob: https://*.supabase.co wss://*.supabase.co https://generativelanguage.googleapis.com https://vercel.live wss://vercel.live https://api.replicate.com https://*.replicate.delivery https://*.ingest.de.sentry.io; media-src 'self' blob: data: https://archive.org https://*.archive.org https://*.supabase.co https://cdn.pixabay.com; frame-src https://vercel.live; frame-ancestors 'none'; base-uri 'self'; form-action 'self';"
+          "value": "default-src 'self' https://innrvo.com; script-src 'self' 'unsafe-inline' https://innrvo.com https://vercel.live https://esm.sh blob:; style-src 'self' 'unsafe-inline' https://innrvo.com https://fonts.googleapis.com https://esm.sh; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' data: blob: https://*.supabase.co wss://*.supabase.co https://generativelanguage.googleapis.com https://vercel.live wss://vercel.live https://api.replicate.com https://*.replicate.delivery https://*.ingest.de.sentry.io https://esm.sh; media-src 'self' blob: data: https://archive.org https://*.archive.org https://*.supabase.co https://cdn.pixabay.com; frame-src https://vercel.live; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; manifest-src 'self' https://innrvo.com;"
         }
       ]
     }
