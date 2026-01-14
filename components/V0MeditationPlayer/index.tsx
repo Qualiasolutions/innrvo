@@ -40,6 +40,7 @@ const ORBIT_PARTICLE_COUNT = PREFERS_REDUCED_MOTION ? 4 : (IS_MOBILE ? 6 : 12);
 interface MeditationPlayerProps {
   // Playback control
   isPlaying: boolean;
+  isBuffering?: boolean;  // Show loading state during audio generation
   currentTime: number;
   duration: number;
   onPlayPause: () => void;
@@ -80,6 +81,7 @@ interface MeditationPlayerProps {
 
 const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
   isPlaying,
+  isBuffering = false,
   currentTime,
   duration,
   onPlayPause,
@@ -160,8 +162,8 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
 
         {/* Center content */}
         <div className="flex flex-1 flex-col items-center justify-center gap-6 sm:gap-8">
-          {/* Breathing orb visualizer */}
-          <BreathingOrb isPlaying={isPlaying} />
+          {/* Breathing orb visualizer - show loading animation when buffering */}
+          <BreathingOrb isPlaying={isBuffering ? true : isPlaying} />
 
           {/* Title and time */}
           <motion.div
@@ -171,10 +173,16 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
             className="text-center"
           >
             <h1 className="font-sans text-xl sm:text-2xl font-light tracking-wide text-white/90">
-              Meditation
+              {isBuffering ? 'Generating...' : 'Meditation'}
             </h1>
             <p className="mt-2 font-mono text-sm text-white/50">
-              {formatTime(currentTime)} / {formatTime(duration)}
+              {isBuffering ? (
+                <span className="inline-flex items-center gap-2">
+                  <span className="animate-pulse">Preparing your meditation</span>
+                </span>
+              ) : (
+                `${formatTime(currentTime)} / ${formatTime(duration)}`
+              )}
             </p>
           </motion.div>
         </div>
@@ -190,11 +198,13 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
           <div className="relative px-1">
             <div
               className="absolute -inset-1 rounded-full bg-sky-500/20 blur-md transition-all"
-              style={{ width: `${Math.max(progress, 1)}%` }}
+              style={{ width: isBuffering ? '0%' : `${Math.max(progress, 1)}%` }}
             />
             <div
-              className="relative h-1.5 sm:h-2 bg-white/10 rounded-full overflow-hidden cursor-pointer group"
-              onClick={handleProgressClick}
+              className={`relative h-1.5 sm:h-2 bg-white/10 rounded-full overflow-hidden group ${
+                isBuffering ? 'cursor-not-allowed' : 'cursor-pointer'
+              }`}
+              onClick={isBuffering ? undefined : handleProgressClick}
             >
               <div
                 className="absolute left-0 top-0 h-full bg-gradient-to-r from-sky-500/80 to-sky-500/80 rounded-full transition-all duration-100"
@@ -211,10 +221,15 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
           {/* Main playback controls */}
           <div className="flex items-center justify-center gap-6 sm:gap-8">
             <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={() => onSkip(-15)}
-              className="relative flex h-12 w-12 sm:h-12 sm:w-12 items-center justify-center text-white/60 transition-all duration-200 hover:text-white/90 hover:bg-white/5 rounded-full active:bg-white/10"
+              whileHover={!isBuffering ? { scale: 1.1 } : undefined}
+              whileTap={!isBuffering ? { scale: 0.9 } : undefined}
+              onClick={isBuffering ? undefined : () => onSkip(-15)}
+              disabled={isBuffering}
+              className={`relative flex h-12 w-12 sm:h-12 sm:w-12 items-center justify-center transition-all duration-200 rounded-full ${
+                isBuffering
+                  ? 'text-white/20 cursor-not-allowed'
+                  : 'text-white/60 hover:text-white/90 hover:bg-white/5 active:bg-white/10'
+              }`}
               aria-label="Skip back 15 seconds"
             >
               <RotateCcw className="h-6 w-6" />
@@ -222,18 +237,25 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
             </motion.button>
 
             <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.92 }}
-              onClick={onPlayPause}
+              whileHover={!isBuffering ? { scale: 1.05 } : undefined}
+              whileTap={!isBuffering ? { scale: 0.92 } : undefined}
+              onClick={isBuffering ? undefined : onPlayPause}
+              disabled={isBuffering}
               className={`flex h-16 w-16 sm:h-18 sm:w-18 items-center justify-center rounded-full text-white backdrop-blur-sm transition-all duration-200 ${
-                isPlaying
-                  ? 'bg-white/15 shadow-[0_0_30px_rgba(34,211,238,0.2)]'
-                  : 'bg-white/10 hover:bg-white/20 hover:shadow-[0_0_25px_rgba(34,211,238,0.15)]'
+                isBuffering
+                  ? 'bg-white/10 cursor-wait'
+                  : isPlaying
+                    ? 'bg-white/15 shadow-[0_0_30px_rgba(34,211,238,0.2)]'
+                    : 'bg-white/10 hover:bg-white/20 hover:shadow-[0_0_25px_rgba(34,211,238,0.15)]'
               }`}
-              aria-label={isPlaying ? 'Pause' : 'Play'}
+              aria-label={isBuffering ? 'Generating audio...' : isPlaying ? 'Pause' : 'Play'}
             >
               <AnimatePresence mode="wait">
-                {isPlaying ? (
+                {isBuffering ? (
+                  <motion.div key="loading" initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }} transition={{ duration: 0.15 }}>
+                    <div className="h-7 w-7 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  </motion.div>
+                ) : isPlaying ? (
                   <motion.div key="pause" initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }} transition={{ duration: 0.15 }}>
                     <Pause className="h-7 w-7 fill-white" />
                   </motion.div>
@@ -246,10 +268,15 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
             </motion.button>
 
             <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={() => onSkip(15)}
-              className="relative flex h-12 w-12 sm:h-12 sm:w-12 items-center justify-center text-white/60 transition-all duration-200 hover:text-white/90 hover:bg-white/5 rounded-full active:bg-white/10"
+              whileHover={!isBuffering ? { scale: 1.1 } : undefined}
+              whileTap={!isBuffering ? { scale: 0.9 } : undefined}
+              onClick={isBuffering ? undefined : () => onSkip(15)}
+              disabled={isBuffering}
+              className={`relative flex h-12 w-12 sm:h-12 sm:w-12 items-center justify-center transition-all duration-200 rounded-full ${
+                isBuffering
+                  ? 'text-white/20 cursor-not-allowed'
+                  : 'text-white/60 hover:text-white/90 hover:bg-white/5 active:bg-white/10'
+              }`}
               aria-label="Skip forward 15 seconds"
             >
               <RotateCw className="h-6 w-6" />

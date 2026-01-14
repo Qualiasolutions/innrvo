@@ -14,6 +14,12 @@ export {
   usePlaybackRate,
 } from './AudioPlaybackContext';
 
+// Streaming generation context (for early redirect to player)
+export {
+  StreamingGenerationProvider,
+  useStreamingGeneration,
+} from './StreamingGenerationContext';
+
 // Existing contexts
 export { AudioProvider, useAudio } from './AudioContext';
 export { ModalProvider, useModal } from './ModalContext';

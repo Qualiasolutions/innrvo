@@ -14,6 +14,7 @@ import { useAudioTags } from './src/contexts/AudioTagsContext';
 import { useChatHistory } from './src/contexts/ChatHistoryContext';
 import { useOnboarding } from './src/contexts/OnboardingContext';
 import { useAudioPlayback } from './src/contexts/AudioPlaybackContext';
+import { useStreamingGeneration } from './src/contexts/StreamingGenerationContext';
 import GlassCard from './components/GlassCard';
 import Starfield from './components/Starfield';
 import Background from './components/Background';
@@ -177,6 +178,17 @@ const App: React.FC = () => {
 
   // Audio playback context - shared ref for nature sound (allows PlayerPage to stop it on close)
   const { natureSoundAudioRef } = useAudioPlayback();
+
+  // Streaming generation context - for early redirect to player while generating
+  const {
+    startGeneration,
+    phase: generationPhase,
+    result: generationResult,
+    metadata: generationMetadata,
+    error: generationError,
+    setPhase,
+    resetGeneration,
+  } = useStreamingGeneration();
 
   // UI-specific state (not shared across components)
   const [isLoading, setIsLoading] = useState(true);
@@ -353,6 +365,114 @@ const App: React.FC = () => {
       }
     };
   }, []);
+
+  // Handle streaming generation completion - set up playback when audio is ready
+  useEffect(() => {
+    if (generationPhase === 'ready' && generationResult && generationMetadata) {
+      const { audioBuffer, base64, duration: audioDuration } = generationResult;
+      const { script: meditationScript, voice, backgroundTrack, audioTags } = generationMetadata;
+
+      // Stop any existing playback
+      if (audioSourceRef.current) {
+        try { audioSourceRef.current.stop(); } catch (e) { /* ignore */ }
+      }
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+
+      // Store the audio buffer
+      audioBufferRef.current = audioBuffer;
+      setDuration(audioDuration);
+      setCurrentTime(0);
+      lastWordIndexRef.current = 0;
+      setCurrentWordIndex(0);
+      pauseOffsetRef.current = 0;
+
+      // Ensure audio context exists
+      if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
+        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+
+      // Create gain node for voice volume control
+      if (!gainNodeRef.current) {
+        gainNodeRef.current = audioContextRef.current.createGain();
+        gainNodeRef.current.connect(audioContextRef.current.destination);
+      }
+      gainNodeRef.current.gain.value = voiceVolume;
+
+      // Start playback with playback rate
+      const source = audioContextRef.current.createBufferSource();
+      source.buffer = audioBuffer;
+      source.playbackRate.value = playbackRate;
+      playbackRateRef.current = playbackRate;
+      source.connect(gainNodeRef.current);
+      source.start();
+      audioSourceRef.current = source;
+      playbackStartTimeRef.current = audioContextRef.current.currentTime;
+
+      // Update state
+      setIsPlaying(true);
+      setIsGenerating(false);
+      setGenerationStage('idle');
+
+      // Build timing map
+      const map = buildTimingMap(meditationScript, audioDuration);
+      setTimingMap(map);
+
+      // Start background music
+      if (backgroundTrack) {
+        startBackgroundMusic(backgroundTrack);
+      }
+
+      // Deduct credits if cloned voice
+      if (voice.isCloned && user?.id) {
+        creditService.deductCredits(
+          creditService.calculateTTSCost(meditationScript),
+          'TTS_GENERATE',
+          voice.id,
+          user.id
+        ).catch(err => console.warn('Failed to deduct credits:', err));
+      }
+
+      // Save to history (include audio for cloned voices)
+      saveMeditationHistory(
+        meditationScript.substring(0, 100),
+        meditationScript,
+        voice.id,
+        voice.name,
+        backgroundTrack?.id,
+        backgroundTrack?.name,
+        Math.round(audioDuration),
+        audioTags.length > 0 ? audioTags : undefined,
+        base64 // Always save audio
+      ).catch(err => console.warn('Failed to save history:', err));
+
+      source.onended = () => {
+        setIsPlaying(false);
+        if (animationFrameRef.current) {
+          cancelAnimationFrame(animationFrameRef.current);
+        }
+      };
+
+      // Reset generation state after playback starts
+      resetGeneration();
+    }
+    // Note: startBackgroundMusic is intentionally omitted - it's a stable function defined later
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [generationPhase, generationResult, generationMetadata, voiceVolume, playbackRate, user?.id, resetGeneration]);
+
+  // Handle generation errors
+  useEffect(() => {
+    if (generationPhase === 'error' && generationError) {
+      console.error('Generation failed:', generationError);
+      setMicError(generationError);
+      setIsGenerating(false);
+      setGenerationStage('idle');
+      // Go back to home on error
+      setCurrentView(View.HOME);
+      resetGeneration();
+    }
+  }, [generationPhase, generationError, resetGeneration]);
 
   // Handle auth redirects from email verification or password reset
   useEffect(() => {
@@ -2174,103 +2294,56 @@ const App: React.FC = () => {
                           await audioContextRef.current.resume();
                         }
 
-                        // Generate speech
-                        const { audioBuffer, base64, needsReclone } = await voiceService.generateSpeech(
-                          meditationScript,
-                          voice,
-                          audioContextRef.current
+                        // Store audio context ref for use in generation callback
+                        const audioContext = audioContextRef.current;
+
+                        // EARLY REDIRECT: Navigate to player immediately while generating
+                        // This creates a better UX by showing the player with a loading state
+                        setCurrentView(View.PLAYER);
+
+                        // Start generation via streaming context for cross-page state
+                        startGeneration(
+                          {
+                            script: meditationScript,
+                            voice,
+                            backgroundTrack: selectedBackgroundTrack,
+                            audioTags: tags,
+                            startTime: Date.now(),
+                          },
+                          async () => {
+                            setPhase('generating');
+
+                            // Generate speech
+                            const { audioBuffer, base64, needsReclone } = await voiceService.generateSpeech(
+                              meditationScript,
+                              voice,
+                              audioContext
+                            );
+
+                            // Check if voice needs to be re-cloned (legacy Fish Audio/Chatterbox voice)
+                            if (needsReclone) {
+                              throw new Error('This voice needs to be re-cloned. Please go to Voice Settings and re-clone your voice with ElevenLabs.');
+                            }
+
+                            if (!audioBuffer) {
+                              throw new Error('Failed to generate audio buffer. Please try again.');
+                            }
+
+                            if (!base64 || base64.trim() === '') {
+                              throw new Error('Failed to generate audio. Please try again.');
+                            }
+
+                            setPhase('decoding');
+
+                            // Return the result - player will handle playback setup
+                            return {
+                              audioBuffer,
+                              base64,
+                              duration: audioBuffer.duration,
+                            };
+                          }
                         );
 
-                        // Check if voice needs to be re-cloned (legacy Fish Audio/Chatterbox voice)
-                        if (needsReclone) {
-                          throw new Error('This voice needs to be re-cloned. Please go to Voice Settings and re-clone your voice with ElevenLabs.');
-                        }
-
-                        if (!audioBuffer) {
-                          throw new Error('Failed to generate audio buffer. Please try again.');
-                        }
-
-                        if (!base64 || base64.trim() === '') {
-                          throw new Error('Failed to generate audio. Please try again.');
-                        }
-
-                        setGenerationStage('ready');
-
-                        // Stop any existing playback
-                        if (audioSourceRef.current) {
-                          try { audioSourceRef.current.stop(); } catch (e) { }
-                        }
-                        if (animationFrameRef.current) {
-                          cancelAnimationFrame(animationFrameRef.current);
-                        }
-
-                        // Store the audio buffer
-                        audioBufferRef.current = audioBuffer;
-                        setDuration(audioBuffer.duration);
-                        setCurrentTime(0);
-                        lastWordIndexRef.current = 0;
-                        setCurrentWordIndex(0);
-                        pauseOffsetRef.current = 0;
-
-                        // Create gain node for voice volume control
-                        if (!gainNodeRef.current) {
-                          gainNodeRef.current = audioContextRef.current.createGain();
-                          gainNodeRef.current.connect(audioContextRef.current.destination);
-                        }
-                        gainNodeRef.current.gain.value = voiceVolume;
-
-                        // Start playback with playback rate
-                        const source = audioContextRef.current.createBufferSource();
-                        source.buffer = audioBuffer;
-                        source.playbackRate.value = playbackRate;
-                        playbackRateRef.current = playbackRate;
-                        source.connect(gainNodeRef.current);
-                        source.start();
-                        audioSourceRef.current = source;
-                        playbackStartTimeRef.current = audioContextRef.current.currentTime;
-
-                        // Update state
-                        setIsPlaying(true);
-                        setCurrentView(View.PLAYER);  // Go directly to V0MeditationPlayer
-                        setIsGenerating(false);
-                        setGenerationStage('idle');
-
-                        // Build timing map
-                        const map = buildTimingMap(meditationScript, audioBuffer.duration);
-                        setTimingMap(map);
-
-                        // Start background music
-                        startBackgroundMusic(selectedBackgroundTrack);
-
-                        // Deduct credits if cloned voice
-                        if (voice.isCloned) {
-                          creditService.deductCredits(
-                            creditService.calculateTTSCost(meditationScript),
-                            'TTS_GENERATE',
-                            voice.id,
-                            user?.id
-                          ).catch(err => console.warn('Failed to deduct credits:', err));
-                        }
-
-                        // Save to history (include audio for cloned voices)
-                        saveMeditationHistory(
-                          meditationScript.substring(0, 100),
-                          meditationScript,
-                          voice.id,
-                          voice.name,
-                          selectedBackgroundTrack?.id,
-                          selectedBackgroundTrack?.name,
-                          Math.round(audioBuffer.duration),
-                          tags.length > 0 ? tags : undefined,
-                          base64 // Always save audio
-                        ).catch(err => console.warn('Failed to save history:', err));
-
-                        source.onended = () => {
-                          setIsPlaying(false);
-                          if (animationFrameRef.current) {
-                            cancelAnimationFrame(animationFrameRef.current);
-                          }
-                        };
                       } catch (error: unknown) {
                         console.error('Failed to generate audio:', error);
                         setMicError(error instanceof Error ? error.message : 'Failed to generate audio. Please try again.');
@@ -2306,6 +2379,7 @@ const App: React.FC = () => {
             <Suspense fallback={<div className="fixed inset-0 z-[100] bg-[#0f172a] flex items-center justify-center"><div className="w-8 h-8 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" /></div>}>
               <MeditationPlayer
                 isPlaying={isPlaying}
+                isBuffering={generationPhase === 'preparing' || generationPhase === 'generating' || generationPhase === 'decoding'}
                 currentTime={currentTime}
                 duration={duration}
                 onPlayPause={handleInlineTogglePlayback}
