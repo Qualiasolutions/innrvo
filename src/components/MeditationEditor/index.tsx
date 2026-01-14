@@ -112,6 +112,7 @@ export const MeditationEditor = memo<MeditationEditorProps>(
     const isUserEditingRef = useRef(false);
     const lastExternalScriptRef = useRef(script);
     const editingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const hasInitializedRef = useRef(false);
     const EDITING_DEBOUNCE_MS = 500; // Wait 500ms after last keystroke before syncing
 
     // Keyboard shortcuts
@@ -137,7 +138,6 @@ export const MeditationEditor = memo<MeditationEditorProps>(
 
     // Set initial content on mount only - never update innerHTML during user interaction
     // All subsequent updates happen via onBlur handler to prevent cursor jumping
-    const hasInitializedRef = useRef(false);
     useEffect(() => {
       if (!hasInitializedRef.current && editorRef.current) {
         editorRef.current.innerHTML = styledContentHtml;
