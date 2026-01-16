@@ -35,7 +35,14 @@ const PlayerPage: React.FC = () => {
     gainNodeRef,
     backgroundAudioRef,
     natureSoundAudioRef,
+    // iOS volume fix: Use GainNodes instead of HTMLAudioElement.volume
+    backgroundGainNodeRef,
+    natureSoundGainNodeRef,
   } = useAudioPlayback();
+
+  // Nature sound volume state (separate from background music)
+  const [natureSoundVolume, setNatureSoundVolume] = useState(0.4);
+  const [isNatureSoundPlaying, setIsNatureSoundPlaying] = useState(false);
 
   const playbackStartTimeRef = useRef(0);
   const pauseOffsetRef = useRef(0);
@@ -198,28 +205,38 @@ const PlayerPage: React.FC = () => {
       natureSoundAudioRef.current.pause();
       natureSoundAudioRef.current.currentTime = 0;
     }
+    setIsNatureSoundPlaying(false);
 
     // Navigate back home
     navigate('/');
   }, [navigate, audioSourceRef, backgroundAudioRef, natureSoundAudioRef, setIsPlaying]);
 
-  // Update voice volume
+  // Update voice volume - uses GainNode for proper Web Audio API control
   const updateVoiceVolume = useCallback((volume: number) => {
     setVoiceVolume(volume);
-    if (gainNodeRef.current) {
-      gainNodeRef.current.gain.value = volume;
+    if (gainNodeRef.current && audioContextRef.current) {
+      // Use setTargetAtTime for smooth volume transitions (prevents clicks/pops)
+      gainNodeRef.current.gain.setTargetAtTime(volume, audioContextRef.current.currentTime, 0.03);
     }
-  }, [setVoiceVolume, gainNodeRef]);
+  }, [setVoiceVolume, gainNodeRef, audioContextRef]);
 
-  // Update background volume
+  // Update background volume - uses GainNode for iOS compatibility
+  // (HTMLAudioElement.volume is read-only on iOS)
   const updateBackgroundVolume = useCallback((volume: number) => {
     setBackgroundVolume(volume);
-    // Only set volume if audio element exists and is in a playable state
-    // readyState >= 2 means HAVE_CURRENT_DATA or better
-    if (backgroundAudioRef.current && backgroundAudioRef.current.readyState >= 2) {
-      backgroundAudioRef.current.volume = volume;
+    // Use GainNode for volume control (works on iOS unlike HTMLAudioElement.volume)
+    if (backgroundGainNodeRef.current && audioContextRef.current) {
+      backgroundGainNodeRef.current.gain.setTargetAtTime(volume, audioContextRef.current.currentTime, 0.03);
     }
-  }, [setBackgroundVolume, backgroundAudioRef]);
+    // Fallback for desktop browsers - also set on audio element
+    if (backgroundAudioRef.current) {
+      try {
+        backgroundAudioRef.current.volume = volume;
+      } catch {
+        // iOS throws on volume assignment - silently ignore
+      }
+    }
+  }, [setBackgroundVolume, backgroundGainNodeRef, audioContextRef, backgroundAudioRef]);
 
   // Update playback rate
   const updatePlaybackRate = useCallback((rate: number) => {
@@ -230,7 +247,7 @@ const PlayerPage: React.FC = () => {
     }
   }, [setPlaybackRate, audioSourceRef]);
 
-  // Toggle background music
+  // Toggle background music - routes through GainNode for iOS volume control
   const handleBackgroundMusicToggle = useCallback(async () => {
     try {
       if (isMusicPlaying) {
@@ -239,46 +256,151 @@ const PlayerPage: React.FC = () => {
           backgroundAudioRef.current.pause();
         }
         setIsMusicPlaying(false);
-      } else if (selectedBackgroundTrack.id !== 'none' && selectedBackgroundTrack.audioUrl) {
-        // Resume AudioContext if suspended (iOS requirement)
-        if (audioContextRef.current?.state === 'suspended') {
-          await audioContextRef.current.resume();
-        }
-
-        // Create or reuse audio element
-        if (!backgroundAudioRef.current) {
-          backgroundAudioRef.current = new Audio();
-          backgroundAudioRef.current.loop = true;
-        }
-
-        // Set src and prepare to play
-        backgroundAudioRef.current.src = selectedBackgroundTrack.audioUrl;
-
-        // Ensure volume is applied after audio is ready (iOS requirement)
-        backgroundAudioRef.current.addEventListener('canplaythrough', () => {
-          if (backgroundAudioRef.current) {
-            backgroundAudioRef.current.volume = backgroundVolume;
+      } else {
+        // Auto-select first actual track if "none" is selected
+        let trackToPlay = selectedBackgroundTrack;
+        if (selectedBackgroundTrack.id === 'none') {
+          const firstRealTrack = BACKGROUND_TRACKS.find(t => t.id !== 'none' && t.audioUrl);
+          if (firstRealTrack) {
+            trackToPlay = firstRealTrack;
+            setSelectedBackgroundTrack(firstRealTrack);
           }
-        }, { once: true });
+        }
 
-        // Also set volume immediately in case it's already loaded
-        backgroundAudioRef.current.volume = backgroundVolume;
+        if (trackToPlay.id !== 'none' && trackToPlay.audioUrl) {
+          // Initialize AudioContext if needed
+          if (!audioContextRef.current) {
+            audioContextRef.current = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+          }
 
-        // Play and handle iOS autoplay rejection
-        try {
-          await backgroundAudioRef.current.play();
-          setIsMusicPlaying(true);
-        } catch (playError) {
-          console.error('Music playback failed:', playError);
-          // Show user-friendly error (you can add toast notification here)
-          throw playError;
+          // Resume AudioContext if suspended (iOS requirement)
+          if (audioContextRef.current.state === 'suspended') {
+            await audioContextRef.current.resume();
+          }
+
+          // Create GainNode for volume control if needed
+          if (!backgroundGainNodeRef.current) {
+            backgroundGainNodeRef.current = audioContextRef.current.createGain();
+            backgroundGainNodeRef.current.connect(audioContextRef.current.destination);
+          }
+          // Set initial volume
+          backgroundGainNodeRef.current.gain.value = backgroundVolume;
+
+          // Create or reuse audio element
+          if (!backgroundAudioRef.current) {
+            backgroundAudioRef.current = new Audio();
+            backgroundAudioRef.current.loop = true;
+            backgroundAudioRef.current.crossOrigin = 'anonymous';
+
+            // Route audio through Web Audio API for volume control
+            const source = audioContextRef.current.createMediaElementSource(backgroundAudioRef.current);
+            source.connect(backgroundGainNodeRef.current);
+          }
+
+          // Set src and prepare to play
+          backgroundAudioRef.current.src = trackToPlay.audioUrl;
+
+          // Play and handle iOS autoplay rejection
+          try {
+            await backgroundAudioRef.current.play();
+            setIsMusicPlaying(true);
+          } catch (playError) {
+            console.error('Music playback failed:', playError);
+            throw playError;
+          }
         }
       }
     } catch (err) {
       console.warn('Failed to toggle background music:', err);
       setIsMusicPlaying(false);
     }
-  }, [isMusicPlaying, selectedBackgroundTrack, backgroundVolume, audioContextRef, backgroundAudioRef]);
+  }, [isMusicPlaying, selectedBackgroundTrack, setSelectedBackgroundTrack, backgroundVolume, audioContextRef, backgroundAudioRef, backgroundGainNodeRef]);
+
+  // Update nature sound volume - uses GainNode for iOS compatibility
+  const updateNatureSoundVolume = useCallback((volume: number) => {
+    setNatureSoundVolume(volume);
+    // Use GainNode for volume control (works on iOS unlike HTMLAudioElement.volume)
+    if (natureSoundGainNodeRef.current && audioContextRef.current) {
+      natureSoundGainNodeRef.current.gain.setTargetAtTime(volume, audioContextRef.current.currentTime, 0.03);
+    }
+    // Fallback for desktop browsers - also set on audio element
+    if (natureSoundAudioRef.current) {
+      try {
+        natureSoundAudioRef.current.volume = volume;
+      } catch {
+        // iOS throws on volume assignment - silently ignore
+      }
+    }
+  }, [natureSoundGainNodeRef, audioContextRef, natureSoundAudioRef]);
+
+  // Toggle nature sound - routes through GainNode for iOS volume control
+  const handleNatureSoundToggle = useCallback(async () => {
+    try {
+      if (isNatureSoundPlaying) {
+        // Pause nature sound
+        if (natureSoundAudioRef.current) {
+          natureSoundAudioRef.current.pause();
+        }
+        setIsNatureSoundPlaying(false);
+      } else {
+        // Auto-select first actual sound if "none" is selected
+        let soundToPlay = selectedNatureSound;
+        if (!selectedNatureSound || selectedNatureSound.id === 'none') {
+          const firstRealSound = NATURE_SOUNDS.find(s => s.id !== 'none' && s.audioUrl);
+          if (firstRealSound) {
+            soundToPlay = firstRealSound;
+            setSelectedNatureSound(firstRealSound);
+          }
+        }
+
+        if (soundToPlay && soundToPlay.id !== 'none' && soundToPlay.audioUrl) {
+          // Initialize AudioContext if needed
+          if (!audioContextRef.current) {
+            audioContextRef.current = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+          }
+
+          // Resume AudioContext if suspended (iOS requirement)
+          if (audioContextRef.current.state === 'suspended') {
+            await audioContextRef.current.resume();
+          }
+
+          // Create GainNode for volume control if needed
+          if (!natureSoundGainNodeRef.current) {
+            natureSoundGainNodeRef.current = audioContextRef.current.createGain();
+            natureSoundGainNodeRef.current.connect(audioContextRef.current.destination);
+          }
+          // Set initial volume
+          natureSoundGainNodeRef.current.gain.value = natureSoundVolume;
+
+          // Create or reuse audio element
+          if (!natureSoundAudioRef.current) {
+            natureSoundAudioRef.current = new Audio();
+            natureSoundAudioRef.current.loop = true;
+            natureSoundAudioRef.current.crossOrigin = 'anonymous';
+
+            // Route audio through Web Audio API for volume control
+            const source = audioContextRef.current.createMediaElementSource(natureSoundAudioRef.current);
+            source.connect(natureSoundGainNodeRef.current);
+          }
+
+          // Set src and prepare to play
+          natureSoundAudioRef.current.src = soundToPlay.audioUrl;
+
+          // Play and handle iOS autoplay rejection
+          try {
+            await natureSoundAudioRef.current.play();
+            setIsNatureSoundPlaying(true);
+          } catch (playError) {
+            console.error('Nature sound playback failed:', playError);
+            throw playError;
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to toggle nature sound:', err);
+      setIsNatureSoundPlaying(false);
+    }
+  }, [isNatureSoundPlaying, selectedNatureSound, setSelectedNatureSound, natureSoundVolume, audioContextRef, natureSoundAudioRef, natureSoundGainNodeRef]);
 
   // Load saved meditation by ID
   const loadSavedMeditation = useCallback(async (meditationId: string) => {
@@ -542,6 +664,12 @@ const PlayerPage: React.FC = () => {
         onBackgroundVolumeChange={updateBackgroundVolume}
         onBackgroundMusicToggle={handleBackgroundMusicToggle}
         backgroundTrackName={selectedBackgroundTrack.name}
+        natureSoundEnabled={selectedNatureSound?.id !== 'none' && isNatureSoundPlaying}
+        natureSoundVolume={natureSoundVolume}
+        onNatureSoundVolumeChange={updateNatureSoundVolume}
+        natureSoundName={selectedNatureSound?.name}
+        natureSoundIcon={selectedNatureSound?.icon}
+        onOpenNatureSoundModal={handleNatureSoundToggle}
         voiceVolume={voiceVolume}
         onVoiceVolumeChange={updateVoiceVolume}
         playbackRate={playbackRate}
@@ -550,7 +678,6 @@ const PlayerPage: React.FC = () => {
         voiceId={displayVoiceId}
         voiceName={displayVoiceName}
         meditationType={loadedMeditation?.content_category || "custom"}
-        natureSoundName={selectedNatureSound?.name}
       />
     </Suspense>
   );
