@@ -1,6 +1,6 @@
 import React, { useCallback, memo, useState, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Play, Pause, RotateCcw, RotateCw, ChevronUp, Volume2, VolumeX, Volume1, Music } from 'lucide-react';
+import { X, Play, Pause, RotateCcw, RotateCw, ChevronUp, Music, Mic } from 'lucide-react';
 import { ICONS } from '../../constants';
 
 /**
@@ -51,11 +51,13 @@ interface VolumeSliderProps {
   onChange: (value: number) => void;
   label: string;
   icon: React.ReactNode;
+  /** Icon shown at top of slider to indicate what this controls (mic, nature, music) */
+  typeIcon: React.ReactNode;
   color: 'cyan' | 'emerald' | 'blue';
   disabled?: boolean;
 }
 
-const PremiumVolumeSlider = memo(({ value, onChange, label, icon, color, disabled = false }: VolumeSliderProps) => {
+const PremiumVolumeSlider = memo(({ value, onChange, label, icon, typeIcon, color, disabled = false }: VolumeSliderProps) => {
   const sliderRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
 
@@ -113,20 +115,17 @@ const PremiumVolumeSlider = memo(({ value, onChange, label, icon, color, disable
     (e.target as HTMLElement).releasePointerCapture(e.pointerId);
   }, []);
 
-  // Get volume icon based on level
-  const VolumeIcon = value === 0 ? VolumeX : value < 0.5 ? Volume1 : Volume2;
-
   return (
-    <div className={`flex flex-col items-center gap-2 ${disabled ? 'opacity-40 pointer-events-none' : ''}`}>
-      {/* Volume level icon */}
+    <div className={`flex flex-col items-center gap-1.5 ${disabled ? 'opacity-40 pointer-events-none' : ''}`}>
+      {/* Type indicator icon (mic, nature, music) */}
       <div className={`p-1.5 rounded-full ${scheme.iconBg}`}>
-        <VolumeIcon className={`w-3.5 h-3.5 ${scheme.text}`} />
+        {typeIcon}
       </div>
 
-      {/* Slider track */}
+      {/* Slider track - responsive height */}
       <div
         ref={sliderRef}
-        className={`relative w-8 h-28 rounded-full ${scheme.track} cursor-pointer touch-none overflow-hidden`}
+        className={`relative w-7 h-20 sm:w-8 sm:h-24 rounded-full ${scheme.track} cursor-pointer touch-none overflow-hidden`}
         style={{
           boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)',
         }}
@@ -263,7 +262,7 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
   }, [onSeek, duration]);
 
   return (
-    <div className="fixed inset-0 z-[100] w-full overflow-hidden bg-[#020617]">
+    <div className="fixed inset-0 z-[100] w-full overflow-y-auto overflow-x-hidden bg-[#020617]">
       {/* Animated gradient background - deep blue/cyan theme */}
       <motion.div
         className="absolute inset-0"
@@ -281,8 +280,8 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
       {/* Floating particles */}
       <FloatingParticles />
 
-      {/* Content */}
-      <div className="relative z-10 flex min-h-[100dvh] flex-col items-center justify-between px-4 sm:px-6 pb-12 sm:pb-16 md:pb-20 pt-16 sm:pt-14 safe-top safe-bottom">
+      {/* Content - use min-h-fit when controls expanded to prevent cropping */}
+      <div className={`relative z-10 flex flex-col items-center justify-between px-4 sm:px-6 pt-16 sm:pt-14 safe-top safe-bottom ${showControls ? 'min-h-fit pb-8 sm:pb-12' : 'min-h-[100dvh] pb-12 sm:pb-16 md:pb-20'}`}>
         {/* Header with close button */}
         <div className="w-full mt-2">
           <motion.button
@@ -464,22 +463,22 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
                 transition={{ type: 'spring', damping: 25, stiffness: 300 }}
                 className="overflow-hidden"
               >
-                <div className="py-6 px-6 sm:px-8 rounded-3xl bg-white/[0.02] backdrop-blur-2xl border border-white/[0.06] shadow-[0_8px_40px_rgba(0,0,0,0.4)]">
+                <div className="py-4 px-4 sm:py-6 sm:px-8 rounded-3xl bg-white/[0.02] backdrop-blur-2xl border border-white/[0.06] shadow-[0_8px_40px_rgba(0,0,0,0.4)]">
                   {/* Sound Selection Buttons */}
-                  <div className="flex items-center justify-center gap-4 mb-6">
+                  <div className="flex items-center justify-center gap-3 sm:gap-4 mb-4 sm:mb-6">
                     {onBackgroundMusicToggle && (
                       <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={onBackgroundMusicToggle}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+                        className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 ${
                           backgroundMusicEnabled
                             ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30 shadow-[0_0_20px_rgba(59,130,246,0.2)]'
                             : 'bg-white/[0.03] text-white/50 border border-white/[0.05] hover:bg-white/[0.05] hover:text-white/70'
                         }`}
                       >
-                        <Music className="w-4 h-4" />
-                        <span className="max-w-[70px] truncate">
+                        <Music className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        <span className="max-w-[60px] sm:max-w-[70px] truncate">
                           {backgroundMusicEnabled ? backgroundTrackName || 'Music' : 'Music'}
                         </span>
                       </motion.button>
@@ -490,50 +489,53 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={onOpenNatureSoundModal}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+                        className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 ${
                           natureSoundEnabled
                             ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-[0_0_20px_rgba(52,211,153,0.2)]'
                             : 'bg-white/[0.03] text-white/50 border border-white/[0.05] hover:bg-white/[0.05] hover:text-white/70'
                         }`}
                       >
-                        {renderNatureIcon(natureSoundIcon, "w-4 h-4")}
-                        <span className="max-w-[70px] truncate">
+                        {renderNatureIcon(natureSoundIcon, "w-3.5 h-3.5 sm:w-4 sm:h-4")}
+                        <span className="max-w-[60px] sm:max-w-[70px] truncate">
                           {natureSoundEnabled ? natureSoundName || 'Nature' : 'Nature'}
                         </span>
                       </motion.button>
                     )}
                   </div>
 
-                  {/* Vertical Volume Sliders */}
-                  <div className="flex items-end justify-center gap-8 sm:gap-12">
+                  {/* Vertical Volume Sliders - responsive gap */}
+                  <div className="flex items-end justify-center gap-5 sm:gap-8">
                     {/* Voice Volume - Always shown */}
                     {onVoiceVolumeChange && (
                       <PremiumVolumeSlider
                         value={voiceVolume}
                         onChange={onVoiceVolumeChange}
                         label="Voice"
-                        icon={<Volume2 className="w-4 h-4 text-cyan-400" />}
+                        typeIcon={<Mic className="w-3.5 h-3.5 text-cyan-400" />}
+                        icon={<Mic className="w-4 h-4 text-cyan-400" />}
                         color="cyan"
                       />
                     )}
 
-                    {/* Nature Sound Volume - Only when enabled */}
+                    {/* Nature Sound Volume */}
                     {onNatureSoundVolumeChange && (
                       <PremiumVolumeSlider
                         value={natureSoundVolume}
                         onChange={onNatureSoundVolumeChange}
                         label={natureSoundEnabled ? (natureSoundName || 'Nature') : 'Nature'}
+                        typeIcon={<span className="text-emerald-400">{renderNatureIcon(natureSoundIcon, "w-3.5 h-3.5")}</span>}
                         icon={<span className="text-emerald-400">{renderNatureIcon(natureSoundIcon, "w-4 h-4")}</span>}
                         color="emerald"
                         disabled={!natureSoundEnabled}
                       />
                     )}
 
-                    {/* Background Music Volume - Only when enabled */}
+                    {/* Background Music Volume */}
                     <PremiumVolumeSlider
                       value={backgroundVolume}
                       onChange={onBackgroundVolumeChange}
                       label={backgroundMusicEnabled ? (backgroundTrackName || 'Music') : 'Music'}
+                      typeIcon={<Music className="w-3.5 h-3.5 text-blue-400" />}
                       icon={<Music className="w-4 h-4 text-blue-400" />}
                       color="blue"
                       disabled={!backgroundMusicEnabled}

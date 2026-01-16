@@ -1,5 +1,23 @@
-import React, { createContext, useContext, useState, useRef, useMemo, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useRef, useMemo, useCallback, ReactNode } from 'react';
 import { ScriptTimingMap } from '../../types';
+
+/**
+ * Data for a meditation that hasn't been saved yet.
+ * Stored in context so PlayerPage can save it when user confirms.
+ */
+export interface PendingMeditation {
+  prompt: string;
+  script: string;
+  voiceId: string;
+  voiceName: string;
+  backgroundTrackId?: string;
+  backgroundTrackName?: string;
+  natureSoundId?: string;
+  natureSoundName?: string;
+  durationSeconds: number;
+  audioTags?: string[];
+  base64Audio: string;
+}
 
 /**
  * AudioPlaybackContext - Separated from AppContext for performance
@@ -43,6 +61,11 @@ interface AudioPlaybackContextType {
   setVoiceVolume: (volume: number) => void;
   playbackRate: number;
   setPlaybackRate: (rate: number) => void;
+
+  // Pending meditation (for save-on-exit flow)
+  pendingMeditation: PendingMeditation | null;
+  setPendingMeditation: (data: PendingMeditation | null) => void;
+  clearPendingMeditation: () => void;
 }
 
 const AudioPlaybackContext = createContext<AudioPlaybackContextType | undefined>(undefined);
@@ -88,6 +111,10 @@ export const AudioPlaybackProvider: React.FC<AudioPlaybackProviderProps> = ({ ch
   const [voiceVolume, setVoiceVolume] = useState(0.7);
   const [playbackRate, setPlaybackRate] = useState(1.0);
 
+  // Pending meditation - for save-on-exit flow
+  const [pendingMeditation, setPendingMeditation] = useState<PendingMeditation | null>(null);
+  const clearPendingMeditation = useCallback(() => setPendingMeditation(null), []);
+
   // Audio refs - stable references, never change identity
   const audioContextRef = useRef<AudioContext | null>(null);
   const audioSourceRef = useRef<AudioBufferSourceNode | null>(null);
@@ -125,9 +152,12 @@ export const AudioPlaybackProvider: React.FC<AudioPlaybackProviderProps> = ({ ch
     setVoiceVolume,
     playbackRate,
     setPlaybackRate,
+    pendingMeditation,
+    setPendingMeditation,
+    clearPendingMeditation,
   }), [
     isPlaying, currentTime, duration, currentWordIndex, timingMap,
-    backgroundVolume, voiceVolume, playbackRate,
+    backgroundVolume, voiceVolume, playbackRate, pendingMeditation, clearPendingMeditation,
   ]);
 
   return (

@@ -59,7 +59,7 @@ function base64ToBlob(base64: string, mimeType: string): Blob {
   return new Blob([bytes], { type: mimeType });
 }
 import { throttleLeading } from './src/utils/debounce';
-import { supabase, signOut, createVoiceProfile, getUserVoiceProfiles, getVoiceProfileById, VoiceProfile as DBVoiceProfile, createVoiceClone, saveMeditationHistory, deleteMeditationHistory, MeditationHistory, updateAudioTagPreferences, AudioTagPreference, getMeditationAudioSignedUrl, toggleMeditationFavorite } from './lib/supabase';
+import { supabase, signOut, createVoiceProfile, getUserVoiceProfiles, getVoiceProfileById, VoiceProfile as DBVoiceProfile, createVoiceClone, deleteMeditationHistory, MeditationHistory, updateAudioTagPreferences, AudioTagPreference, getMeditationAudioSignedUrl, toggleMeditationFavorite } from './lib/supabase';
 import { checkIsAdmin } from './src/lib/adminSupabase';
 
 // Time-aware taglines for more personalized greeting experience
@@ -183,7 +183,8 @@ const App: React.FC = () => {
     natureSoundAudioRef,
     backgroundGainNodeRef,
     natureSoundGainNodeRef,
-    audioContextRef: sharedAudioContextRef
+    audioContextRef: sharedAudioContextRef,
+    setPendingMeditation,
   } = useAudioPlayback();
 
   // Streaming generation context - for early redirect to player while generating
@@ -441,21 +442,20 @@ const App: React.FC = () => {
         ).catch(err => console.warn('Failed to deduct credits:', err));
       }
 
-      // Save to history (include audio for cloned voices)
-      saveMeditationHistory(
-        meditationScript.substring(0, 100),
-        meditationScript,
-        voice.id,
-        voice.name,
-        backgroundTrack?.id,
-        backgroundTrack?.name,
-        Math.round(audioDuration),
-        audioTags.length > 0 ? audioTags : undefined,
-        base64, // Always save audio
-        undefined, // title (auto-generated)
-        selectedNatureSound?.id !== 'none' ? selectedNatureSound?.id : undefined,
-        selectedNatureSound?.id !== 'none' ? selectedNatureSound?.name : undefined
-      ).catch(err => console.warn('Failed to save history:', err));
+      // Store pending meditation for save-on-exit flow (user decides if they want to save)
+      setPendingMeditation({
+        prompt: meditationScript.substring(0, 100),
+        script: meditationScript,
+        voiceId: voice.id,
+        voiceName: voice.name,
+        backgroundTrackId: backgroundTrack?.id,
+        backgroundTrackName: backgroundTrack?.name,
+        natureSoundId: selectedNatureSound?.id !== 'none' ? selectedNatureSound?.id : undefined,
+        natureSoundName: selectedNatureSound?.id !== 'none' ? selectedNatureSound?.name : undefined,
+        durationSeconds: Math.round(audioDuration),
+        audioTags: audioTags.length > 0 ? audioTags : undefined,
+        base64Audio: base64,
+      });
 
       source.onended = () => {
         setIsPlaying(false);
@@ -2064,21 +2064,20 @@ const App: React.FC = () => {
         ).catch(err => console.warn('Failed to deduct credits:', err));
       }
 
-      // Save to history (include audio for cloned voices)
-      saveMeditationHistory(
-        originalPrompt,
-        scriptToPlay,
-        selectedVoice.id,
-        selectedVoice.name,
-        selectedBackgroundTrack?.id,
-        selectedBackgroundTrack?.name,
-        Math.round(audioBuffer.duration),
-        audioTagsEnabled && selectedAudioTags.length > 0 ? selectedAudioTags : undefined,
-        base64, // Always save audio, even for non-cloned voices
-        undefined, // title (auto-generated)
-        selectedNatureSound?.id !== 'none' ? selectedNatureSound?.id : undefined,
-        selectedNatureSound?.id !== 'none' ? selectedNatureSound?.name : undefined
-      ).catch(err => console.warn('Failed to save meditation history:', err));
+      // Store pending meditation for save-on-exit flow (user decides if they want to save)
+      setPendingMeditation({
+        prompt: originalPrompt,
+        script: scriptToPlay,
+        voiceId: selectedVoice.id,
+        voiceName: selectedVoice.name,
+        backgroundTrackId: selectedBackgroundTrack?.id,
+        backgroundTrackName: selectedBackgroundTrack?.name,
+        natureSoundId: selectedNatureSound?.id !== 'none' ? selectedNatureSound?.id : undefined,
+        natureSoundName: selectedNatureSound?.id !== 'none' ? selectedNatureSound?.name : undefined,
+        durationSeconds: Math.round(audioBuffer.duration),
+        audioTags: audioTagsEnabled && selectedAudioTags.length > 0 ? selectedAudioTags : undefined,
+        base64Audio: base64,
+      });
 
       source.onended = () => {
         setIsPlaying(false);

@@ -3,8 +3,9 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useApp } from '../contexts/AppContext';
 import { useAudioPlayback } from '../contexts/AudioPlaybackContext';
 import { trackAudio } from '../lib/tracking';
-import { getMeditationById, getMeditationAudioSignedUrl, MeditationHistory } from '../../lib/supabase';
+import { getMeditationById, getMeditationAudioSignedUrl, MeditationHistory, saveMeditationHistory } from '../../lib/supabase';
 import { BACKGROUND_TRACKS, NATURE_SOUNDS } from '../../constants';
+import SaveMeditationDialog from '../../components/SaveMeditationDialog';
 
 const MeditationPlayer = lazy(() => import('../../components/V0MeditationPlayer'));
 
@@ -38,6 +39,9 @@ const PlayerPage: React.FC = () => {
     // iOS volume fix: Use GainNodes instead of HTMLAudioElement.volume
     backgroundGainNodeRef,
     natureSoundGainNodeRef,
+    // Pending meditation for save-on-exit flow
+    pendingMeditation,
+    clearPendingMeditation,
   } = useAudioPlayback();
 
   // Nature sound volume state (separate from background music)
@@ -52,6 +56,10 @@ const PlayerPage: React.FC = () => {
   const [isLoadingMeditation, setIsLoadingMeditation] = useState(false);
   const [loadedMeditation, setLoadedMeditation] = useState<MeditationHistory | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+
+  // Save dialog state (for new meditations only)
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Update time tracking
   const updatePlaybackTime = useCallback(() => {
@@ -205,9 +213,9 @@ const PlayerPage: React.FC = () => {
     handleSeek(newTime);
   }, [currentTime, duration, handleSeek]);
 
-  // Handle close
-  const handleClose = useCallback(() => {
-    // Stop playback
+  // Stop all audio playback (shared by close, save, and discard)
+  const stopAllAudio = useCallback(() => {
+    // Stop voice playback
     if (audioSourceRef.current) {
       try {
         audioSourceRef.current.stop();
@@ -230,10 +238,69 @@ const PlayerPage: React.FC = () => {
       natureSoundAudioRef.current.currentTime = 0;
     }
     setIsNatureSoundPlaying(false);
+  }, [audioSourceRef, backgroundAudioRef, natureSoundAudioRef, setIsPlaying]);
 
-    // Navigate back home
+  // Handle close - shows save dialog for new meditations
+  const handleClose = useCallback(() => {
+    stopAllAudio();
+
+    // If this is a new meditation (not loaded from library), show save dialog
+    if (pendingMeditation && !id) {
+      setShowSaveDialog(true);
+    } else {
+      // Already saved meditation or no pending data - just navigate
+      navigate('/');
+    }
+  }, [navigate, pendingMeditation, id, stopAllAudio]);
+
+  // Handle save meditation with custom title
+  const handleSaveMeditation = useCallback(async (title: string) => {
+    if (!pendingMeditation) {
+      navigate('/');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await saveMeditationHistory(
+        pendingMeditation.prompt,
+        pendingMeditation.script,
+        pendingMeditation.voiceId,
+        pendingMeditation.voiceName,
+        pendingMeditation.backgroundTrackId,
+        pendingMeditation.backgroundTrackName,
+        pendingMeditation.durationSeconds,
+        pendingMeditation.audioTags,
+        pendingMeditation.base64Audio,
+        title, // Use the custom title
+        pendingMeditation.natureSoundId,
+        pendingMeditation.natureSoundName
+      );
+      clearPendingMeditation();
+      setShowSaveDialog(false);
+      navigate('/');
+    } catch (err) {
+      console.error('Failed to save meditation:', err);
+      // Still navigate away even if save fails
+      clearPendingMeditation();
+      setShowSaveDialog(false);
+      navigate('/');
+    } finally {
+      setIsSaving(false);
+    }
+  }, [pendingMeditation, clearPendingMeditation, navigate]);
+
+  // Handle discard meditation (don't save)
+  const handleDiscardMeditation = useCallback(() => {
+    clearPendingMeditation();
+    setShowSaveDialog(false);
     navigate('/');
-  }, [navigate, audioSourceRef, backgroundAudioRef, natureSoundAudioRef, setIsPlaying]);
+  }, [clearPendingMeditation, navigate]);
+
+  // Handle cancel (go back to player)
+  const handleCancelSave = useCallback(() => {
+    setShowSaveDialog(false);
+  }, []);
 
   // Update voice volume - uses GainNode for proper Web Audio API control
   const updateVoiceVolume = useCallback((volume: number) => {
@@ -702,6 +769,16 @@ const PlayerPage: React.FC = () => {
         voiceId={displayVoiceId}
         voiceName={displayVoiceName}
         meditationType={loadedMeditation?.content_category || "custom"}
+      />
+
+      {/* Save meditation dialog - shown when closing a new meditation */}
+      <SaveMeditationDialog
+        isOpen={showSaveDialog}
+        defaultTitle={pendingMeditation?.prompt.substring(0, 50) || 'My Meditation'}
+        onSave={handleSaveMeditation}
+        onDiscard={handleDiscardMeditation}
+        onCancel={handleCancelSave}
+        isSaving={isSaving}
       />
     </Suspense>
   );
