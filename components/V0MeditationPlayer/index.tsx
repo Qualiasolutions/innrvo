@@ -39,45 +39,46 @@ const PARTICLE_COUNT = PREFERS_REDUCED_MOTION ? 3 : (IS_MOBILE ? 4 : 12);
 const ORBIT_PARTICLE_COUNT = PREFERS_REDUCED_MOTION ? 3 : (IS_MOBILE ? 4 : 10);
 
 /**
- * Compact Volume Slider - Mobile-optimized vertical control
+ * Premium Volume Slider - Minimalistic vertical control
+ * - Thin 3px track for elegant appearance
+ * - CSS transform animations for GPU acceleration
+ * - 44px touch container for proper touch targets
+ * - Circular thumb with subtle glow
  */
 interface VolumeSliderProps {
   value: number;
   onChange: (value: number) => void;
-  typeIcon: React.ReactNode;
   color: 'cyan' | 'emerald' | 'blue';
   disabled?: boolean;
 }
 
-const CompactVolumeSlider = memo(({ value, onChange, typeIcon, color, disabled = false }: VolumeSliderProps) => {
+const PremiumVolumeSlider = memo(({ value, onChange, color, disabled = false }: VolumeSliderProps) => {
   const sliderRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
 
-  const colorSchemes = {
+  // Refined color schemes with reduced visual noise
+  const schemes = {
     cyan: {
-      gradient: 'from-cyan-400 to-sky-500',
-      glow: 'rgba(34, 211, 238, 0.5)',
-      track: 'bg-cyan-500/20',
-      text: 'text-cyan-400',
-      iconBg: 'bg-cyan-500/10',
+      fill: 'bg-cyan-400',
+      track: 'bg-white/[0.06]',
+      thumb: 'bg-cyan-400',
+      glow: 'shadow-[0_0_8px_rgba(34,211,238,0.4)]',
     },
     emerald: {
-      gradient: 'from-emerald-400 to-teal-500',
-      glow: 'rgba(52, 211, 153, 0.5)',
-      track: 'bg-emerald-500/20',
-      text: 'text-emerald-400',
-      iconBg: 'bg-emerald-500/10',
+      fill: 'bg-emerald-400',
+      track: 'bg-white/[0.06]',
+      thumb: 'bg-emerald-400',
+      glow: 'shadow-[0_0_8px_rgba(52,211,153,0.4)]',
     },
     blue: {
-      gradient: 'from-blue-400 to-indigo-500',
-      glow: 'rgba(96, 165, 250, 0.5)',
-      track: 'bg-blue-500/20',
-      text: 'text-blue-400',
-      iconBg: 'bg-blue-500/10',
+      fill: 'bg-blue-400',
+      track: 'bg-white/[0.06]',
+      thumb: 'bg-blue-400',
+      glow: 'shadow-[0_0_8px_rgba(96,165,250,0.4)]',
     },
   };
 
-  const scheme = colorSchemes[color];
+  const scheme = schemes[color];
 
   const updateValueFromPointer = useCallback((e: React.PointerEvent | PointerEvent) => {
     if (!sliderRef.current) return;
@@ -85,7 +86,7 @@ const CompactVolumeSlider = memo(({ value, onChange, typeIcon, color, disabled =
     const y = e.clientY - rect.top;
     const height = rect.height;
     const newValue = Math.max(0, Math.min(1, 1 - y / height));
-    onChange(Math.round(newValue * 20) / 20);
+    onChange(Math.round(newValue * 20) / 20); // 5% increments
   }, [onChange]);
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
@@ -107,47 +108,180 @@ const CompactVolumeSlider = memo(({ value, onChange, typeIcon, color, disabled =
   }, []);
 
   return (
-    <div className={`flex flex-col items-center gap-1 ${disabled ? 'opacity-40 pointer-events-none' : ''}`}>
-      {/* Type indicator at top */}
-      <div className={`p-1.5 sm:p-2 rounded-full ${scheme.iconBg}`}>
-        {typeIcon}
-      </div>
-
-      {/* Slider track - taller for easier control */}
+    <div className={`flex flex-col items-center ${disabled ? 'opacity-30' : ''}`}>
+      {/* 44px touch container with 3px visual track */}
       <div
         ref={sliderRef}
-        className={`relative w-8 h-24 xs:h-28 sm:w-9 sm:h-32 md:w-10 md:h-36 rounded-full ${scheme.track} cursor-pointer touch-none overflow-hidden`}
-        style={{ boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)' }}
+        className="relative touch-none cursor-pointer flex items-center justify-center"
+        style={{ width: 44, height: IS_MOBILE ? 80 : 100 }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
       >
-        {/* Fill bar */}
-        <motion.div
-          className={`absolute bottom-0 left-0 right-0 rounded-full bg-gradient-to-t ${scheme.gradient}`}
-          initial={false}
-          animate={{
-            height: `${value * 100}%`,
-            boxShadow: `0 0 15px ${scheme.glow}`,
+        {/* Thin elegant track */}
+        <div className={`absolute w-[3px] h-full rounded-full ${scheme.track}`} />
+
+        {/* Fill - CSS scaleY for GPU acceleration */}
+        <div
+          className={`absolute bottom-0 w-[3px] rounded-full ${scheme.fill} origin-bottom`}
+          style={{
+            height: '100%',
+            transform: `scaleY(${value})`,
+            transition: 'transform 150ms cubic-bezier(0.4, 0, 0.2, 1)',
           }}
-          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         />
 
-        {/* Thumb */}
-        <motion.div
-          className="absolute left-1/2 -translate-x-1/2 w-6 h-2 sm:w-7 sm:h-2.5 rounded-full bg-white"
-          style={{ boxShadow: `0 0 10px ${scheme.glow}` }}
-          initial={false}
-          animate={{ bottom: `calc(${value * 100}% - 4px)` }}
-          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        {/* Circular thumb with subtle glow */}
+        <div
+          className={`absolute w-3.5 h-3.5 rounded-full ${scheme.thumb} ${scheme.glow}`}
+          style={{
+            bottom: `calc(${value * 100}% - 7px)`,
+            transition: 'bottom 150ms cubic-bezier(0.4, 0, 0.2, 1)',
+          }}
         />
       </div>
     </div>
   );
 });
 
-CompactVolumeSlider.displayName = 'CompactVolumeSlider';
+PremiumVolumeSlider.displayName = 'PremiumVolumeSlider';
+
+/**
+ * Premium Progress Bar - Minimalistic seek control
+ * - 2px default height, expands to 6px on interaction
+ * - CSS transform animations for GPU acceleration
+ * - Time preview tooltip on hover
+ * - Smooth thumb appearance on expand
+ */
+interface PremiumProgressBarProps {
+  progress: number;
+  currentTime: number;
+  duration: number;
+  onSeek: (time: number) => void;
+  disabled?: boolean;
+  formatTime: (seconds: number) => string;
+}
+
+const PremiumProgressBar = memo(({
+  progress,
+  currentTime,
+  duration,
+  onSeek,
+  disabled = false,
+  formatTime,
+}: PremiumProgressBarProps) => {
+  const barRef = useRef<HTMLDivElement>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isHovering, setIsHovering] = useState(false);
+  const [hoverPercent, setHoverPercent] = useState(0);
+
+  const handleClick = useCallback((e: React.MouseEvent) => {
+    if (disabled || !barRef.current) return;
+    const rect = barRef.current.getBoundingClientRect();
+    const percent = (e.clientX - rect.left) / rect.width;
+    onSeek(percent * duration);
+  }, [disabled, duration, onSeek]);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!barRef.current) return;
+    const rect = barRef.current.getBoundingClientRect();
+    const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    setHoverPercent(percent * 100);
+  }, []);
+
+  const handleMouseEnter = useCallback(() => {
+    if (!disabled) {
+      setIsHovering(true);
+      setIsExpanded(true);
+    }
+  }, [disabled]);
+
+  const handleMouseLeave = useCallback(() => {
+    setIsHovering(false);
+    setIsExpanded(false);
+  }, []);
+
+  const handleTouchStart = useCallback(() => {
+    if (!disabled) setIsExpanded(true);
+  }, [disabled]);
+
+  const handleTouchEnd = useCallback(() => {
+    setIsExpanded(false);
+  }, []);
+
+  const hoverTime = (hoverPercent / 100) * duration;
+
+  return (
+    <div className="relative w-full px-1">
+      {/* Time preview tooltip */}
+      <AnimatePresence>
+        {isHovering && !disabled && (
+          <motion.div
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 4 }}
+            transition={{ duration: 0.15 }}
+            className="absolute -top-8 px-2 py-1 rounded-md bg-white/10 backdrop-blur-sm text-xs text-white/80 font-mono pointer-events-none z-10"
+            style={{ left: `${hoverPercent}%`, transform: 'translateX(-50%)' }}
+          >
+            {formatTime(hoverTime)}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Progress bar container - expands on interaction */}
+      <div
+        ref={barRef}
+        className={`relative w-full rounded-full overflow-hidden ${
+          disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+        }`}
+        style={{
+          height: isExpanded ? 6 : 2,
+          transition: 'height 150ms cubic-bezier(0.4, 0, 0.2, 1)',
+          backgroundColor: 'rgba(255, 255, 255, 0.08)',
+        }}
+        onClick={handleClick}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        onMouseMove={handleMouseMove}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
+        {/* Fill - CSS scaleX for GPU acceleration */}
+        <div
+          className="absolute inset-y-0 left-0 bg-white/80 rounded-full origin-left"
+          style={{
+            width: '100%',
+            transform: `scaleX(${Math.max(progress, 0.1) / 100})`,
+            transition: 'transform 100ms linear',
+          }}
+        />
+
+        {/* Hover position indicator */}
+        {isHovering && !disabled && (
+          <div
+            className="absolute top-0 bottom-0 w-0.5 bg-white/40"
+            style={{ left: `${hoverPercent}%` }}
+          />
+        )}
+
+        {/* Thumb - visible when expanded */}
+        <div
+          className={`absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow-[0_0_8px_rgba(255,255,255,0.4)] transition-opacity duration-150 ${
+            isExpanded ? 'opacity-100' : 'opacity-0'
+          }`}
+          style={{
+            left: `calc(${progress}% - 6px)`,
+            transition: 'left 100ms linear, opacity 150ms ease',
+          }}
+        />
+      </div>
+    </div>
+  );
+});
+
+PremiumProgressBar.displayName = 'PremiumProgressBar';
 
 interface MeditationPlayerProps {
   isPlaying: boolean;
@@ -211,12 +345,6 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   }, []);
-
-  const handleProgressClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const percent = (e.clientX - rect.left) / rect.width;
-    onSeek(percent * duration);
-  }, [onSeek, duration]);
 
   return (
     <div className="fixed inset-0 z-[100] bg-[#020617] overflow-hidden">
@@ -286,28 +414,15 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
             transition={{ delay: 0.5 }}
             className="flex-shrink-0 w-full max-w-md mx-auto space-y-3 sm:space-y-4 pb-2 sm:pb-4"
           >
-            {/* Progress bar */}
-            <div className="relative px-1">
-              <div
-                className="absolute -inset-1 rounded-full bg-sky-500/20 blur-md transition-all"
-                style={{ width: isBuffering ? '0%' : `${Math.max(progress, 1)}%` }}
-              />
-              <div
-                className={`relative h-1 sm:h-1.5 md:h-2 bg-white/10 rounded-full overflow-hidden group ${
-                  isBuffering ? 'cursor-not-allowed' : 'cursor-pointer'
-                }`}
-                onClick={isBuffering ? undefined : handleProgressClick}
-              >
-                <div
-                  className="absolute left-0 top-0 h-full bg-gradient-to-r from-sky-500/80 to-sky-500/80 rounded-full transition-all duration-100"
-                  style={{ width: `${progress}%` }}
-                />
-                <div
-                  className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-white rounded-full shadow-[0_0_10px_rgba(94,234,212,0.5)] opacity-0 group-hover:opacity-100 transition-opacity"
-                  style={{ left: `calc(${progress}% - 5px)` }}
-                />
-              </div>
-            </div>
+            {/* Progress bar - Premium minimalist design */}
+            <PremiumProgressBar
+              progress={progress}
+              currentTime={currentTime}
+              duration={duration}
+              onSeek={onSeek}
+              disabled={isBuffering}
+              formatTime={formatTime}
+            />
 
             {/* Playback controls */}
             <div className="flex items-center justify-center gap-4 sm:gap-6 md:gap-8">
@@ -396,7 +511,7 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
                   transition={{ type: 'spring', damping: 25, stiffness: 300 }}
                   className="overflow-hidden"
                 >
-                  <div className="py-3 px-3 sm:py-4 sm:px-6 rounded-2xl sm:rounded-3xl bg-white/[0.02] backdrop-blur-xl border border-white/[0.06]">
+                  <div className="py-4 px-4 sm:px-6 rounded-2xl bg-white/[0.02] border border-white/[0.04]">
                     {/* Horizontal Layout: Labels Column + Sliders Row */}
                     <div className="flex items-center justify-center gap-4 sm:gap-6">
                       {/* Left: Sound Labels in Column */}
@@ -442,33 +557,30 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
                         )}
                       </div>
 
-                      {/* Right: Volume Sliders in Row */}
-                      <div className="flex items-end gap-6 sm:gap-8">
+                      {/* Right: Premium Volume Sliders */}
+                      <div className="flex items-end gap-4 sm:gap-6">
                         {/* Voice Volume Slider */}
                         {onVoiceVolumeChange && (
-                          <CompactVolumeSlider
+                          <PremiumVolumeSlider
                             value={voiceVolume}
                             onChange={onVoiceVolumeChange}
-                            typeIcon={<Mic className="w-5 h-5 sm:w-6 sm:h-6 text-cyan-400" />}
                             color="cyan"
                           />
                         )}
 
-                        {/* Nature Sound Slider - ONLY shown when active */}
+                        {/* Nature Sound Slider - only when active */}
                         {natureSoundEnabled && onNatureSoundVolumeChange && (
-                          <CompactVolumeSlider
+                          <PremiumVolumeSlider
                             value={natureSoundVolume}
                             onChange={onNatureSoundVolumeChange}
-                            typeIcon={<span className="text-emerald-400">{renderNatureIcon(natureSoundIcon, "w-5 h-5 sm:w-6 sm:h-6")}</span>}
                             color="emerald"
                           />
                         )}
 
                         {/* Music Volume Slider */}
-                        <CompactVolumeSlider
+                        <PremiumVolumeSlider
                           value={backgroundVolume}
                           onChange={onBackgroundVolumeChange}
-                          typeIcon={<Music className="w-5 h-5 sm:w-6 sm:h-6 text-blue-400" />}
                           color="blue"
                           disabled={!backgroundMusicEnabled}
                         />
