@@ -23,13 +23,15 @@ export interface ScriptTemplate {
   prompt: string;
 }
 
-// Voice providers
+// Voice providers - active TTS backends
 // - 'elevenlabs': Primary provider (best quality, industry-leading voice cloning)
-// - 'browser': Free browser TTS fallback
-// Legacy providers ('fish-audio', 'chatterbox') are marked for re-cloning
+// - 'browser': Free browser TTS fallback (Web Speech API)
 export type VoiceProvider = 'browser' | 'elevenlabs';
 
-// Legacy providers that need migration to ElevenLabs
+// Legacy providers - kept for migration support only
+// These providers are no longer used for new clones. Existing voices with these
+// providers are detected and prompted to re-clone with ElevenLabs.
+// See: needsReclone() in voiceService.ts, VoicesPage.tsx
 export type LegacyVoiceProvider = 'fish-audio' | 'chatterbox';
 
 export interface VoiceProfile {

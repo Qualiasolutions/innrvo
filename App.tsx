@@ -878,24 +878,24 @@ const App: React.FC = () => {
         return;
       }
 
-      // Convert base64 to blob for Chatterbox
+      // Convert base64 to blob for ElevenLabs
       const audioBlob = base64ToBlob(audioData, 'audio/webm');
 
-      // Convert WebM to WAV for Chatterbox (required format)
+      // Convert WebM to WAV for ElevenLabs (required format)
       const wavBlob = await convertToWAV(audioBlob);
 
-      // Clone voice with Chatterbox via Replicate
+      // Clone voice with ElevenLabs
       // Dynamically import for code splitting
-      const { chatterboxCloneVoice } = await import('./src/lib/edgeFunctions');
+      const { elevenLabsCloneVoice } = await import('./src/lib/edgeFunctions');
       let cloneResult: { voiceProfileId: string; voiceSampleUrl: string | null; elevenLabsVoiceId: string };
       try {
-        cloneResult = await chatterboxCloneVoice(
+        cloneResult = await elevenLabsCloneVoice(
           wavBlob,
           finalName,
           'Voice clone created with INrVO'
         );
       } catch (cloneError: unknown) {
-        console.error('Chatterbox voice clone failed:', cloneError);
+        console.error('ElevenLabs voice clone failed:', cloneError);
         setMicError(`Voice cloning failed: ${cloneError instanceof Error ? cloneError.message : 'Unknown error'}`);
         return;
       }

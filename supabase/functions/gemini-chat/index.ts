@@ -156,7 +156,7 @@ serve(async (req) => {
       CIRCUIT_CONFIGS.openrouter,
       async () => {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout for chat
+        const timeoutId = setTimeout(() => controller.abort(), 45000); // 45s timeout for chat (Gemini can take 8-15s under load)
 
         try {
           // Build messages array for OpenAI-compatible format

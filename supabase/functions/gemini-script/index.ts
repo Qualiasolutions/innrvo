@@ -468,7 +468,7 @@ serve(async (req) => {
       CIRCUIT_CONFIGS.openrouter,
       async () => {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000);
+        const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout for script generation
 
         try {
           const response = await fetch(

@@ -31,9 +31,6 @@ vi.mock('../../lib/supabase', () => ({
 // Mock edge functions - dynamically imported
 vi.mock('../../src/lib/edgeFunctions', () => ({
   elevenLabsCloneVoice: (...args: any[]) => mockElevenLabsCloneVoice(...args),
-  // Keep deprecated aliases pointing to the same mock
-  fishAudioCloneVoice: (...args: any[]) => mockElevenLabsCloneVoice(...args),
-  chatterboxCloneVoice: (...args: any[]) => mockElevenLabsCloneVoice(...args),
 }));
 
 // Mock audio converter

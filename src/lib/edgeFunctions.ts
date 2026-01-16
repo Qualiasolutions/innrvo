@@ -605,17 +605,3 @@ export async function isEdgeFunctionAvailable(): Promise<boolean> {
   return !!supabase && !!SUPABASE_URL;
 }
 
-// ============================================================================
-// Legacy exports for backwards compatibility during migration
-// These will be removed once all code is updated
-// ============================================================================
-
-/**
- * @deprecated Use elevenLabsCloneVoice instead
- */
-export const fishAudioCloneVoice = elevenLabsCloneVoice;
-
-/**
- * @deprecated Use elevenLabsCloneVoice instead
- */
-export const chatterboxCloneVoice = elevenLabsCloneVoice;
