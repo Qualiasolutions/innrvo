@@ -171,7 +171,7 @@ const MenuItem = memo(({
   isActive?: boolean;
   variant?: 'default' | 'danger' | 'accent' | 'admin';
 }) => {
-  const baseStyles = "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200 hover:translate-x-0.5";
+  const baseStyles = "w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] font-medium transition-all duration-200 hover:translate-x-0.5";
   const variantStyles = {
     default: `text-slate-300 hover:text-white hover:bg-white/[0.06] hover:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] ${isActive ? 'bg-white/[0.08] text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]' : ''}`,
     danger: 'text-slate-400 hover:text-rose-400 hover:bg-rose-500/[0.08] hover:shadow-[inset_0_0_0_1px_rgba(244,63,94,0.1)]',
@@ -305,13 +305,13 @@ export const Sidebar = memo(({
             exit="exit"
             className="fixed top-0 left-0 h-full w-[280px] z-[95] flex flex-col bg-[#0a0f1a] border-r border-white/[0.04]"
           >
-            {/* Header */}
-            <div className="flex items-center h-16 md:h-18 px-3 md:px-4 border-b border-white/[0.04]">
+            {/* Header - compact */}
+            <div className="flex items-center h-12 md:h-14 px-3 md:px-4 border-b border-white/[0.04]">
               <button
                 onClick={() => { handleNavigation('/'); }}
-                className="flex-1 h-full flex items-center justify-center py-1.5 hover:opacity-80 transition-opacity"
+                className="flex-1 h-full flex items-center justify-center py-1 hover:opacity-80 transition-opacity"
               >
-                <Logo className="h-11 md:h-12 w-auto max-w-[200px] md:max-w-[220px]" />
+                <Logo className="h-8 md:h-9 w-auto max-w-[180px] md:max-w-[200px]" />
               </button>
               <button
                 onClick={onClose}
@@ -321,12 +321,12 @@ export const Sidebar = memo(({
               </button>
             </div>
 
-            {/* New Chat Button */}
+            {/* New Chat Button - compact */}
             {user && (
-              <div className="px-3 py-3">
+              <div className="px-3 py-2">
                 <button
                   onClick={handleNewChat}
-                  className="group w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-white/[0.08] bg-white/[0.02] text-slate-200 text-[13px] font-medium hover:bg-white/[0.06] hover:border-sky-500/30 hover:text-white hover:shadow-[0_0_20px_rgba(34,211,238,0.1)] active:scale-[0.98] transition-all duration-200"
+                  className="group w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-white/[0.08] bg-white/[0.02] text-slate-200 text-[13px] font-medium hover:bg-white/[0.06] hover:border-sky-500/30 hover:text-white hover:shadow-[0_0_20px_rgba(34,211,238,0.1)] active:scale-[0.98] transition-all duration-200"
                 >
                   <span className="transition-transform duration-200 group-hover:rotate-90"><Icons.NewChat /></span>
                   <span>New chat</span>
@@ -370,11 +370,11 @@ export const Sidebar = memo(({
             </nav>
 
             {/* Divider */}
-            <div className="mx-4 my-2 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
+            <div className="mx-4 my-1.5 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
 
-            {/* Chat History Section */}
+            {/* Chat History Section - expanded */}
             <div className="flex-1 flex flex-col min-h-0 px-3">
-              <div className="flex items-center justify-between py-2 px-1">
+              <div className="flex items-center justify-between py-1.5 px-1">
                 <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                   Recent
                 </span>
@@ -425,12 +425,12 @@ export const Sidebar = memo(({
               </div>
             </div>
 
-            {/* Footer */}
-            <div className="px-3 py-3 border-t border-white/[0.04] space-y-1">
+            {/* Footer - compact */}
+            <div className="px-3 py-2 border-t border-white/[0.04] space-y-0.5">
               {user ? (
                 <>
                   {/* User info */}
-                  <div className="flex items-center gap-3 px-3 py-2 mb-1">
+                  <div className="flex items-center gap-2 px-3 py-1.5 mb-0.5">
                     <div className="w-7 h-7 rounded-full bg-gradient-to-br from-sky-500/20 to-sky-500/20 flex items-center justify-center text-sky-500">
                       <Icons.User />
                     </div>
@@ -448,7 +448,7 @@ export const Sidebar = memo(({
               ) : null}
 
               {/* Footer links */}
-              <div className="flex items-center justify-center gap-4 pt-2 text-[10px] text-slate-500">
+              <div className="flex items-center justify-center gap-4 pt-1 text-[10px] text-slate-500">
                 <button onClick={() => handleNavigation('/about')} className="hover:text-slate-300 transition-colors">
                   About
                 </button>
@@ -461,7 +461,7 @@ export const Sidebar = memo(({
                   Privacy
                 </button>
               </div>
-              <p className="text-[9px] text-slate-600 text-center pt-1">© {new Date().getFullYear()} Innrvo</p>
+              <p className="text-[9px] text-slate-600 text-center pt-0.5">© {new Date().getFullYear()} Innrvo</p>
             </div>
           </m.aside>
         </>
