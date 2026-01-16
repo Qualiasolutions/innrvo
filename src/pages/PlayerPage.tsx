@@ -1,8 +1,10 @@
-import React, { lazy, Suspense, useRef, useCallback, useEffect } from 'react';
+import React, { lazy, Suspense, useRef, useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useApp } from '../contexts/AppContext';
 import { useAudioPlayback } from '../contexts/AudioPlaybackContext';
 import { trackAudio } from '../lib/tracking';
+import { getMeditationById, getMeditationAudioSignedUrl, MeditationHistory } from '../../lib/supabase';
+import { BACKGROUND_TRACKS, NATURE_SOUNDS } from '../../constants';
 
 const MeditationPlayer = lazy(() => import('../../components/V0MeditationPlayer'));
 
@@ -11,7 +13,7 @@ const PlayerPage: React.FC = () => {
   const { id } = useParams<{ id?: string }>();
 
   // App state (low-frequency updates)
-  const { user, selectedVoice, selectedBackgroundTrack } = useApp();
+  const { user, selectedVoice, selectedBackgroundTrack, setSelectedBackgroundTrack, selectedNatureSound, setSelectedNatureSound } = useApp();
 
   // Audio playback state (high-frequency updates during playback)
   const {
@@ -20,6 +22,7 @@ const PlayerPage: React.FC = () => {
     currentTime,
     setCurrentTime,
     duration,
+    setDuration,
     backgroundVolume,
     setBackgroundVolume,
     voiceVolume,
@@ -38,7 +41,10 @@ const PlayerPage: React.FC = () => {
   const pauseOffsetRef = useRef(0);
   const playbackRateRef = useRef(playbackRate);
   const animationFrameRef = useRef<number | null>(null);
-  const [isMusicPlaying, setIsMusicPlaying] = React.useState(false);
+  const [isMusicPlaying, setIsMusicPlaying] = useState(false);
+  const [isLoadingMeditation, setIsLoadingMeditation] = useState(false);
+  const [loadedMeditation, setLoadedMeditation] = useState<MeditationHistory | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Update time tracking
   const updatePlaybackTime = useCallback(() => {
@@ -274,12 +280,98 @@ const PlayerPage: React.FC = () => {
     }
   }, [isMusicPlaying, selectedBackgroundTrack, backgroundVolume, audioContextRef, backgroundAudioRef]);
 
-  // If no audio buffer, redirect home
+  // Load saved meditation by ID
+  const loadSavedMeditation = useCallback(async (meditationId: string) => {
+    setIsLoadingMeditation(true);
+    setLoadError(null);
+
+    try {
+      // Fetch meditation metadata
+      const meditation = await getMeditationById(meditationId);
+      if (!meditation) {
+        setLoadError('Meditation not found');
+        navigate('/library');
+        return;
+      }
+
+      setLoadedMeditation(meditation);
+
+      // Get signed audio URL
+      if (!meditation.audio_url) {
+        setLoadError('No audio available for this meditation');
+        navigate('/library');
+        return;
+      }
+
+      const audioUrl = await getMeditationAudioSignedUrl(meditation.audio_url);
+      if (!audioUrl) {
+        setLoadError('Failed to load audio');
+        navigate('/library');
+        return;
+      }
+
+      // Initialize AudioContext if needed
+      if (!audioContextRef.current) {
+        audioContextRef.current = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+      }
+
+      // Create gain node for volume control if needed
+      if (!gainNodeRef.current) {
+        gainNodeRef.current = audioContextRef.current.createGain();
+        gainNodeRef.current.connect(audioContextRef.current.destination);
+      }
+
+      // Fetch and decode audio
+      const response = await fetch(audioUrl);
+      if (!response.ok) {
+        throw new Error('Failed to fetch audio file');
+      }
+
+      const arrayBuffer = await response.arrayBuffer();
+      const audioBuffer = await audioContextRef.current.decodeAudioData(arrayBuffer);
+
+      // Store in ref
+      audioBufferRef.current = audioBuffer;
+      setDuration(audioBuffer.duration);
+
+      // Restore background track if saved
+      if (meditation.background_track_id) {
+        const savedTrack = BACKGROUND_TRACKS.find(t => t.id === meditation.background_track_id);
+        if (savedTrack) {
+          setSelectedBackgroundTrack(savedTrack);
+        }
+      }
+
+      // Restore nature sound if saved
+      if (meditation.nature_sound_id) {
+        const savedNatureSound = NATURE_SOUNDS.find(s => s.id === meditation.nature_sound_id);
+        if (savedNatureSound) {
+          setSelectedNatureSound(savedNatureSound);
+        }
+      }
+
+    } catch (err) {
+      console.error('Failed to load meditation:', err);
+      setLoadError('Failed to load meditation audio');
+    } finally {
+      setIsLoadingMeditation(false);
+    }
+  }, [navigate, audioContextRef, audioBufferRef, gainNodeRef, setDuration, setSelectedBackgroundTrack, setSelectedNatureSound]);
+
+  // Load meditation when ID is present and no audio buffer exists
   useEffect(() => {
-    if (!audioBufferRef.current && !id) {
+    if (id && !audioBufferRef.current && !isLoadingMeditation) {
+      loadSavedMeditation(id);
+    }
+  }, [id, audioBufferRef, isLoadingMeditation, loadSavedMeditation]);
+
+  // If no audio buffer and no ID, redirect home
+  useEffect(() => {
+    // Only redirect if not loading and no ID to load
+    if (!audioBufferRef.current && !id && !isLoadingMeditation) {
       navigate('/');
     }
-  }, [audioBufferRef, id, navigate]);
+  }, [audioBufferRef, id, isLoadingMeditation, navigate]);
 
   // Handle visibility change (iOS suspends audio when tab/app backgrounded)
   useEffect(() => {
@@ -402,6 +494,35 @@ const PlayerPage: React.FC = () => {
     };
   }, [isPlaying, currentTime, duration, playbackRate, selectedVoice, handleTogglePlayback, handleClose, handleSkip]);
 
+  // Show loading state while fetching meditation
+  if (isLoadingMeditation) {
+    return (
+      <div className="fixed inset-0 z-[100] bg-[#0f172a] flex flex-col items-center justify-center gap-4">
+        <div className="w-10 h-10 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" />
+        <p className="text-slate-400 text-sm">Loading meditation...</p>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (loadError) {
+    return (
+      <div className="fixed inset-0 z-[100] bg-[#0f172a] flex flex-col items-center justify-center gap-4">
+        <p className="text-rose-400">{loadError}</p>
+        <button
+          onClick={() => navigate('/library')}
+          className="px-4 py-2 rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors"
+        >
+          Back to Library
+        </button>
+      </div>
+    );
+  }
+
+  // Use voice info from loaded meditation if available, otherwise from selected voice
+  const displayVoiceId = loadedMeditation?.voice_id || selectedVoice?.id;
+  const displayVoiceName = loadedMeditation?.voice_name || selectedVoice?.name;
+
   return (
     <Suspense fallback={
       <div className="fixed inset-0 z-[100] bg-[#0f172a] flex items-center justify-center">
@@ -426,9 +547,10 @@ const PlayerPage: React.FC = () => {
         playbackRate={playbackRate}
         onPlaybackRateChange={updatePlaybackRate}
         userId={user?.id}
-        voiceId={selectedVoice?.id}
-        voiceName={selectedVoice?.name}
-        meditationType="custom"
+        voiceId={displayVoiceId}
+        voiceName={displayVoiceName}
+        meditationType={loadedMeditation?.content_category || "custom"}
+        natureSoundName={selectedNatureSound?.name}
       />
     </Suspense>
   );

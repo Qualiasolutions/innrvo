@@ -451,7 +451,10 @@ const App: React.FC = () => {
         backgroundTrack?.name,
         Math.round(audioDuration),
         audioTags.length > 0 ? audioTags : undefined,
-        base64 // Always save audio
+        base64, // Always save audio
+        undefined, // title (auto-generated)
+        selectedNatureSound?.id !== 'none' ? selectedNatureSound?.id : undefined,
+        selectedNatureSound?.id !== 'none' ? selectedNatureSound?.name : undefined
       ).catch(err => console.warn('Failed to save history:', err));
 
       source.onended = () => {
@@ -2071,7 +2074,10 @@ const App: React.FC = () => {
         selectedBackgroundTrack?.name,
         Math.round(audioBuffer.duration),
         audioTagsEnabled && selectedAudioTags.length > 0 ? selectedAudioTags : undefined,
-        base64 // Always save audio, even for non-cloned voices
+        base64, // Always save audio, even for non-cloned voices
+        undefined, // title (auto-generated)
+        selectedNatureSound?.id !== 'none' ? selectedNatureSound?.id : undefined,
+        selectedNatureSound?.id !== 'none' ? selectedNatureSound?.name : undefined
       ).catch(err => console.warn('Failed to save meditation history:', err));
 
       source.onended = () => {

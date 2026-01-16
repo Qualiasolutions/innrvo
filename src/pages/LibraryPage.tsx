@@ -1,13 +1,13 @@
-import React, { useEffect, useState, useCallback, memo, useRef } from 'react';
+import React, { useEffect, useState, useCallback, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Pause, Trash2, Music, Clock, Mic, RotateCcw } from 'lucide-react';
+import { Play, Trash2, Music, Clock, Mic, RotateCcw } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useModals } from '../contexts/ModalContext';
 import { useApp } from '../contexts/AppContext';
 import AppLayout from '../layouts/AppLayout';
 import GlassCard from '../../components/GlassCard';
-import { getMeditationHistoryPaginated, getMeditationAudioSignedUrl, deleteMeditationHistory, MeditationHistory } from '../../lib/supabase';
+import { getMeditationHistoryPaginated, deleteMeditationHistory, MeditationHistory } from '../../lib/supabase';
 
 // Animation variants
 const containerVariants = {
@@ -31,26 +31,17 @@ const cardVariants = {
 // Meditation Card Component
 interface MeditationCardProps {
   meditation: MeditationHistory;
-  isPlaying: boolean;
-  onPlay: () => void;
-  onStop: () => void;
+  onNavigateToPlayer: () => void;
   onDelete: () => void;
   onRestore: () => void;
 }
 
 const MeditationCard: React.FC<MeditationCardProps> = memo(({
   meditation,
-  isPlaying,
-  onPlay,
-  onStop,
+  onNavigateToPlayer,
   onDelete,
   onRestore,
 }) => {
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [isLoadingAudio, setIsLoadingAudio] = useState(false);
-  const [audioError, setAudioError] = useState<string | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-
   const scriptPreview = meditation.title || meditation.enhanced_script || meditation.prompt || 'Untitled meditation';
   const formattedDate = new Date(meditation.created_at).toLocaleDateString('en-US', {
     month: 'short',
@@ -64,124 +55,35 @@ const MeditationCard: React.FC<MeditationCardProps> = memo(({
       ? `${Math.floor(meditation.audio_duration / 60)}:${String(meditation.audio_duration % 60).padStart(2, '0')}`
       : null;
 
-  // Load audio URL
-  const loadAudio = useCallback(async () => {
-    if (!meditation.audio_url || audioUrl) return;
-
-    setIsLoadingAudio(true);
-    setAudioError(null);
-    try {
-      const url = await getMeditationAudioSignedUrl(meditation.audio_url);
-      if (url) {
-        setAudioUrl(url);
-      } else {
-        setAudioError('Audio unavailable');
-      }
-    } catch (error) {
-      console.error('[MeditationCard] Failed to load audio:', error);
-      setAudioError('Failed to load audio');
-    } finally {
-      setIsLoadingAudio(false);
-    }
-  }, [meditation.audio_url, audioUrl]);
-
-  // Handle play/pause
-  const handlePlayPause = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-
-    if (isPlaying) {
-      audioRef.current?.pause();
-      onStop();
-      return;
-    }
-
-    if (!audioUrl) {
-      await loadAudio();
-    }
-
-    // Will trigger play once audioUrl is set via useEffect below
-    onPlay();
-  };
-
-  // Unified audio playback control - handles both play and stop
-  useEffect(() => {
-    if (!audioRef.current) return;
-
-    if (isPlaying && audioUrl) {
-      audioRef.current.play().catch(() => {
-        setAudioError('Playback failed');
-        onStop();
-      });
-    } else {
-      audioRef.current.pause();
-      if (!isPlaying) {
-        audioRef.current.currentTime = 0;
-      }
-    }
-  }, [audioUrl, isPlaying, onStop]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-      }
-    };
-  }, []);
-
   const hasAudio = !!meditation.audio_url;
+
+  // Handle play button click - navigate to player
+  const handlePlay = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (hasAudio) {
+      onNavigateToPlayer();
+    }
+  };
 
   return (
     <motion.div variants={cardVariants}>
       <GlassCard
-        className={`!p-4 border transition-all duration-300 hover:shadow-[0_8px_32px_rgba(0,0,0,0.25)] ${
-          isPlaying
-            ? 'border-emerald-500/40 bg-emerald-500/5 shadow-[0_0_30px_rgba(16,185,129,0.1)]'
-            : 'border-white/5 hover:border-white/15'
-        }`}
+        className="!p-4 border transition-all duration-300 hover:shadow-[0_8px_32px_rgba(0,0,0,0.25)] border-white/5 hover:border-white/15 cursor-pointer"
         hover={false}
+        onClick={hasAudio ? onNavigateToPlayer : undefined}
       >
-        {/* Hidden audio element */}
-        {audioUrl && (
-          <audio
-            ref={audioRef}
-            src={audioUrl}
-            onEnded={onStop}
-            onError={() => {
-              console.error('[MeditationCard] Audio playback error');
-              setAudioError('Audio playback error');
-              onStop();
-            }}
-          />
-        )}
-
-        {/* Audio error indicator */}
-        {audioError && (
-          <div className="mb-2 px-2 py-1 rounded bg-rose-500/10 text-rose-400 text-xs">
-            {audioError}
-          </div>
-        )}
-
         <div className="flex items-start gap-4">
           {/* Play Button */}
           <button
-            onClick={handlePlayPause}
-            disabled={!hasAudio || isLoadingAudio}
+            onClick={handlePlay}
+            disabled={!hasAudio}
             className={`shrink-0 w-12 h-12 rounded-xl flex items-center justify-center transition-all ${
               !hasAudio
                 ? 'bg-slate-500/10 text-slate-600 cursor-not-allowed'
-                : isPlaying
-                  ? 'bg-emerald-500/30 text-emerald-300 shadow-[0_0_20px_rgba(16,185,129,0.3)]'
-                  : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20'
+                : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20'
             }`}
           >
-            {isLoadingAudio ? (
-              <div className="w-5 h-5 border-2 border-emerald-400/30 border-t-emerald-400 rounded-full animate-spin" />
-            ) : isPlaying ? (
-              <Pause className="w-5 h-5" />
-            ) : (
-              <Play className="w-5 h-5 ml-0.5" />
-            )}
+            <Play className="w-5 h-5 ml-0.5" />
           </button>
 
           {/* Content */}
@@ -224,7 +126,6 @@ const MeditationCard: React.FC<MeditationCardProps> = memo(({
                 <RotateCcw className="w-4 h-4" />
               </button>
             )}
-{/* Favorites button hidden */}
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -295,7 +196,6 @@ const LibraryPage: React.FC = () => {
   const [meditations, setMeditations] = useState<MeditationHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [playingId, setPlayingId] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -351,14 +251,11 @@ const LibraryPage: React.FC = () => {
 
   // Handle delete
   const handleDelete = useCallback(async (id: string) => {
-    if (playingId === id) {
-      setPlayingId(null);
-    }
     const success = await deleteMeditationHistory(id);
     if (success) {
       setMeditations(prev => prev.filter(m => m.id !== id));
     }
-  }, [playingId]);
+  }, []);
 
   // Handle restore script
   const handleRestore = useCallback((meditation: MeditationHistory) => {
@@ -516,9 +413,7 @@ const LibraryPage: React.FC = () => {
                           <MeditationCard
                             key={meditation.id}
                             meditation={meditation}
-                            isPlaying={playingId === meditation.id}
-                            onPlay={() => setPlayingId(meditation.id)}
-                            onStop={() => setPlayingId(null)}
+                            onNavigateToPlayer={() => navigate(`/play/${meditation.id}`)}
                             onDelete={() => handleDelete(meditation.id)}
                             onRestore={() => handleRestore(meditation)}
                           />

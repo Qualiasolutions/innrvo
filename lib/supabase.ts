@@ -238,6 +238,8 @@ export interface MeditationHistory {
   voice_profile_id?: string;
   background_track_id?: string;
   background_track_name?: string;
+  nature_sound_id?: string;
+  nature_sound_name?: string;
   duration_seconds?: number;
   audio_duration?: number;
   audio_tags_used?: string[];
@@ -1010,7 +1012,9 @@ export const saveMeditationHistory = async (
   durationSeconds?: number,
   audioTagsUsed?: string[],
   audioBase64?: string,
-  title?: string
+  title?: string,
+  natureSoundId?: string,
+  natureSoundName?: string
 ): Promise<MeditationHistory | null> => {
   const user = await getCurrentUser();
   if (!user || !supabase) return null;
@@ -1030,6 +1034,8 @@ export const saveMeditationHistory = async (
       voice_name: voiceName,
       background_track_id: backgroundTrackId,
       background_track_name: backgroundTrackName,
+      nature_sound_id: natureSoundId,
+      nature_sound_name: natureSoundName,
       duration_seconds: durationSeconds,
       audio_tags_used: audioTagsUsed || [],
     })
@@ -1067,7 +1073,7 @@ export const saveMeditationHistory = async (
 };
 
 // Fields needed for meditation history display
-const MEDITATION_HISTORY_FIELDS = 'id, user_id, prompt, title, enhanced_script, voice_id, voice_name, voice_profile_id, background_track_name, duration_seconds, audio_duration, audio_url, is_favorite, content_category, content_sub_type, meditation_type, created_at, updated_at' as const;
+const MEDITATION_HISTORY_FIELDS = 'id, user_id, prompt, title, enhanced_script, voice_id, voice_name, voice_profile_id, background_track_id, background_track_name, nature_sound_id, nature_sound_name, duration_seconds, audio_duration, audio_url, is_favorite, content_category, content_sub_type, meditation_type, created_at, updated_at' as const;
 
 export const getMeditationHistory = async (limit = 50): Promise<MeditationHistory[]> => {
   const user = await getCurrentUser();
@@ -1087,6 +1093,28 @@ export const getMeditationHistory = async (limit = 50): Promise<MeditationHistor
     }
     return data || [];
   });
+};
+
+/**
+ * Get a single meditation by ID
+ * Used for loading saved meditations into the player
+ */
+export const getMeditationById = async (id: string): Promise<MeditationHistory | null> => {
+  const user = await getCurrentUser();
+  if (!user || !supabase) return null;
+
+  const { data, error } = await supabase
+    .from('meditation_history')
+    .select(MEDITATION_HISTORY_FIELDS)
+    .eq('id', id)
+    .eq('user_id', user.id)
+    .single();
+
+  if (error) {
+    console.error('Error fetching meditation by ID:', error);
+    return null;
+  }
+  return data;
 };
 
 /**

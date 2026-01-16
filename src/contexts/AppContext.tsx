@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useMemo, ReactNode } from 'react';
 import { VoiceProfile, CloningStatus, CreditInfo } from '../../types';
-import { VOICE_PROFILES, BACKGROUND_TRACKS, BackgroundTrack } from '../../constants';
+import { VOICE_PROFILES, BACKGROUND_TRACKS, BackgroundTrack, NATURE_SOUNDS, NatureSound } from '../../constants';
 import { getCurrentUser, getUserVoiceProfiles, VoiceProfile as DBVoiceProfile, getMeditationHistoryPaginated, MeditationHistory, getAudioTagPreferences } from '../../lib/supabase';
 import {
   getCachedVoiceProfiles,
@@ -46,6 +46,8 @@ interface AppContextType {
   // Audio track selection (not playback - that's in AudioPlaybackContext)
   selectedBackgroundTrack: BackgroundTrack;
   setSelectedBackgroundTrack: (track: BackgroundTrack) => void;
+  selectedNatureSound: NatureSound;
+  setSelectedNatureSound: (sound: NatureSound) => void;
 
   // Script
   script: string;
@@ -131,6 +133,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
 
   // Audio track selection (playback state moved to AudioPlaybackContext)
   const [selectedBackgroundTrack, setSelectedBackgroundTrack] = useState<BackgroundTrack>(BACKGROUND_TRACKS[0]);
+  const [selectedNatureSound, setSelectedNatureSound] = useState<NatureSound>(NATURE_SOUNDS[0]);
 
   // Script state
   const [script, setScript] = useState('');
@@ -333,6 +336,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     setCreditInfo,
     selectedBackgroundTrack,
     setSelectedBackgroundTrack,
+    selectedNatureSound,
+    setSelectedNatureSound,
     script,
     setScript,
     enhancedScript,
@@ -368,7 +373,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     removeVoiceFromCache,
   }), [
     user, availableVoices, selectedVoice, savedVoices,
-    cloningStatus, creditInfo, selectedBackgroundTrack,
+    cloningStatus, creditInfo, selectedBackgroundTrack, selectedNatureSound,
     script, enhancedScript, editableScript,
     selectedAudioTags, audioTagsEnabled, favoriteAudioTags, meditationHistory,
     isLoadingHistory, hasMoreHistory, loadMoreHistory, refreshHistory,
