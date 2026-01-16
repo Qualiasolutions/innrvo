@@ -306,12 +306,12 @@ export const Sidebar = memo(({
             className="fixed top-0 left-0 h-full w-[280px] z-[95] flex flex-col bg-[#0a0f1a] border-r border-white/[0.04]"
           >
             {/* Header */}
-            <div className="flex items-center h-14 md:h-16 px-3 md:px-4 border-b border-white/[0.04]">
+            <div className="flex items-center h-16 md:h-18 px-3 md:px-4 border-b border-white/[0.04]">
               <button
                 onClick={() => { handleNavigation('/'); }}
-                className="flex-1 h-full flex items-center justify-center py-2 hover:opacity-80 transition-opacity"
+                className="flex-1 h-full flex items-center justify-center py-1.5 hover:opacity-80 transition-opacity"
               >
-                <Logo className="h-8 md:h-10 w-auto max-w-[160px] md:max-w-[180px]" />
+                <Logo className="h-11 md:h-12 w-auto max-w-[200px] md:max-w-[220px]" />
               </button>
               <button
                 onClick={onClose}
