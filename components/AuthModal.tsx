@@ -126,21 +126,22 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, initi
         {/* Card */}
         <div className="bg-white/[0.03] backdrop-blur-sm border border-white/10 rounded-2xl p-6 md:p-8">
           {/* Header */}
-          <div className="text-center mb-6">
-            <div className={`w-12 h-12 mx-auto mb-4 rounded-full flex items-center justify-center ${
-              emailSent || signupComplete
-                ? 'bg-gradient-to-br from-emerald-500 to-sky-600'
-                : 'bg-gradient-to-br from-sky-500 to-sky-600'
-            }`}>
+          <div className="text-center mb-8">
+            {/* Logo or status icon */}
+            <div className="mb-5">
               {emailSent || signupComplete ? (
-                <Mail className="h-6 w-6 text-white" />
+                <div className="w-14 h-14 mx-auto rounded-full bg-gradient-to-br from-emerald-500/20 to-sky-600/20 border border-emerald-500/30 flex items-center justify-center">
+                  <CheckCircle className="h-7 w-7 text-emerald-400" />
+                </div>
               ) : mode === 'forgot' ? (
-                <Mail className="h-6 w-6 text-white" />
+                <div className="w-14 h-14 mx-auto rounded-full bg-white/[0.03] border border-white/10 flex items-center justify-center">
+                  <Mail className="h-7 w-7 text-sky-400" />
+                </div>
               ) : (
-                <ICONS.Logo className="h-6 text-white" />
+                <ICONS.Logo className="h-12 w-auto mx-auto" />
               )}
             </div>
-            <h2 className="text-xl font-semibold text-white mb-1">
+            <h2 className="text-xl font-semibold text-white mb-2">
               {signupComplete
                 ? 'Thanks for signing up!'
                 : emailSent
@@ -151,15 +152,15 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, initi
                       ? 'Create account'
                       : 'Reset password'}
             </h2>
-            <p className="text-sm text-white/50">
+            <p className="text-sm text-white/50 leading-relaxed">
               {signupComplete
                 ? `We've sent a verification link to ${email}`
                 : emailSent
                   ? `We've sent a reset link to ${email}`
                   : mode === 'signin'
-                    ? 'Sign in to access your voices'
+                    ? 'Sign in to continue your journey'
                     : mode === 'signup'
-                      ? 'Save your personalized voices'
+                      ? 'Start your meditation journey'
                       : 'Enter your email to receive a reset link'}
             </p>
           </div>
@@ -181,14 +182,14 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, initi
                   setMode('signin');
                   resetForm();
                 }}
-                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-sky-500 to-sky-500 text-white font-medium text-sm hover:from-sky-500 hover:to-sky-500 active:scale-[0.98] transition-all shadow-lg shadow-sky-500/20"
+                className="w-full py-3.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-white font-medium text-sm active:scale-[0.98] transition-all"
               >
                 Back to Sign In
               </button>
             </>
           ) : emailSent ? (
             <>
-              <p className="text-sm text-white/60 text-center mb-4">
+              <p className="text-sm text-white/50 text-center mb-6">
                 Didn't receive the email? Check your spam folder or try again.
               </p>
               <button
@@ -197,7 +198,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, initi
                   setMode('signin');
                   setError(null);
                 }}
-                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-sky-500 to-sky-500 text-white font-medium text-sm hover:from-sky-500 hover:to-sky-500 active:scale-[0.98] transition-all shadow-lg shadow-sky-500/20"
+                className="w-full py-3.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-white font-medium text-sm active:scale-[0.98] transition-all"
               >
                 Back to Sign In
               </button>
@@ -219,32 +220,32 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, initi
                       type="text"
                       value={firstName}
                       onChange={(e) => setFirstName(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-sky-500/50 focus:bg-white/[0.08] transition-all"
+                      className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-sm placeholder:text-white/40 focus:outline-none focus:border-sky-500/40 focus:bg-white/[0.06] transition-all"
                       placeholder="First name"
                     />
                     <input
                       type="text"
                       value={lastName}
                       onChange={(e) => setLastName(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-sky-500/50 focus:bg-white/[0.08] transition-all"
+                      className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-sm placeholder:text-white/40 focus:outline-none focus:border-sky-500/40 focus:bg-white/[0.06] transition-all"
                       placeholder="Last name"
                     />
                   </div>
                 )}
 
-                <div className="space-y-1">
+                <div className="space-y-1.5">
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     onBlur={() => setTouched(t => ({ ...t, email: true }))}
                     required
-                    className={`w-full px-4 py-3 rounded-xl bg-white/5 border text-white text-sm placeholder:text-white/30 focus:outline-none focus:bg-white/[0.08] transition-all ${
+                    className={`w-full px-4 py-3 rounded-xl bg-white/[0.04] border text-white text-sm placeholder:text-white/40 focus:outline-none focus:bg-white/[0.06] transition-all ${
                       touched.email && !isEmailValid
-                        ? 'border-rose-500/50 focus:border-rose-500/50'
-                        : 'border-white/10 focus:border-sky-500/50'
+                        ? 'border-rose-500/40 focus:border-rose-500/40'
+                        : 'border-white/[0.08] focus:border-sky-500/40'
                     }`}
-                    placeholder="Email"
+                    placeholder="Email address"
                   />
                   {touched.email && !isEmailValid && email && (
                     <p className="text-xs text-rose-400 pl-1">Please enter a valid email</p>
@@ -253,7 +254,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, initi
 
                 {/* Password field - only for signin/signup */}
                 {mode !== 'forgot' && (
-                  <div className="space-y-1">
+                  <div className="space-y-1.5">
                     <input
                       type="password"
                       value={password}
@@ -261,15 +262,15 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, initi
                       onBlur={() => setTouched(t => ({ ...t, password: true }))}
                       required
                       minLength={8}
-                      className={`w-full px-4 py-3 rounded-xl bg-white/5 border text-white text-sm placeholder:text-white/30 focus:outline-none focus:bg-white/[0.08] transition-all ${
+                      className={`w-full px-4 py-3 rounded-xl bg-white/[0.04] border text-white text-sm placeholder:text-white/40 focus:outline-none focus:bg-white/[0.06] transition-all ${
                         touched.password && !isPasswordValid
-                          ? 'border-rose-500/50 focus:border-rose-500/50'
-                          : 'border-white/10 focus:border-sky-500/50'
+                          ? 'border-rose-500/40 focus:border-rose-500/40'
+                          : 'border-white/[0.08] focus:border-sky-500/40'
                       }`}
-                      placeholder="Password (min 8 characters)"
+                      placeholder="Password"
                     />
                     {mode === 'signup' && password && (
-                      <div className="flex items-center gap-2 pl-1">
+                      <div className="flex items-center gap-2 pt-1">
                         <div className="flex gap-1 flex-1">
                           {[1, 2, 3, 4, 5].map((level) => (
                             <div
@@ -285,7 +286,8 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, initi
                         <span className={`text-xs ${
                           passwordStrength.score <= 1 ? 'text-rose-400' :
                           passwordStrength.score <= 2 ? 'text-amber-400' :
-                          'text-sky-500'
+                          passwordStrength.score <= 3 ? 'text-sky-400' :
+                          'text-emerald-400'
                         }`}>
                           {passwordStrength.label}
                         </span>
@@ -299,7 +301,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, initi
 
                 {/* Forgot password link - only in signin mode */}
                 {mode === 'signin' && (
-                  <div className="text-right">
+                  <div className="flex justify-end">
                     <button
                       type="button"
                       onClick={() => {
@@ -307,7 +309,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, initi
                         setError(null);
                         setTouched({ email: false, password: false });
                       }}
-                      className="text-xs text-white/40 hover:text-sky-500 transition-colors"
+                      className="text-xs text-white/40 hover:text-sky-400 transition-colors"
                     >
                       Forgot password?
                     </button>
@@ -317,7 +319,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, initi
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3.5 rounded-xl bg-gradient-to-r from-sky-500 to-sky-500 text-white font-medium text-sm hover:from-sky-500 hover:to-sky-500 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-sky-500/20"
+                  className="w-full py-3.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-white font-medium text-sm active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? (
                     <div className="flex items-center justify-center gap-2">
@@ -385,16 +387,16 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, initi
           {/* Divider and Guest mode - hide when email sent or signup complete */}
           {!emailSent && !signupComplete && (
             <>
-              <div className="my-5 flex items-center gap-3">
-                <div className="flex-1 h-px bg-white/10" />
+              <div className="my-6 flex items-center gap-3">
+                <div className="flex-1 h-px bg-white/[0.06]" />
                 <span className="text-xs text-white/30">or</span>
-                <div className="flex-1 h-px bg-white/10" />
+                <div className="flex-1 h-px bg-white/[0.06]" />
               </div>
 
               {/* Guest mode */}
               <button
                 onClick={onClose}
-                className="w-full py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-sm transition-all"
+                className="w-full py-3 rounded-xl bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.08] text-white/60 hover:text-white text-sm transition-all"
               >
                 Continue as Guest
               </button>
