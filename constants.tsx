@@ -1038,8 +1038,8 @@ export function getSuggestedTags(prompt: string): string[] {
 // ============================================================================
 
 export const ICONS = {
-  Logo: ({ className = "h-8" }: { className?: string }) => (
-    <img src="/logo.png" alt="Innrvo" className={`${className} transition-all duration-300`} />
+  Logo: ({ className = "h-8 w-auto max-w-full" }: { className?: string }) => (
+    <img src="/logo.png" alt="Innrvo" className={`${className} object-contain transition-all duration-300`} />
   ),
 
   // Duotone Sparkle with gradient

@@ -306,16 +306,16 @@ export const Sidebar = memo(({
             className="fixed top-0 left-0 h-full w-[280px] z-[95] flex flex-col bg-[#0a0f1a] border-r border-white/[0.04]"
           >
             {/* Header */}
-            <div className="flex items-center justify-between h-14 px-4 border-b border-white/[0.04]">
+            <div className="flex items-center h-14 md:h-16 px-3 md:px-4 border-b border-white/[0.04]">
               <button
                 onClick={() => { handleNavigation('/'); }}
-                className="flex-1 flex items-center justify-center hover:opacity-80 transition-opacity"
+                className="flex-1 h-full flex items-center justify-center py-2 hover:opacity-80 transition-opacity"
               >
-                <Logo className="h-9 text-white" />
+                <Logo className="h-8 md:h-10 w-auto max-w-[160px] md:max-w-[180px]" />
               </button>
               <button
                 onClick={onClose}
-                className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.06] transition-all"
+                className="flex-shrink-0 w-9 h-9 md:w-8 md:h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.06] transition-all"
               >
                 <Icons.Close />
               </button>
