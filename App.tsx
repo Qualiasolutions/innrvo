@@ -506,6 +506,33 @@ const App: React.FC = () => {
     }
   }, [searchParams, setSearchParams, setShowAuthModal, openAuthModalWithMode]);
 
+  // Handle template selection - auto-trigger generation when coming from templates page
+  useEffect(() => {
+    const isFromTemplate = searchParams.get('template') === 'true';
+
+    if (isFromTemplate && script.trim()) {
+      // Clean up URL param immediately
+      searchParams.delete('template');
+      setSearchParams(searchParams, { replace: true });
+
+      // If user has a voice selected, show the script preview for generation
+      // If no voice, they'll need to select one first (handleGenerateAndPlay handles this)
+      if (selectedVoice) {
+        // Use the template prompt directly as the editable script
+        setEditableScript(script);
+        setOriginalPrompt(script);
+        setShowScriptPreview(true);
+      } else {
+        // No voice selected - prompt to clone/select voice
+        toast.info('Select a voice to generate your meditation', {
+          description: 'Clone or choose a voice to bring your template to life',
+        });
+        setShowCloneModal(true);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, script, selectedVoice]);
+
   // Fetch meditation history when library opens
   useEffect(() => {
     if (showLibrary && user && meditationHistory.length === 0) {

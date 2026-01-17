@@ -103,7 +103,8 @@ const TemplatesPage: React.FC = () => {
     incrementTemplateUsage(templateId);
     setScript(prompt);
     setRestoredScript(prompt);
-    navigate('/');
+    // Navigate with template flag to trigger auto-generation
+    navigate('/?template=true');
   };
 
   // Calculate total templates across all categories
