@@ -24,9 +24,9 @@ const renderNatureIcon = (iconName: string | undefined, className: string = "w-4
   return <ICONS.Leaf className={className} />;
 };
 
-// Cloud icon for nature sounds toggle button
-const CloudIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
-  <ICONS.Cloud className={className} />
+// Cloud with rain icon for nature sounds toggle button
+const CloudRainIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
+  <ICONS.CloudRain className={className} />
 );
 
 // Mobile detection for performance optimization
@@ -451,7 +451,7 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
                   }`}
                   aria-label="Nature sounds"
                 >
-                  <CloudIcon className="h-4 w-4 sm:h-5 sm:w-5" />
+                  <CloudRainIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                 </motion.button>
               )}
 

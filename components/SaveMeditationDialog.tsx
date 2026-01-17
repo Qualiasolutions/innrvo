@@ -102,35 +102,32 @@ const SaveMeditationDialog: React.FC<SaveMeditationDialogProps> = ({
                 />
               </div>
 
-              {/* Actions */}
-              <div className="flex flex-col gap-3">
-                {/* Save Button */}
-                <button
-                  onClick={handleSave}
-                  disabled={isSaving}
-                  className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-sky-600 hover:bg-sky-500 disabled:bg-sky-600/50 text-white font-medium rounded-xl transition-colors"
-                >
-                  {isSaving ? (
-                    <>
-                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="w-5 h-5" />
-                      Save
-                    </>
-                  )}
-                </button>
-
-                {/* Don't Save Button */}
+              {/* Actions - Icon buttons */}
+              <div className="flex items-center justify-center gap-4">
+                {/* Don't Save Button (icon only) */}
                 <button
                   onClick={onDiscard}
                   disabled={isSaving}
-                  className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-300 hover:text-white font-medium rounded-xl transition-colors"
+                  className="flex items-center justify-center w-12 h-12 bg-slate-800 hover:bg-rose-600/20 hover:border-rose-500/50 disabled:opacity-50 text-slate-400 hover:text-rose-400 rounded-full border border-white/10 transition-all"
+                  aria-label="Don't save"
+                  title="Don't Save"
                 >
                   <Trash2 className="w-5 h-5" />
-                  Don't Save
+                </button>
+
+                {/* Save Button (icon only) */}
+                <button
+                  onClick={handleSave}
+                  disabled={isSaving}
+                  className="flex items-center justify-center w-14 h-14 bg-sky-600 hover:bg-sky-500 disabled:bg-sky-600/50 text-white rounded-full shadow-lg shadow-sky-500/25 transition-all"
+                  aria-label="Save"
+                  title="Save"
+                >
+                  {isSaving ? (
+                    <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <Save className="w-6 h-6" />
+                  )}
                 </button>
               </div>
             </div>
