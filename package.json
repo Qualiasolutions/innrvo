@@ -13,7 +13,9 @@
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "deploy:fn": "supabase functions deploy --project-ref ygweconeysctxpjjnehy",
+    "deploy:fn:all": "supabase functions deploy --project-ref ygweconeysctxpjjnehy --all"
   },
   "dependencies": {
     "@google/genai": "^1.34.0",

@@ -1,0 +1,51 @@
+# Supabase Configuration
+# https://supabase.com/docs/guides/cli/config
+
+[project]
+id = "ygweconeysctxpjjnehy"
+
+# =============================================================================
+# Edge Functions Configuration
+# =============================================================================
+# verify_jwt = false means Supabase won't verify JWT at its layer.
+# These functions do their own auth via supabase.auth.getUser(token).
+# This prevents 401 errors when Supabase's JWT verification is stricter
+# than our app's token handling.
+
+[functions.gemini-chat]
+verify_jwt = false
+
+[functions.gemini-script]
+verify_jwt = false
+
+[functions.gemini-live-token]
+verify_jwt = false
+
+[functions.generate-speech]
+verify_jwt = false
+
+[functions.elevenlabs-clone]
+verify_jwt = false
+
+[functions.elevenlabs-tts]
+verify_jwt = false
+
+[functions.rag-service]
+verify_jwt = false
+
+[functions.delete-user-data]
+verify_jwt = false
+
+[functions.export-user-data]
+verify_jwt = false
+
+[functions.import-elevenlabs-history]
+verify_jwt = false
+
+# Health check doesn't need auth
+[functions.health]
+verify_jwt = false
+
+# Auth emails webhook - no JWT (called by Supabase Auth)
+[functions.auth-emails]
+verify_jwt = false
