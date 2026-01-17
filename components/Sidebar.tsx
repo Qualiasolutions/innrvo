@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React, { memo, useState } from 'react';
 import { m, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 
@@ -154,6 +154,11 @@ const Icons = {
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
       <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6" />
     </svg>
+  ),
+  ChevronUp: () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <path d="M18 15l-6-6-6 6" />
+    </svg>
   )
 };
 
@@ -237,6 +242,23 @@ const ChatItem = memo(({
 
 ChatItem.displayName = 'ChatItem';
 
+// User menu slide-up animation variants
+const userMenuVariants = {
+  hidden: { opacity: 0, y: 8, scale: 0.95 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { type: 'spring' as const, damping: 25, stiffness: 300 }
+  },
+  exit: {
+    opacity: 0,
+    y: 8,
+    scale: 0.95,
+    transition: { duration: 0.15 }
+  }
+};
+
 // Main Sidebar component
 export const Sidebar = memo(({
   isOpen,
@@ -255,9 +277,11 @@ export const Sidebar = memo(({
   isAdmin = false
 }: SidebarProps) => {
   const navigate = useNavigate();
+  const [showUserMenu, setShowUserMenu] = useState(false);
 
   const handleNavigation = (path: string) => {
     onClose();
+    setShowUserMenu(false);
     navigate(path);
   };
 
@@ -336,11 +360,6 @@ export const Sidebar = memo(({
 
             {/* Navigation */}
             <nav className="px-3 py-2 space-y-0.5">
-              <MenuItem
-                icon={Icons.HowItWorks}
-                label="How it works"
-                onClick={() => handleNavigation('/how-it-works')}
-              />
               <MenuItem
                 icon={Icons.Library}
                 label="My Audios"
@@ -426,25 +445,50 @@ export const Sidebar = memo(({
             </div>
 
             {/* Footer - compact */}
-            <div className="px-3 py-2 border-t border-white/[0.04] space-y-0.5">
+            <div className="px-3 py-2 border-t border-white/[0.04] space-y-0.5 relative">
               {user ? (
-                <>
-                  {/* User info */}
-                  <div className="flex items-center gap-2 px-3 py-1.5 mb-0.5">
-                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-sky-500/20 to-sky-500/20 flex items-center justify-center text-sky-500">
+                <div className="relative">
+                  {/* User menu slide-up */}
+                  <AnimatePresence>
+                    {showUserMenu && (
+                      <m.div
+                        variants={userMenuVariants}
+                        initial="hidden"
+                        animate="visible"
+                        exit="exit"
+                        className="absolute bottom-full left-0 right-0 mb-2 p-1.5 rounded-xl bg-[#0f1520] border border-white/[0.08] shadow-xl shadow-black/30"
+                      >
+                        <MenuItem
+                          icon={Icons.HowItWorks}
+                          label="How it works"
+                          onClick={() => handleNavigation('/how-it-works')}
+                        />
+                        <MenuItem
+                          icon={Icons.SignOut}
+                          label="Sign out"
+                          onClick={() => { setShowUserMenu(false); onClose(); onSignOut(); }}
+                          variant="danger"
+                        />
+                      </m.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* User info - clickable */}
+                  <button
+                    onClick={() => setShowUserMenu(!showUserMenu)}
+                    className="w-full flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-white/[0.04] transition-all group"
+                  >
+                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-sky-500/20 to-purple-500/20 flex items-center justify-center text-sky-500">
                       <Icons.User />
                     </div>
-                    <span className="flex-1 text-[12px] text-slate-400 truncate">
+                    <span className="flex-1 text-[12px] text-slate-400 group-hover:text-slate-300 truncate text-left transition-colors">
                       {user.email}
                     </span>
-                  </div>
-                  <MenuItem
-                    icon={Icons.SignOut}
-                    label="Sign out"
-                    onClick={() => { onClose(); onSignOut(); }}
-                    variant="danger"
-                  />
-                </>
+                    <span className={`text-slate-500 transition-transform duration-200 ${showUserMenu ? 'rotate-180' : ''}`}>
+                      <Icons.ChevronUp />
+                    </span>
+                  </button>
+                </div>
               ) : null}
 
               {/* Footer links */}
