@@ -38,6 +38,7 @@ import { MusicSelectorModal } from './src/components/MusicSelectorModal';
 import { NatureSoundSelectorModal } from './src/components/NatureSoundSelectorModal';
 import { AudioTagsModal } from './src/components/AudioTagsModal';
 import OfflineIndicator from './components/OfflineIndicator';
+import SaveMeditationDialog from './components/SaveMeditationDialog';
 import { Sidebar } from './components/Sidebar';
 import { buildTimingMap, getCurrentWordIndex } from './src/lib/textSync';
 import { geminiService, blobToBase64 } from './geminiService';
@@ -59,7 +60,7 @@ function base64ToBlob(base64: string, mimeType: string): Blob {
   return new Blob([bytes], { type: mimeType });
 }
 import { throttleLeading } from './src/utils/debounce';
-import { supabase, signOut, createVoiceProfile, getUserVoiceProfiles, getVoiceProfileById, VoiceProfile as DBVoiceProfile, createVoiceClone, deleteMeditationHistory, MeditationHistory, updateAudioTagPreferences, AudioTagPreference, getMeditationAudioSignedUrl, toggleMeditationFavorite } from './lib/supabase';
+import { supabase, signOut, createVoiceProfile, getUserVoiceProfiles, getVoiceProfileById, VoiceProfile as DBVoiceProfile, createVoiceClone, deleteMeditationHistory, MeditationHistory, updateAudioTagPreferences, AudioTagPreference, getMeditationAudioSignedUrl, toggleMeditationFavorite, saveMeditationHistory } from './lib/supabase';
 import { checkIsAdmin } from './src/lib/adminSupabase';
 
 // Time-aware taglines for more personalized greeting experience
@@ -185,6 +186,8 @@ const App: React.FC = () => {
     natureSoundGainNodeRef,
     audioContextRef: sharedAudioContextRef,
     setPendingMeditation,
+    pendingMeditation,
+    clearPendingMeditation,
   } = useAudioPlayback();
 
   // Streaming generation context - for early redirect to player while generating
@@ -259,6 +262,10 @@ const App: React.FC = () => {
   // Script edit preview state - editableScript from ScriptContext
   const [showScriptPreview, setShowScriptPreview] = useState(false);
   const [originalPrompt, setOriginalPrompt] = useState('');
+
+  // Save meditation dialog state
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [currentWordIndex, setCurrentWordIndex] = useState(-1);
@@ -1823,6 +1830,70 @@ const App: React.FC = () => {
     setCurrentView(View.PLAYER);
   }, []);
 
+  // Handle close from player - shows save dialog if there's a pending meditation
+  const handlePlayerClose = useCallback(() => {
+    handleInlinePause();
+    stopBackgroundMusic();
+    stopNatureSound();
+
+    // If there's a pending meditation, show save dialog instead of closing immediately
+    if (pendingMeditation) {
+      setShowSaveDialog(true);
+    } else {
+      setCurrentView(View.HOME);
+    }
+  }, [handleInlinePause, pendingMeditation]);
+
+  // Handle save meditation with custom title
+  const handleSaveMeditation = useCallback(async (title: string) => {
+    if (!pendingMeditation) {
+      setShowSaveDialog(false);
+      setCurrentView(View.HOME);
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await saveMeditationHistory(
+        pendingMeditation.prompt,
+        pendingMeditation.script,
+        pendingMeditation.voiceId,
+        pendingMeditation.voiceName,
+        pendingMeditation.backgroundTrackId,
+        pendingMeditation.backgroundTrackName,
+        pendingMeditation.durationSeconds,
+        pendingMeditation.audioTags,
+        pendingMeditation.base64Audio,
+        title,
+        pendingMeditation.natureSoundId,
+        pendingMeditation.natureSoundName
+      );
+      clearPendingMeditation();
+      setShowSaveDialog(false);
+      setCurrentView(View.HOME);
+    } catch (err) {
+      console.error('Failed to save meditation:', err);
+      // Still navigate away even if save fails
+      clearPendingMeditation();
+      setShowSaveDialog(false);
+      setCurrentView(View.HOME);
+    } finally {
+      setIsSaving(false);
+    }
+  }, [pendingMeditation, clearPendingMeditation]);
+
+  // Handle discard meditation (don't save)
+  const handleDiscardMeditation = useCallback(() => {
+    clearPendingMeditation();
+    setShowSaveDialog(false);
+    setCurrentView(View.HOME);
+  }, [clearPendingMeditation]);
+
+  // Handle cancel save dialog (go back to player)
+  const handleCancelSave = useCallback(() => {
+    setShowSaveDialog(false);
+  }, []);
+
   // Stable callback for closing burger menu when meditation panel opens
   const handleMeditationPanelOpen = useCallback(() => {
     setShowBurgerMenu(false);
@@ -2512,12 +2583,7 @@ const App: React.FC = () => {
                   const newTime = Math.max(0, Math.min(duration, currentTime + seconds));
                   handleInlineSeek(newTime);
                 }}
-                onClose={() => {
-                  handleInlinePause();
-                  stopBackgroundMusic();
-                  stopNatureSound();
-                  setCurrentView(View.HOME);
-                }}
+                onClose={handlePlayerClose}
                 backgroundMusicEnabled={selectedBackgroundTrack.id !== 'none' && isMusicPlaying}
                 backgroundVolume={backgroundVolume}
                 onBackgroundVolumeChange={updateBackgroundVolume}
@@ -2747,6 +2813,16 @@ const App: React.FC = () => {
           onSetEnabled={setAudioTagsEnabled}
           suggestedTags={suggestedAudioTags}
           favoriteTags={favoriteAudioTags}
+        />
+
+        {/* MODAL: Save Meditation Dialog - shown when closing player with unsaved meditation */}
+        <SaveMeditationDialog
+          isOpen={showSaveDialog}
+          defaultTitle={pendingMeditation?.prompt.substring(0, 50) || 'My Meditation'}
+          onSave={handleSaveMeditation}
+          onDiscard={handleDiscardMeditation}
+          onCancel={handleCancelSave}
+          isSaving={isSaving}
         />
 
         {/* MODAL: Script Preview & Edit - Using unified MeditationEditor */}
