@@ -255,12 +255,12 @@ describe('Text Processing (via generateSpeech)', () => {
 
     await voiceService.generateSpeech('[pause] Hello [long pause] world', voice);
 
-    // Check that generateSpeech was called with converted tags
+    // Check that generateSpeech was called with V3 native pause tags preserved
     expect(generateSpeech).toHaveBeenCalled();
     const callArg = vi.mocked(generateSpeech).mock.calls[0][1];
-    expect(callArg).toContain('...'); // [pause] -> ...
-    expect(callArg).not.toContain('[pause]');
-    expect(callArg).not.toContain('[long pause]');
+    // V3 preserves native pause tags instead of converting to ellipses
+    expect(callArg).toContain('[pause]');
+    expect(callArg).toContain('[long pause]');
   });
 
   it('should convert deep breath tags to descriptive text', async () => {

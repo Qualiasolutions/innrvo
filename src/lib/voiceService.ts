@@ -18,33 +18,36 @@ const USE_V3_MODEL = true;
  */
 function prepareMeditationTextV3(text: string): string {
   return text
-    // Breathing tags -> V3 [sighs] with descriptive text
-    .replace(/\[deep breath\]/gi, '[sighs] Take a deep breath... [sighs]')
-    .replace(/\[exhale slowly\]/gi, 'and exhale slowly... [sighs]')
-    .replace(/\[inhale\]/gi, '[sighs]... breathe in...')
-    .replace(/\[exhale\]/gi, '...breathe out... [sighs]')
-    .replace(/\[breath\]/gi, '[sighs]')
-    .replace(/\[breathe in\]/gi, '[sighs]... breathe in...')
-    .replace(/\[breathe out\]/gi, '...breathe out... [sighs]')
-    // Pause tags -> ellipses (V3 respects punctuation)
-    .replace(/\[pause\]/gi, '...')
-    .replace(/\[short pause\]/gi, '..')
-    .replace(/\[long pause\]/gi, '......')
-    .replace(/\[silence\]/gi, '........')
+    // Breathing tags -> V3 [sigh] with long pauses for actual breathing time
+    // The [long pause] tags give users time to actually breathe
+    .replace(/\[deep breath\]/gi, '[sigh] Take a deep breath in... [long pause] [long pause] and slowly release... [long pause] [sigh]')
+    .replace(/\[exhale slowly\]/gi, 'and exhale slowly... [long pause] [sigh]')
+    .replace(/\[inhale\]/gi, '[sigh]... breathe in... [long pause]')
+    .replace(/\[exhale\]/gi, '...breathe out... [long pause] [sigh]')
+    .replace(/\[breath\]/gi, '[sigh] [long pause]')
+    .replace(/\[breathe in\]/gi, '[sigh]... breathe in... [long pause]')
+    .replace(/\[breathe out\]/gi, '...breathe out... [long pause] [sigh]')
+    // Pause tags -> V3 native pause tags (NOT ellipses)
+    // V3 supports these tags directly for controlled pauses
+    .replace(/\[pause\]/gi, '[pause]')
+    .replace(/\[short pause\]/gi, '[short pause]')
+    .replace(/\[long pause\]/gi, '[long pause]')
+    .replace(/\[silence\]/gi, '[long pause] [long pause]')
     // Voice modifiers -> V3 native tags
-    .replace(/\[whisper\]/gi, '[whispers]')
-    .replace(/\[soft voice\]/gi, '[calm]')
-    .replace(/\[sigh\]/gi, '[sighs]')
-    .replace(/\[calm\]/gi, '[calm]')
-    .replace(/\[thoughtfully\]/gi, '[thoughtfully]')
+    .replace(/\[whisper\]/gi, '[whispering]')
+    .replace(/\[soft voice\]/gi, '[sigh]')
+    .replace(/\[sigh\]/gi, '[sigh]')
+    .replace(/\[calm\]/gi, '[sigh]')
+    .replace(/\[thoughtfully\]/gi, '[sigh]')
     // Sound effects
-    .replace(/\[hum\]/gi, '[calm]... mmm...')
-    .replace(/\[soft hum\]/gi, '[calm]... mmm...')
-    .replace(/\[gentle giggle\]/gi, '... [calm]...')
+    .replace(/\[hum\]/gi, '... mmm...')
+    .replace(/\[soft hum\]/gi, '... mmm...')
+    .replace(/\[gentle giggle\]/gi, '[giggling]')
     // Handle [whisper: text] syntax
-    .replace(/\[whisper:\s*([^\]]+)\]/gi, '[whispers] $1 [calm]')
+    .replace(/\[whisper:\s*([^\]]+)\]/gi, '[whispering] $1')
     // Clean up any remaining unknown tags -> ellipses
-    .replace(/\[[^\]]*\]/g, '...')
+    // Preserve V3 native tags: [pause], [short pause], [long pause], [sigh], [whispering], [giggling]
+    .replace(/\[(?!pause\]|short pause\]|long pause\]|sigh\]|whispering\]|giggling\])[^\]]*\]/g, '...')
     // Normalize excessive periods
     .replace(/\.{9,}/g, '........')
     .trim();

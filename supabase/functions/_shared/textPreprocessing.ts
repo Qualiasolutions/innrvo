@@ -40,20 +40,22 @@ function escapeRegex(string: string): string {
  * See: https://elevenlabs.io/docs/overview/capabilities/text-to-dialogue
  */
 const V3_TAG_MAPPINGS: Record<string, string> = {
-  // Breathing tags -> V3 [sigh] (singular, not [sighs])
-  '[deep breath]': '[sigh] Take a deep breath... [sigh]',
-  '[exhale slowly]': 'and exhale slowly... [sigh]',
-  '[inhale]': '[sigh]... breathe in...',
-  '[exhale]': '...breathe out... [sigh]',
-  '[breath]': '[sigh]',
-  '[breathe in]': '[sigh]... breathe in...',
-  '[breathe out]': '...breathe out... [sigh]',
+  // Breathing tags -> V3 [sigh] with long pauses for actual breathing time
+  // The [long pause] tags give users time to actually breathe
+  '[deep breath]': '[sigh] Take a deep breath in... [long pause] [long pause] and slowly release... [long pause] [sigh]',
+  '[exhale slowly]': 'and exhale slowly... [long pause] [sigh]',
+  '[inhale]': '[sigh]... breathe in... [long pause]',
+  '[exhale]': '...breathe out... [long pause] [sigh]',
+  '[breath]': '[sigh] [long pause]',
+  '[breathe in]': '[sigh]... breathe in... [long pause]',
+  '[breathe out]': '...breathe out... [long pause] [sigh]',
 
-  // Pause tags -> ellipses (V3 uses punctuation for pacing)
-  '[pause]': '...',
-  '[short pause]': '..',
-  '[long pause]': '......',
-  '[silence]': '........',
+  // Pause tags -> V3 native pause tags (NOT ellipses)
+  // V3 supports these tags directly for controlled pauses
+  '[pause]': '[pause]',
+  '[short pause]': '[short pause]',
+  '[long pause]': '[long pause]',
+  '[silence]': '[long pause] [long pause]',
 
   // Voice modifiers -> V3 native tags
   '[whisper]': '[whispering]',
@@ -128,7 +130,8 @@ export function prepareMeditationTextV3(text: string): TextProcessingResult {
   );
 
   // Clean up any remaining unknown tags -> ellipses
-  processed = processed.replace(/\[[^\]]*\]/g, '...');
+  // Preserve V3 native tags: [pause], [short pause], [long pause], [sigh], [whispering], [giggling]
+  processed = processed.replace(/\[(?!pause\]|short pause\]|long pause\]|sigh\]|whispering\]|giggling\])[^\]]*\]/g, '...');
 
   // Normalize excessive periods (cap at 8)
   processed = processed.replace(/\.{9,}/g, '........');

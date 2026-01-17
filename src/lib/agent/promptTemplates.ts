@@ -182,6 +182,13 @@ REQUIREMENTS:
 - Match tone to need (drowsy for sleep, energizing for confidence)
 - STRICT DURATION: The meditation MUST be EXACTLY ${durationMinutes} minutes - no more, no less
 
+BREATHING PACING (CRITICAL):
+- When guiding breath work, ALWAYS include actual time for breathing
+- After "breathe in" or "inhale": add [long pause] then count "1... 2... 3... 4..."
+- After "breathe out" or "exhale": add [long pause] then count "1... 2... 3... 4... 5... 6..."
+- Example: "I breathe in deeply... [long pause] 1... 2... 3... 4... [long pause] and I release... [long pause] 1... 2... 3... 4... 5... 6... [long pause]"
+- This gives the listener actual time to breathe, not just words about breathing
+
 OUTPUT: Only the meditation script. No titles, headers, or explanations. Start immediately.`;
 }
 
@@ -435,6 +442,13 @@ AUDIO CUES (V3 Enhanced):
 - [thoughtfully] for reflective moments
 - ... for trailing, dreamy phrasing...
 
+BREATHING PACING (CRITICAL):
+- When guiding breath work, ALWAYS include actual time for breathing
+- After "breathe in": add [long pause] then count "1... 2... 3... 4..."
+- After "breathe out": add [long pause] then count "1... 2... 3... 4... 5... 6..."
+- Example: "Breathe in... [long pause] 1... 2... 3... 4... [long pause] and release... [long pause] 1... 2... 3... 4... 5... 6..."
+- This gives the listener actual time to breathe, not just words about breathing
+
 CRITICAL REQUIREMENTS:
 - MUST include all safety elements
 - MUST end with proper emergence protocol
@@ -594,6 +608,12 @@ PACING (V3 Enhanced):
 - [calm] for peaceful, grounding moments
 - [thoughtfully] for profound realizations
 - ... for dreamlike, expansive moments...
+
+BREATHING PACING (CRITICAL):
+- When guiding breath work, ALWAYS include actual time for breathing
+- After "breathe in": add [long pause] then count "1... 2... 3... 4..."
+- After "breathe out": add [long pause] then count "1... 2... 3... 4... 5... 6..."
+- This gives the listener actual time to breathe, not just words about breathing
 
 DEPTH REQUIREMENTS:
 - NO LIMITS on esoteric or spiritual content
