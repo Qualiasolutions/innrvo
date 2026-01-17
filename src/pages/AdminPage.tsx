@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { Users, FileText, BarChart3, Tag, Trash2, Plus, X, Check, AlertCircle, Activity, ScrollText, LayoutTemplate, Edit2, ChevronDown, ChevronRight, RefreshCw, Play } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useApp } from '../contexts/AppContext';
@@ -255,6 +256,8 @@ const AdminPage: React.FC = () => {
     setError(null);
     setIsDeleting(true);
 
+    const itemName = deleteConfirm.name || deleteConfirm.type;
+
     try {
       switch (deleteConfirm.type) {
         case 'user':
@@ -278,11 +281,17 @@ const AdminPage: React.FC = () => {
           setTemplates(prev => prev.filter(t => t.id !== deleteConfirm.id));
           break;
       }
+      toast.success(`${deleteConfirm.type.charAt(0).toUpperCase() + deleteConfirm.type.slice(1)} deleted`, {
+        description: `"${itemName}" has been removed`,
+      });
       setDeleteConfirm(null);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Delete failed';
       console.error('[AdminPage] Delete error:', message);
       setError(message);
+      toast.error(`Failed to delete ${deleteConfirm.type}`, {
+        description: message,
+      });
       setDeleteConfirm(null); // Close modal so user sees error banner
     } finally {
       setIsDeleting(false);
@@ -328,9 +337,15 @@ const AdminPage: React.FC = () => {
         is_active: true,
         legacy_id: null,
       });
+      toast.success('Template created', {
+        description: `"${created.title}" has been added successfully`,
+      });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to create template';
       setError(message);
+      toast.error('Failed to create template', {
+        description: message,
+      });
     }
   };
 
@@ -347,10 +362,16 @@ const AdminPage: React.FC = () => {
       setTemplates(prev =>
         prev.map(t => t.id === editingTemplate.id ? editingTemplate : t)
       );
+      toast.success('Template updated', {
+        description: `"${editingTemplate.title}" has been saved`,
+      });
       setEditingTemplate(null);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to update template';
       setError(message);
+      toast.error('Failed to update template', {
+        description: message,
+      });
     }
   };
 
@@ -426,10 +447,16 @@ const AdminPage: React.FC = () => {
         category: 'pauses',
         sort_order: 0,
       });
+      toast.success('Audio tag created', {
+        description: `"${created.tag_label}" has been added`,
+      });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to create tag';
       console.error('[AdminPage] Create tag error:', message);
       setError(message);
+      toast.error('Failed to create audio tag', {
+        description: message,
+      });
     }
   };
 
@@ -440,9 +467,15 @@ const AdminPage: React.FC = () => {
       setAudioTags(prev =>
         prev.map(t => t.id === tag.id ? { ...t, is_active: !t.is_active } : t)
       );
+      toast.success(`Tag ${!tag.is_active ? 'enabled' : 'disabled'}`, {
+        description: `"${tag.tag_label}" is now ${!tag.is_active ? 'active' : 'inactive'}`,
+      });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to update tag';
       setError(message);
+      toast.error('Failed to update tag', {
+        description: message,
+      });
     }
   };
 
