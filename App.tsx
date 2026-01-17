@@ -302,6 +302,7 @@ const App: React.FC = () => {
 
   const cloneMediaRecorderRef = useRef<MediaRecorder | null>(null);
   const cloneChunksRef = useRef<Blob[]>([]);
+  const cloneRecordingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null); // For 30s auto-stop cleanup
   const scriptTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   // Auth state is now managed by AuthContext - it handles:
@@ -821,11 +822,12 @@ const App: React.FC = () => {
       setIsRecordingClone(true);
       setRecordingProgressClone(0);
 
-      // Auto-stop after 30 seconds
-      setTimeout(() => {
+      // Auto-stop after 30 seconds (store ID for cleanup)
+      cloneRecordingTimeoutRef.current = setTimeout(() => {
         if (cloneMediaRecorderRef.current && isRecordingClone) {
           stopRecordingClone();
         }
+        cloneRecordingTimeoutRef.current = null;
       }, 30000);
     } catch (e: unknown) {
       console.error("Microphone access denied", e);
@@ -835,6 +837,11 @@ const App: React.FC = () => {
   };
 
   const stopRecordingClone = () => {
+    // Clear auto-stop timeout to prevent memory leak
+    if (cloneRecordingTimeoutRef.current) {
+      clearTimeout(cloneRecordingTimeoutRef.current);
+      cloneRecordingTimeoutRef.current = null;
+    }
     if (cloneMediaRecorderRef.current && isRecordingClone) {
       cloneMediaRecorderRef.current.stop();
       setIsRecordingClone(false);

@@ -65,15 +65,31 @@ interface CachedVoiceProfile {
     cloning_status: string | null;
   };
   expiry: number;
+  lastAccess: number; // For LRU eviction
 }
 const voiceProfileCache = new Map<string, CachedVoiceProfile>();
 const VOICE_CACHE_TTL = 3600000; // 1 hour (voice profiles rarely change)
+const VOICE_CACHE_MAX_SIZE = 100; // Max entries to prevent unbounded growth
 
-// Cleanup voice cache periodically
+// Cleanup voice cache with LRU eviction
 function cleanupVoiceCache(): void {
   const now = Date.now();
+
+  // First, remove expired entries
   for (const [key, entry] of voiceProfileCache.entries()) {
     if (now > entry.expiry) {
+      voiceProfileCache.delete(key);
+    }
+  }
+
+  // Then, if still over max size, evict least recently used
+  if (voiceProfileCache.size > VOICE_CACHE_MAX_SIZE) {
+    const entries = [...voiceProfileCache.entries()]
+      .sort((a, b) => a[1].lastAccess - b[1].lastAccess);
+
+    // Remove oldest entries until under limit
+    const toRemove = entries.slice(0, voiceProfileCache.size - VOICE_CACHE_MAX_SIZE);
+    for (const [key] of toRemove) {
       voiceProfileCache.delete(key);
     }
   }
@@ -286,6 +302,7 @@ serve(async (req) => {
       const cached = voiceProfileCache.get(cacheKey);
       if (cached && Date.now() < cached.expiry) {
         voiceProfile = cached.data;
+        cached.lastAccess = Date.now(); // Update LRU timestamp
         log.info('Voice profile cache hit', { voiceId });
       } else {
         // Cleanup old cache entries periodically
@@ -309,12 +326,14 @@ serve(async (req) => {
 
         voiceProfile = data;
 
-        // Cache the profile
+        // Cache the profile with LRU timestamp
+        const now = Date.now();
         voiceProfileCache.set(cacheKey, {
           data: voiceProfile,
-          expiry: Date.now() + VOICE_CACHE_TTL,
+          expiry: now + VOICE_CACHE_TTL,
+          lastAccess: now,
         });
-        log.info('Voice profile cached', { voiceId, ttl: VOICE_CACHE_TTL });
+        log.info('Voice profile cached', { voiceId, ttl: VOICE_CACHE_TTL, cacheSize: voiceProfileCache.size });
       }
 
       log.info('Found voice profile', {
