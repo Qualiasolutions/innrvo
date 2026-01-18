@@ -305,9 +305,13 @@ const PlayerPage: React.FC = () => {
   // Update voice volume - uses GainNode for proper Web Audio API control
   const updateVoiceVolume = useCallback((volume: number) => {
     setVoiceVolume(volume);
-    if (gainNodeRef.current && audioContextRef.current) {
-      // Use setTargetAtTime for smooth volume transitions (prevents clicks/pops)
-      gainNodeRef.current.gain.setTargetAtTime(volume, audioContextRef.current.currentTime, 0.03);
+    if (gainNodeRef.current) {
+      // Direct assignment for immediate effect (required for iOS Safari/Chrome)
+      gainNodeRef.current.gain.value = volume;
+      // Also use setTargetAtTime for smooth transitions on desktop
+      if (audioContextRef.current) {
+        gainNodeRef.current.gain.setTargetAtTime(volume, audioContextRef.current.currentTime, 0.01);
+      }
     }
   }, [setVoiceVolume, gainNodeRef, audioContextRef]);
 
@@ -316,8 +320,13 @@ const PlayerPage: React.FC = () => {
   const updateBackgroundVolume = useCallback((volume: number) => {
     setBackgroundVolume(volume);
     // Use GainNode for volume control (works on iOS unlike HTMLAudioElement.volume)
-    if (backgroundGainNodeRef.current && audioContextRef.current) {
-      backgroundGainNodeRef.current.gain.setTargetAtTime(volume, audioContextRef.current.currentTime, 0.03);
+    if (backgroundGainNodeRef.current) {
+      // Direct assignment for immediate effect (required for iOS Safari/Chrome)
+      backgroundGainNodeRef.current.gain.value = volume;
+      // Also use setTargetAtTime for smooth transitions on desktop
+      if (audioContextRef.current) {
+        backgroundGainNodeRef.current.gain.setTargetAtTime(volume, audioContextRef.current.currentTime, 0.01);
+      }
     }
     // Fallback for desktop browsers - also set on audio element
     if (backgroundAudioRef.current) {
@@ -416,8 +425,13 @@ const PlayerPage: React.FC = () => {
   const updateNatureSoundVolume = useCallback((volume: number) => {
     setNatureSoundVolume(volume);
     // Use GainNode for volume control (works on iOS unlike HTMLAudioElement.volume)
-    if (natureSoundGainNodeRef.current && audioContextRef.current) {
-      natureSoundGainNodeRef.current.gain.setTargetAtTime(volume, audioContextRef.current.currentTime, 0.03);
+    if (natureSoundGainNodeRef.current) {
+      // Direct assignment for immediate effect (required for iOS Safari/Chrome)
+      natureSoundGainNodeRef.current.gain.value = volume;
+      // Also use setTargetAtTime for smooth transitions on desktop
+      if (audioContextRef.current) {
+        natureSoundGainNodeRef.current.gain.setTargetAtTime(volume, audioContextRef.current.currentTime, 0.01);
+      }
     }
     // Fallback for desktop browsers - also set on audio element
     if (natureSoundAudioRef.current) {
