@@ -11,6 +11,7 @@ vi.mock('../../src/lib/webSpeechService', () => ({
 
 vi.mock('../../src/lib/edgeFunctions', () => ({
   generateSpeech: vi.fn().mockResolvedValue('base64audiodata'),
+  generateSpeechStreaming: vi.fn().mockResolvedValue(new ArrayBuffer(100)),
 }));
 
 // Import after mocking
@@ -247,7 +248,7 @@ describe('Text Processing (via generateSpeech)', () => {
   });
 
   it('should convert pause tags to ellipses for ElevenLabs', async () => {
-    const { generateSpeech } = await import('../../src/lib/edgeFunctions');
+    const { generateSpeechStreaming } = await import('../../src/lib/edgeFunctions');
     const voice = createVoiceProfile({
       provider: 'elevenlabs',
       elevenLabsVoiceId: 'xi-voice-123',
@@ -255,16 +256,16 @@ describe('Text Processing (via generateSpeech)', () => {
 
     await voiceService.generateSpeech('[pause] Hello [long pause] world', voice);
 
-    // Check that generateSpeech was called with V3 native pause tags preserved
-    expect(generateSpeech).toHaveBeenCalled();
-    const callArg = vi.mocked(generateSpeech).mock.calls[0][1];
+    // Check that generateSpeechStreaming was called with V3 native pause tags preserved
+    expect(generateSpeechStreaming).toHaveBeenCalled();
+    const callArg = vi.mocked(generateSpeechStreaming).mock.calls[0][1];
     // V3 preserves native pause tags instead of converting to ellipses
     expect(callArg).toContain('[pause]');
     expect(callArg).toContain('[long pause]');
   });
 
   it('should convert deep breath tags to descriptive text', async () => {
-    const { generateSpeech } = await import('../../src/lib/edgeFunctions');
+    const { generateSpeechStreaming } = await import('../../src/lib/edgeFunctions');
     const voice = createVoiceProfile({
       provider: 'elevenlabs',
       elevenLabsVoiceId: 'xi-voice-123',
@@ -272,14 +273,14 @@ describe('Text Processing (via generateSpeech)', () => {
 
     await voiceService.generateSpeech('[deep breath] Relax.', voice);
 
-    const callArg = vi.mocked(generateSpeech).mock.calls[0][1];
+    const callArg = vi.mocked(generateSpeechStreaming).mock.calls[0][1];
     // V3 format: '[sighs] Take a deep breath... [sighs]' (with capital T)
     expect(callArg.toLowerCase()).toContain('take a deep breath');
     expect(callArg).not.toContain('[deep breath]');
   });
 
   it('should convert exhale tags to descriptive text', async () => {
-    const { generateSpeech } = await import('../../src/lib/edgeFunctions');
+    const { generateSpeechStreaming } = await import('../../src/lib/edgeFunctions');
     const voice = createVoiceProfile({
       provider: 'elevenlabs',
       elevenLabsVoiceId: 'xi-voice-123',
@@ -287,13 +288,13 @@ describe('Text Processing (via generateSpeech)', () => {
 
     await voiceService.generateSpeech('[exhale slowly] Now rest.', voice);
 
-    const callArg = vi.mocked(generateSpeech).mock.calls[0][1];
+    const callArg = vi.mocked(generateSpeechStreaming).mock.calls[0][1];
     expect(callArg).toContain('exhale slowly');
     expect(callArg).not.toContain('[exhale slowly]');
   });
 
   it('should strip unknown audio tags', async () => {
-    const { generateSpeech } = await import('../../src/lib/edgeFunctions');
+    const { generateSpeechStreaming } = await import('../../src/lib/edgeFunctions');
     const voice = createVoiceProfile({
       provider: 'elevenlabs',
       elevenLabsVoiceId: 'xi-voice-123',
@@ -301,7 +302,7 @@ describe('Text Processing (via generateSpeech)', () => {
 
     await voiceService.generateSpeech('[unknown tag] Hello [another one]', voice);
 
-    const callArg = vi.mocked(generateSpeech).mock.calls[0][1];
+    const callArg = vi.mocked(generateSpeechStreaming).mock.calls[0][1];
     expect(callArg).not.toContain('[unknown tag]');
     expect(callArg).not.toContain('[another one]');
     expect(callArg).toContain('Hello');

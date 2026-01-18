@@ -33,6 +33,7 @@ interface GenerateSpeechRequest {
   text: string;
   voiceId?: string;             // Voice profile ID (UUID)
   elevenLabsVoiceId?: string;   // Direct ElevenLabs voice ID (for preset voices)
+  stream?: boolean;             // If true, stream audio directly (no base64)
   voiceSettings?: {
     stability?: number;
     similarityBoost?: number;
@@ -115,6 +116,101 @@ function getSupabaseClient() {
 // TTS request timeout (8 minutes for very long meditations)
 // ElevenLabs can take 4-5 minutes for 10+ minute meditations
 const TTS_TIMEOUT_MS = 480000;
+
+/**
+ * Stream TTS audio from ElevenLabs
+ * Uses the streaming endpoint to get audio chunks as they're generated
+ * This prevents timeout issues by starting the response immediately
+ */
+async function streamElevenLabsTTS(
+  text: string,
+  elevenLabsVoiceId: string,
+  options: GenerateSpeechRequest['voiceSettings'],
+  apiKey: string,
+  log: ReturnType<typeof createLogger>
+): Promise<Response> {
+  const modelId = getModelId();
+
+  log.info('Streaming speech with ElevenLabs', {
+    voiceId: elevenLabsVoiceId,
+    textLength: text.length,
+    model: modelId,
+    useV3: USE_V3_MODEL,
+  });
+
+  const { text: preparedText, warnings, originalLength, processedLength } = prepareMeditationText(text);
+
+  if (warnings.length > 0) {
+    log.warn('Text preprocessing warnings', { warnings, originalLength, processedLength });
+  }
+
+  const voiceSettings = USE_V3_MODEL
+    ? getVoiceSettings(ELEVENLABS_MODELS.V3, {
+        stability: options?.stability,
+        similarity_boost: options?.similarityBoost,
+      })
+    : getVoiceSettings(ELEVENLABS_MODELS.V2, {
+        stability: options?.stability,
+        similarity_boost: options?.similarityBoost,
+        style: options?.style,
+        use_speaker_boost: options?.useSpeakerBoost,
+      });
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), TTS_TIMEOUT_MS);
+
+  try {
+    // Use streaming endpoint - returns audio chunks as they're generated
+    const response = await fetch(
+      `https://api.elevenlabs.io/v1/text-to-speech/${elevenLabsVoiceId}/stream?output_format=mp3_44100_128`,
+      {
+        method: 'POST',
+        headers: {
+          'xi-api-key': apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: preparedText,
+          model_id: modelId,
+          voice_settings: voiceSettings,
+        }),
+        signal: controller.signal,
+      }
+    );
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      log.error('ElevenLabs streaming API error', { status: response.status, error: errorText });
+
+      if (response.status === 401) {
+        throw new Error('ElevenLabs authentication failed. Please check your API key.');
+      }
+      if (response.status === 429) {
+        throw new Error('ElevenLabs rate limit exceeded. Please try again later.');
+      }
+      if (response.status === 400) {
+        try {
+          const errorJson = JSON.parse(errorText);
+          throw new Error(`ElevenLabs error: ${errorJson.detail?.message || errorText}`);
+        } catch {
+          throw new Error(`ElevenLabs API error: ${errorText}`);
+        }
+      }
+      throw new Error(`ElevenLabs API error: ${response.status} - ${errorText}`);
+    }
+
+    log.info('ElevenLabs streaming started');
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('ElevenLabs request timed out. Please try again.');
+    }
+    throw error;
+  }
+}
 
 async function runElevenLabsTTS(
   text: string,
@@ -269,7 +365,7 @@ serve(async (req) => {
     }
 
     // Parse request
-    const { text: rawText, voiceId, elevenLabsVoiceId, voiceSettings }: GenerateSpeechRequest = await req.json();
+    const { text: rawText, voiceId, elevenLabsVoiceId, voiceSettings, stream }: GenerateSpeechRequest = await req.json();
 
     // Sanitize text input to prevent control characters and limit length
     const textSanitization = sanitizeScriptContent(rawText || '', INPUT_LIMITS.script);
@@ -365,7 +461,30 @@ serve(async (req) => {
       );
     }
 
-    // Generate speech with circuit breaker protection
+    // Streaming mode: stream audio directly from ElevenLabs
+    // This prevents timeout issues by starting response immediately
+    if (stream) {
+      log.info('Using streaming mode for TTS');
+
+      const elevenLabsResponse = await withCircuitBreaker(
+        'elevenlabs',
+        CIRCUIT_CONFIGS['elevenlabs'],
+        () => streamElevenLabsTTS(text, targetVoiceId!, voiceSettings, ELEVENLABS_API_KEY!, log)
+      );
+
+      // Pass through the streaming response with our headers
+      return new Response(elevenLabsResponse.body, {
+        status: 200,
+        headers: {
+          ...allHeaders,
+          'Content-Type': 'audio/mpeg',
+          'X-Request-ID': requestId,
+          'Transfer-Encoding': 'chunked',
+        },
+      });
+    }
+
+    // Non-streaming mode: return base64 JSON (legacy behavior)
     const result = await withCircuitBreaker(
       'elevenlabs',
       CIRCUIT_CONFIGS['elevenlabs'],

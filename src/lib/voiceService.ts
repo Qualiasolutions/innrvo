@@ -236,7 +236,8 @@ export const voiceService = {
   },
 
   /**
-   * Generate speech using ElevenLabs API
+   * Generate speech using ElevenLabs API (streaming mode)
+   * Uses streaming to prevent timeout issues with long meditations
    */
   async generateWithElevenLabs(
     text: string,
@@ -244,24 +245,40 @@ export const voiceService = {
     audioContext?: AudioContext
   ): Promise<{ audioBuffer: AudioBuffer | null; base64: string }> {
     // Import dynamically to avoid circular dependency
-    const { generateSpeech } = await import('./edgeFunctions');
+    const { generateSpeechStreaming } = await import('./edgeFunctions');
 
     // Determine voice ID to use
     // For preset voices, use the elevenLabsVoiceId directly
     // For user clones, use the voice profile ID (edge function will look up elevenLabsVoiceId)
     const isPresetVoice = voice.id.startsWith('elevenlabs-');
 
-    // Call generate-speech edge function
-    const base64 = await generateSpeech(
+    // Call generate-speech edge function with streaming
+    const audioArrayBuffer = await generateSpeechStreaming(
       isPresetVoice ? undefined : voice.id,  // voiceId for user clones
       text,
       isPresetVoice ? voice.elevenLabsVoiceId : undefined  // elevenLabsVoiceId for presets
     );
 
+    // Convert ArrayBuffer to base64 for compatibility with existing code
+    const bytes = new Uint8Array(audioArrayBuffer);
+    let binary = '';
+    const chunkSize = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
+      binary += String.fromCharCode(...chunk);
+    }
+    const base64 = btoa(binary);
+
     // Decode to AudioBuffer if needed
     if (audioContext) {
-      const audioBuffer = await this.decodeAudio(base64, audioContext);
-      return { audioBuffer, base64 };
+      try {
+        // Use the ArrayBuffer directly (more efficient than re-decoding from base64)
+        const audioBuffer = await audioContext.decodeAudioData(audioArrayBuffer.slice(0));
+        return { audioBuffer, base64 };
+      } catch (error) {
+        console.error('[voiceService] Failed to decode streamed audio:', error);
+        throw new Error(`Failed to decode audio: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
     }
 
     return { audioBuffer: null, base64 };

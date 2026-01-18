@@ -427,12 +427,91 @@ async function callEdgeFunction<T>(
 // ============================================================================
 
 /**
- * Generate speech using ElevenLabs TTS Edge Function
+ * Generate speech using ElevenLabs TTS Edge Function (streaming mode)
+ * Returns audio as ArrayBuffer instead of base64 - prevents timeout issues
+ *
+ * @param voiceId - Voice profile ID (UUID) for user clones
+ * @param text - Text to synthesize
+ * @param elevenLabsVoiceId - Direct ElevenLabs voice ID (for preset voices)
+ */
+export async function generateSpeechStreaming(
+  voiceId: string | undefined,
+  text: string,
+  elevenLabsVoiceId?: string
+): Promise<ArrayBuffer> {
+  const token = await getAuthToken();
+  const requestId = generateRequestId();
+
+  if (!token) {
+    const authError = new Error('Your session has expired. Please sign in again to continue.') as EdgeFunctionError;
+    authError.requestId = requestId;
+    authError.status = 401;
+    throw authError;
+  }
+
+  const url = `${SUPABASE_URL}/functions/v1/generate-speech`;
+
+  // Streaming request - longer timeout, no JSON response
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minute timeout
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'X-Request-ID': requestId,
+      },
+      body: JSON.stringify({
+        voiceId,
+        text,
+        elevenLabsVoiceId,
+        stream: true, // Enable streaming mode
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    // Check for error responses (JSON)
+    const contentType = response.headers.get('Content-Type') || '';
+    if (!response.ok || contentType.includes('application/json')) {
+      const data = await response.json();
+      const error = new Error(data.error || `Edge function error: ${response.status}`) as EdgeFunctionError;
+      error.requestId = requestId;
+      error.status = response.status;
+      error.needsReclone = data.needsReclone;
+      throw error;
+    }
+
+    // Success - return the audio stream as ArrayBuffer
+    const audioBuffer = await response.arrayBuffer();
+
+    if (DEBUG) console.log('[edgeFunctions] Streaming TTS complete', { size: audioBuffer.byteLength });
+
+    return audioBuffer;
+  } catch (error) {
+    clearTimeout(timeoutId);
+
+    if (error instanceof Error && error.name === 'AbortError') {
+      const timeoutError = new Error('Request timeout - please try a shorter meditation.') as EdgeFunctionError;
+      timeoutError.requestId = requestId;
+      throw timeoutError;
+    }
+
+    throw error;
+  }
+}
+
+/**
+ * Generate speech using ElevenLabs TTS Edge Function (legacy base64 mode)
  * ElevenLabs is the primary (and only) TTS provider
  *
  * @param voiceId - Voice profile ID (UUID) for user clones
  * @param text - Text to synthesize
  * @param elevenLabsVoiceId - Direct ElevenLabs voice ID (for preset voices)
+ * @deprecated Use generateSpeechStreaming for better reliability with long content
  */
 export async function generateSpeech(
   voiceId: string | undefined,
