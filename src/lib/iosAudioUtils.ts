@@ -3,21 +3,63 @@
  *
  * Handles iOS Safari and Chrome-specific audio quirks:
  * - AudioContext starts suspended and requires user gesture to resume
- * - First audio playback has extra latency (~100-500ms) as hardware spins up
  * - AudioContext can be suspended when app is backgrounded
  * - Missing await on resume() causes race conditions
  *
  * Usage:
  * 1. Call ensureAudioContextResumed() before any source.start()
- * 2. Call warmupAudioContext() after creating AudioContext to reduce first-play latency
+ * 2. Use getAudioContextClass() for cross-browser AudioContext creation
  */
+
+// Type declaration for legacy WebKit AudioContext
+declare global {
+  interface Window {
+    webkitAudioContext?: typeof AudioContext;
+  }
+}
+
+/**
+ * iOS requires a brief settling time after AudioContext.resume() before audio hardware
+ * is fully ready. Without this delay, the first few milliseconds of audio may be cut off.
+ * Tested on iOS 15-17 Safari and Chrome.
+ */
+const IOS_RESUME_SETTLE_MS = 10;
+
+/**
+ * Cache for pending resume operations to prevent race conditions.
+ * Multiple rapid calls to ensureAudioContextResumed() will return the same promise
+ * instead of initiating multiple concurrent resume operations.
+ */
+const pendingResumes = new WeakMap<AudioContext, Promise<boolean>>();
+
+/**
+ * Returns the AudioContext constructor for the current browser.
+ * Handles the webkitAudioContext fallback for older iOS Safari versions.
+ *
+ * @returns The AudioContext class to use for instantiation
+ *
+ * @example
+ * const AudioContextClass = getAudioContextClass();
+ * const context = new AudioContextClass();
+ */
+export function getAudioContextClass(): typeof AudioContext {
+  return window.AudioContext || window.webkitAudioContext!;
+}
 
 /**
  * Ensures AudioContext is resumed and ready for playback.
  * MUST be called before source.start() on iOS.
  *
+ * This function is safe to call multiple times rapidly - it will deduplicate
+ * concurrent resume operations using a WeakMap cache.
+ *
  * @param audioContext - The AudioContext to resume
- * @returns Promise that resolves when AudioContext is ready
+ * @returns Promise that resolves to true when AudioContext is running, false otherwise
+ *
+ * @example
+ * // Before starting audio playback
+ * await ensureAudioContextResumed(audioContextRef.current);
+ * source.start();
  */
 export async function ensureAudioContextResumed(
   audioContext: AudioContext | null
@@ -30,104 +72,49 @@ export async function ensureAudioContextResumed(
     return false;
   }
 
-  // If suspended, resume it
-  if (audioContext.state === 'suspended') {
+  // Already running, no action needed
+  if (audioContext.state === 'running') {
+    return true;
+  }
+
+  // Check for existing pending resume to prevent race conditions
+  const pending = pendingResumes.get(audioContext);
+  if (pending) {
+    return pending;
+  }
+
+  // Create new resume promise
+  const resumePromise = (async (): Promise<boolean> => {
     try {
       await audioContext.resume();
-      // Small delay to ensure iOS has fully resumed
-      await new Promise(resolve => setTimeout(resolve, 10));
+      // iOS requires settling time after resume for audio hardware readiness
+      await new Promise(resolve => setTimeout(resolve, IOS_RESUME_SETTLE_MS));
+      return audioContext.state === 'running';
     } catch (error) {
       console.warn('[iosAudioUtils] Failed to resume AudioContext:', error);
       return false;
+    } finally {
+      pendingResumes.delete(audioContext);
     }
-  }
+  })();
 
-  return audioContext.state === 'running';
-}
-
-/**
- * Warms up the AudioContext by playing a silent buffer.
- * This reduces the latency of the first actual audio playback on iOS.
- *
- * Call this immediately after creating an AudioContext from a user gesture.
- *
- * @param audioContext - The AudioContext to warm up
- */
-export async function warmupAudioContext(audioContext: AudioContext): Promise<void> {
-  if (!audioContext || audioContext.state === 'closed') return;
-
-  try {
-    // Ensure context is running
-    if (audioContext.state === 'suspended') {
-      await audioContext.resume();
-    }
-
-    // Create a tiny silent buffer (1 sample at minimum sample rate)
-    const buffer = audioContext.createBuffer(1, 1, 22050);
-    const source = audioContext.createBufferSource();
-    source.buffer = buffer;
-    source.connect(audioContext.destination);
-    source.start();
-    source.stop(audioContext.currentTime + 0.001);
-  } catch (error) {
-    // Warmup failure is not critical - just log it
-    console.debug('[iosAudioUtils] Warmup failed (non-critical):', error);
-  }
-}
-
-/**
- * Creates and initializes an AudioContext with iOS optimizations.
- * Should be called from a user gesture handler (click/tap).
- *
- * @returns Initialized AudioContext ready for playback
- */
-export async function createOptimizedAudioContext(): Promise<AudioContext> {
-  const AudioContextClass = window.AudioContext ||
-    (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-
-  const context = new AudioContextClass();
-
-  // Resume immediately (iOS requirement)
-  if (context.state === 'suspended') {
-    await context.resume();
-  }
-
-  // Warm up to reduce first-play latency
-  await warmupAudioContext(context);
-
-  return context;
-}
-
-/**
- * Helper to safely start an AudioBufferSourceNode on iOS.
- * Handles resume and provides consistent behavior across browsers.
- *
- * @param audioContext - The AudioContext
- * @param source - The AudioBufferSourceNode to start
- * @param when - Start time (default: 0 = immediately)
- * @param offset - Offset into the buffer (default: 0)
- */
-export async function safeSourceStart(
-  audioContext: AudioContext,
-  source: AudioBufferSourceNode,
-  when: number = 0,
-  offset: number = 0
-): Promise<void> {
-  // Ensure context is resumed before starting
-  await ensureAudioContextResumed(audioContext);
-
-  // Start the source
-  source.start(when, offset);
+  pendingResumes.set(audioContext, resumePromise);
+  return resumePromise;
 }
 
 /**
  * Detects if the current browser is iOS Safari or Chrome.
+ * Uses both User-Agent and maxTouchPoints to correctly identify iPadOS 13+
+ * which reports as Mac in the User-Agent.
+ *
+ * @returns true if running on iOS/iPadOS
  */
 export function isIOSBrowser(): boolean {
   if (typeof navigator === 'undefined') return false;
 
   const ua = navigator.userAgent;
   // Check for iOS/iPadOS - use userAgent and maxTouchPoints for iPad detection
+  // iPadOS 13+ reports as Mac in UA but has touch support
   const isIOS = /iPad|iPhone|iPod/.test(ua) ||
     (ua.includes('Mac') && navigator.maxTouchPoints > 1);
 
@@ -136,7 +123,9 @@ export function isIOSBrowser(): boolean {
 
 /**
  * Detects if the browser requires user gesture for audio playback.
- * Modern iOS Safari/Chrome and some Android browsers have this restriction.
+ * Modern iOS Safari/Chrome and Chrome on Android have this restriction.
+ *
+ * @returns true if user gesture is required before audio can play
  */
 export function requiresUserGestureForAudio(): boolean {
   if (typeof navigator === 'undefined') return true;

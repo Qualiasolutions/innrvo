@@ -5,7 +5,7 @@ import { geminiService } from '../../geminiService';
 import { voiceService } from '../lib/voiceService';
 import { creditService } from '../lib/credits';
 import { buildTimingMap } from '../lib/textSync';
-import { ensureAudioContextResumed } from '../lib/iosAudioUtils';
+import { ensureAudioContextResumed, getAudioContextClass } from '../lib/iosAudioUtils';
 
 type GenerationStage = 'idle' | 'script' | 'voice' | 'ready';
 
@@ -166,7 +166,8 @@ export function useVoiceGeneration(
     try {
       // Initialize audio context if needed
       if (!audioContextRef.current) {
-        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const AudioContextClass = getAudioContextClass();
+        audioContextRef.current = new AudioContextClass();
       }
 
       // iOS Safari/Chrome: Resume AudioContext immediately while still in user gesture context
