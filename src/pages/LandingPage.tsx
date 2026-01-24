@@ -9,7 +9,7 @@ const LandingPage = () => {
   const { showAuthModal, authModalMode, openAuthModal, closeAuthModal } = useAuthModal();
 
   return (
-    <div className="relative min-h-screen overflow-hidden">
+    <div className="relative h-screen overflow-hidden">
       {/* Background layers */}
       <Background />
       <Starfield />
@@ -42,14 +42,6 @@ const LandingPage = () => {
           >
             Sign In
           </motion.button>
-          <motion.button
-            onClick={() => openAuthModal('signup')}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className="px-5 py-2.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/10 text-white text-sm font-medium tracking-wide hover:bg-white/15 hover:border-white/20 transition-all duration-300"
-          >
-            Get Started
-          </motion.button>
         </div>
       </motion.nav>
 
@@ -68,7 +60,7 @@ const LandingPage = () => {
               opacity: 1,
               scale: 1,
             }}
-            transition={{ duration: 1, ease: "easeOut" }}
+            transition={{ duration: 2.5, ease: "easeOut" }}
             className="mb-12 md:mb-16 flex justify-center"
           >
             <motion.img
@@ -106,7 +98,7 @@ const LandingPage = () => {
             transition={{ duration: 0.8, delay: 0.5 }}
             className="text-slate-400 text-base md:text-lg max-w-md mx-auto leading-relaxed mb-12"
           >
-            Create personalized meditations and affirmations in your own voice.
+            Create personalized meditations in your own voice.
           </motion.p>
 
           {/* CTA Button - premium glass style */}
@@ -117,9 +109,9 @@ const LandingPage = () => {
           >
             <motion.button
               onClick={() => openAuthModal('signup')}
-              whileHover={{ scale: 1.03, boxShadow: "0 0 40px rgba(6, 182, 212, 0.3)" }}
+              whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.98 }}
-              className="group relative px-8 py-4 rounded-full bg-gradient-to-r from-sky-500 to-cyan-400 text-white font-medium tracking-wide overflow-hidden shadow-lg shadow-sky-500/20 transition-all duration-500"
+              className="group relative px-8 py-4 rounded-full bg-gradient-to-r from-sky-500 to-cyan-400 text-white font-medium tracking-wide overflow-hidden transition-all duration-500"
             >
               <span className="relative z-10">Start Your Journey</span>
               <motion.div
