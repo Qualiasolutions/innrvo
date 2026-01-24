@@ -384,24 +384,6 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, initi
             </>
           )}
 
-          {/* Divider and Guest mode - hide when email sent or signup complete */}
-          {!emailSent && !signupComplete && (
-            <>
-              <div className="my-6 flex items-center gap-3">
-                <div className="flex-1 h-px bg-white/[0.06]" />
-                <span className="text-xs text-white/30">or</span>
-                <div className="flex-1 h-px bg-white/[0.06]" />
-              </div>
-
-              {/* Guest mode */}
-              <button
-                onClick={onClose}
-                className="w-full py-3 rounded-xl bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.08] text-white/60 hover:text-white text-sm transition-all"
-              >
-                Continue as Guest
-              </button>
-            </>
-          )}
         </div>
       </div>
     </div>
