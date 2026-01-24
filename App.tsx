@@ -2932,7 +2932,7 @@ const App: React.FC = () => {
               <h2 className="text-3xl md:text-5xl font-extralight text-center mb-3 tracking-tight animate-in fade-in slide-in-from-bottom-2 duration-500" style={{ animationDelay: '100ms' }}>
                 <span className="bg-gradient-to-r from-sky-400 via-white to-sky-400 bg-clip-text text-transparent">How INrVO Works</span>
               </h2>
-              <p className="text-slate-500 text-center mb-14 max-w-md text-sm animate-in fade-in slide-in-from-bottom-2 duration-500" style={{ animationDelay: '150ms' }}>Create personalized meditations in seconds with AI</p>
+              <p className="text-slate-500 text-center mb-14 max-w-md text-sm animate-in fade-in slide-in-from-bottom-2 duration-500" style={{ animationDelay: '150ms' }}>Create personalized meditations in your own voice</p>
 
               {/* Step Cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5 w-full">
