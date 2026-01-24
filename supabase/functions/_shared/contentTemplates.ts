@@ -37,15 +37,15 @@ export interface ContentGenerationParams {
 // ============================================================================
 
 const HYPNOSIS_SAFETY = {
-  disclaimer: `Before we begin, please ensure you are in a safe, comfortable place where you will not be disturbed. Never listen to hypnosis while driving or operating machinery. If you have a history of psychosis, severe mental health conditions, or are unsure if hypnosis is appropriate for you, please consult with a healthcare professional first.`,
-  consent: `Throughout this session, you remain in complete control. You can open your eyes and return to full alertness at any time simply by choosing to do so.`,
-  emergence: `In a moment, I'm going to count from 1 to 5. With each number, you'll become more alert and aware. At the count of 5, your eyes will open, and you'll feel completely awake, refreshed, and wonderful.
+  disclaimer: `Before I begin, I ensure I am in a safe, comfortable place where I will not be disturbed. I never listen to hypnosis while driving or operating machinery. If I have a history of psychosis, severe mental health conditions, or am unsure if hypnosis is appropriate for me, I consult with a healthcare professional first.`,
+  consent: `Throughout this session, I remain in complete control. I can open my eyes and return to full alertness at any time simply by choosing to do so.`,
+  emergence: `Now I begin counting from 1 to 5. With each number, I become more alert and aware. At the count of 5, my eyes open, and I feel completely awake, refreshed, and wonderful.
 
-1... Beginning to return now, feeling energy flowing back into your body.
-2... More aware now, becoming alert and present.
-3... Feeling your body, feeling the surface beneath you, energy increasing.
-4... Almost there now, eyes ready to open, mind clear and focused.
-5... Eyes open, fully awake, fully alert, feeling absolutely wonderful.`,
+1... I begin to return now, feeling energy flowing back into my body.
+2... I am more aware now, becoming alert and present.
+3... I feel my body, I feel the surface beneath me, my energy increasing.
+4... Almost there now, my eyes ready to open, my mind clear and focused.
+5... My eyes open, I am fully awake, fully alert, feeling absolutely wonderful.`,
 };
 
 // ============================================================================
@@ -123,7 +123,7 @@ ${structure}
 
 REQUIREMENTS:
 - Reference their specific situation in first 50 words
-- CRITICAL: Write ENTIRELY in FIRST PERSON ("I feel", "I breathe", "I notice", "I am"). NEVER use "you" or "your". The listener speaks AS themselves.
+- DEFAULT: Write in FIRST PERSON ("I feel", "I breathe", "I notice", "I am"). The listener speaks AS themselves. Only use second person ("you") if the user explicitly requests it.
 - Rich sensory details, present tense
 - Include: [pause], [long pause], [deep breath], [exhale slowly]
 - Fresh language (avoid "journey", "sacred")
@@ -151,7 +151,7 @@ ${structure}
 ${audioLine}
 
 STYLE: High-energy "I AM" statements
-FORMAT: CRITICAL - Write ENTIRELY in FIRST PERSON. Every statement starts with "I am", "I have", "I create", "I choose". NEVER use "you" or "your".
+FORMAT: Default to FIRST PERSON ("I am", "I have", "I create", "I choose"). Only use second person if the user explicitly requests it.
 
 REQUIREMENTS:
 - Short, punchy statements (5-10 words each)
@@ -171,7 +171,7 @@ ${structure}
 ${audioLine}
 
 STYLE: Fading, hypnotic affirmations for sleep onset
-FORMAT: CRITICAL - Write ENTIRELY in FIRST PERSON ("I drift", "I release", "I am safe"). NEVER use "you" or "your". Soft, dreamy tone.
+FORMAT: Default to FIRST PERSON ("I drift", "I release", "I am safe"). Only use second person if the user explicitly requests it. Soft, dreamy tone.
 
 REQUIREMENTS:
 - Progressive slowing of pace throughout
@@ -212,7 +212,7 @@ ${structure}
 ${audioLine}
 
 STYLE: Narrative-led affirmations with context
-FORMAT: CRITICAL - Write ENTIRELY in FIRST PERSON ("I feel", "I know", "I embrace"). NEVER use "you" or "your".
+FORMAT: Default to FIRST PERSON ("I feel", "I know", "I embrace"). Only use second person if the user explicitly requests it.
 
 STRUCTURE:
 - Affirmation → Brief expansion → Feeling anchor → Next
@@ -265,10 +265,10 @@ EMERGENCE PROTOCOL (REQUIRED at end):
 === STYLE REQUIREMENTS ===
 
 - Soothing, rhythmic pacing
-- Permissive language: "you may", "allow yourself"
-- Include embedded commands
+- DEFAULT: Write in FIRST PERSON ("I allow myself", "I feel", "I notice", "I am relaxing"). The listener speaks AS themselves. Only use second person if user explicitly requests it.
+- Permissive self-talk: "I may", "I allow myself", "I give myself permission"
+- Include embedded commands in first person
 - [pause], [long pause], [deep breath] throughout
-- First person for listener's experience
 
 VOICE DELIVERY: Use (hypnotic), (soft tone), (relaxed), (whispering) for deepening.
 
@@ -341,10 +341,10 @@ STYLE:
 VOICE DELIVERY: Use (mystical), (soft tone), (whispering), (awe) for visionary moments.
 
 CRITICAL:
+- DEFAULT: Write in FIRST PERSON ("I see", "I feel", "I move", "I experience"). The listener speaks AS themselves. Only use second person if user explicitly requests it.
 - Ground experience at the end
 - Return fully to present awareness
 - Include integration
-- First person format
 
 OUTPUT: Complete journey script only. No titles or explanations.`;
 }
