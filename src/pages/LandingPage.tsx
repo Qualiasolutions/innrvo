@@ -95,7 +95,7 @@ const LandingPage = () => {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.45 }}
-            className="text-slate-400 text-lg md:text-xl max-w-xl mx-auto leading-relaxed"
+            className="text-slate-400 text-lg md:text-xl mx-auto leading-relaxed whitespace-nowrap"
           >
             Create personalized meditations and affirmations in your own voice.
           </motion.p>
