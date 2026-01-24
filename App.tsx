@@ -2429,9 +2429,8 @@ const App: React.FC = () => {
               {!isInlineMode && (
                 <div className="fixed top-24 md:top-32 left-0 right-0 text-center z-10 px-4 animate-in fade-in slide-in-from-top-4 duration-500">
                   <p className="text-2xl md:text-4xl font-light tracking-wide text-white/70">
-                    {tagline.main} <span className="bg-clip-text text-transparent bg-gradient-to-r from-sky-500 to-sky-500 font-semibold">{tagline.highlight}</span>
+                    Speak it into <span className="bg-clip-text text-transparent bg-gradient-to-r from-sky-500 to-sky-500 font-semibold">existence.</span>
                   </p>
-                  {tagline.sub && <p className="text-base md:text-2xl text-slate-500 mt-1 md:mt-2 hidden sm:block">{tagline.sub}</p>}
                 </div>
               )}
 
