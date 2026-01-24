@@ -812,6 +812,25 @@ export const BACKGROUND_TRACKS: BackgroundTrack[] = [
   { id: 'healing-528', name: '528Hz Healing', description: 'Full body regeneration', category: 'binaural', audioUrl: 'https://archive.org/download/RelaxingSpaMusicCalmingMusicRelaxationMusicMeditationMusicInstrumentalMusic689/528Hz%20-%20Whole%20Body%20Regeneration%20-%20Full%20Body%20Healing%20Emotional%20Physical%20Healing.mp3' },
   { id: 'serotonin', name: 'Happiness Frequency', description: 'Serotonin & dopamine release', category: 'binaural', audioUrl: 'https://archive.org/download/RelaxingSpaMusicCalmingMusicRelaxationMusicMeditationMusicInstrumentalMusic689/Happiness%20Frequency%20-%20Serotonin%20Dopamine%20and%20Endorphin%20Release%20Music%2010%20Hz%20Binaural%20Beats.mp3' },
   { id: 'earth-frequency', name: 'Earth Frequency 7.83Hz', description: 'Boost positive energy', category: 'binaural', audioUrl: 'https://archive.org/download/RelaxingSpaMusicCalmingMusicRelaxationMusicMeditationMusicInstrumentalMusic689/7.83%20Hz%20The%20Powerful%20Healing%20Frequency%20of%20Earths%20Magnetic%20Field%20Boost%20Positive%20Energy.mp3' },
+
+  // Lo-fi / Chill Beats - Relaxed hip-hop for focus and chill
+  { id: 'lofi-land-of-calm', name: 'Land of Calm', description: 'Peaceful lofi beats', category: 'lofi', audioUrl: 'https://archive.org/download/chill-lofi-music-relax-study/Tom%20Doolie%20-%20Land%20of%20Calm.mp3' },
+  { id: 'lofi-cloud-shapes', name: 'Cloud Shapes', description: 'Dreamy chill beats', category: 'lofi', audioUrl: 'https://archive.org/download/chill-lofi-music-relax-study/Leavv%20-%20Cloud%20Shapes.mp3' },
+  { id: 'lofi-florist', name: 'Florist', description: 'Soft lofi melodies', category: 'lofi', audioUrl: 'https://archive.org/download/chill-lofi-music-relax-study/Lilac%20-%20Florist.mp3' },
+  { id: 'lofi-butterflies', name: 'Butterflies', description: 'Light chill hip-hop', category: 'lofi', audioUrl: 'https://archive.org/download/chill-lofi-music-relax-study/Loafy%20Building%20-%20Butterflies.mp3' },
+
+  // Classical / Piano - Soft classical pieces for meditation
+  { id: 'piano-a-shine', name: 'A Shine', description: 'Nils Frahm minimalist piano', category: 'classical', audioUrl: 'https://archive.org/download/calm-relaxing-piano-collection/Calm%20Relaxing%20Piano%20-%20Collection%20%282020%29/32%20Nils%20Frahm%20-%20A%20Shine.mp3' },
+  { id: 'piano-tomorrows-song', name: "Tomorrow's Song", description: 'Ólafur Arnalds ambient piano', category: 'classical', audioUrl: 'https://archive.org/download/calm-relaxing-piano-collection/Calm%20Relaxing%20Piano%20-%20Collection%20%282020%29/52%20Olafur%20Arnalds%20-%20Tomorrow%27s%20Song.mp3' },
+  { id: 'piano-peace', name: 'Peace', description: 'Agnes Fredenberg serene piano', category: 'classical', audioUrl: 'https://archive.org/download/calm-relaxing-piano-collection/Calm%20Relaxing%20Piano%20-%20Collection%20%282020%29/58%20Agnes%20Fredenberg%20-%20Peace.mp3' },
+  { id: 'piano-feather', name: 'Feather', description: 'Dirk Maassen gentle piano', category: 'classical', audioUrl: 'https://archive.org/download/calm-relaxing-piano-collection/Calm%20Relaxing%20Piano%20-%20Collection%20%282020%29/25%20Dirk%20Maassen%20-%20Feather.mp3' },
+  { id: 'piano-soft-sleeping', name: 'Soft Piano', description: 'Extended piano for sleep', category: 'classical', audioUrl: 'https://archive.org/download/SoftPianoMusicSleepingMusic/Soft%20Piano%20Music%20Sleeping%20Music.mp3' },
+  { id: 'piano-6hour', name: '6 Hour Piano', description: 'Extended meditation piano', category: 'classical', audioUrl: 'https://archive.org/download/6HourRelaxingPianoMusic/6%20Hour%20Relaxing%20Piano%20Music.mp3' },
+
+  // Ambient / Drone - Deep atmospheric textures
+  { id: 'ambient-storms-neptune', name: 'Storms of Neptune', description: 'Space drone journey', category: 'ambient', audioUrl: 'https://archive.org/download/storms-of-neptune-full-album/Storms%20Of%20Neptune%20%5Bfull%20album%5D.mp3' },
+  { id: 'drone-in-c', name: 'Drone in C', description: 'Deep sustained tones', category: 'ambient', audioUrl: 'https://archive.org/download/dronemusic/01-DroneInC.mp3' },
+  { id: 'drone-in-d', name: 'Drone in D', description: 'Atmospheric drone music', category: 'ambient', audioUrl: 'https://archive.org/download/dronemusic/02-DroneInD.mp3' },
 ];
 
 // Nature/Ambient Sounds - Looping environmental audio
