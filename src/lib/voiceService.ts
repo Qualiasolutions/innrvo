@@ -285,6 +285,138 @@ export const voiceService = {
   },
 
   /**
+   * Generate speech with progressive buffering for early playback
+   * Calls onBufferReady when enough audio is buffered to start playback
+   *
+   * @param text - Text to synthesize
+   * @param voice - Voice profile to use
+   * @param audioContext - AudioContext for decoding
+   * @param options - Callbacks for progressive playback
+   * @returns Promise that resolves with complete audio when generation finishes
+   */
+  async generateWithProgressivePlayback(
+    text: string,
+    voice: VoiceProfile,
+    audioContext: AudioContext,
+    options: {
+      /** Minimum seconds of audio to buffer before calling onBufferReady (default: 20) */
+      minBufferSeconds?: number;
+      /** Called when minimum buffer is reached - provides partial audio for playback */
+      onBufferReady?: (audioBuffer: AudioBuffer, estimatedTotalDuration: number) => void;
+      /** Called with progress updates */
+      onProgress?: (bufferedSeconds: number, estimatedTotalSeconds: number) => void;
+    }
+  ): Promise<{ audioBuffer: AudioBuffer; base64: string }> {
+    // Import dynamically to avoid circular dependency
+    const { generateSpeechWithProgressiveBuffering } = await import('./edgeFunctions');
+
+    const minBufferSeconds = options.minBufferSeconds ?? 20;
+
+    // Determine voice ID to use
+    const isPresetVoice = voice.id.startsWith('elevenlabs-');
+
+    // Track buffered chunks
+    const chunks: Uint8Array[] = [];
+    let hasCalledBufferReady = false;
+
+    // Prepare text for meditation-style delivery
+    const meditationText = prepareMeditationText(text);
+
+    return new Promise((resolve, reject) => {
+      generateSpeechWithProgressiveBuffering(
+        isPresetVoice ? undefined : voice.id,
+        meditationText,
+        {
+          onChunk: async (chunk, totalBytes, estimatedDuration) => {
+            chunks.push(chunk);
+
+            // Report progress
+            if (options.onProgress) {
+              // Estimate total duration based on text length
+              // Average meditation is ~10 chars per second of speech
+              const estimatedTotalFromText = text.length / 10;
+              options.onProgress(estimatedDuration, Math.max(estimatedDuration, estimatedTotalFromText));
+            }
+
+            // Check if we have enough buffered for early playback
+            if (!hasCalledBufferReady && estimatedDuration >= minBufferSeconds && options.onBufferReady) {
+              hasCalledBufferReady = true;
+
+              try {
+                // Combine chunks received so far
+                const partialBuffer = new Uint8Array(totalBytes);
+                let offset = 0;
+                for (const c of chunks) {
+                  partialBuffer.set(c, offset);
+                  offset += c.length;
+                }
+
+                // Decode partial audio
+                const partialAudioBuffer = await audioContext.decodeAudioData(partialBuffer.buffer.slice(0));
+
+                if (DEBUG) console.log('[voiceService] Progressive buffer ready', {
+                  bufferedSeconds: partialAudioBuffer.duration.toFixed(1),
+                  bytesReceived: totalBytes
+                });
+
+                // Estimate total duration
+                const estimatedTotal = Math.max(
+                  partialAudioBuffer.duration * 2, // Assume at least double what we have
+                  text.length / 10 // Or based on text length
+                );
+
+                options.onBufferReady(partialAudioBuffer, estimatedTotal);
+              } catch (decodeError) {
+                // If partial decode fails, wait for more data
+                if (DEBUG) console.warn('[voiceService] Partial decode failed, will retry with more data', decodeError);
+                hasCalledBufferReady = false;
+              }
+            }
+          },
+
+          onComplete: async (totalBytes, _estimatedDuration) => {
+            try {
+              // Combine all chunks
+              const completeBuffer = new Uint8Array(totalBytes);
+              let offset = 0;
+              for (const c of chunks) {
+                completeBuffer.set(c, offset);
+                offset += c.length;
+              }
+
+              // Convert to base64
+              let binary = '';
+              const chunkSize = 0x8000;
+              for (let i = 0; i < completeBuffer.length; i += chunkSize) {
+                const chunk = completeBuffer.subarray(i, Math.min(i + chunkSize, completeBuffer.length));
+                binary += String.fromCharCode(...chunk);
+              }
+              const base64 = btoa(binary);
+
+              // Decode complete audio
+              const audioBuffer = await audioContext.decodeAudioData(completeBuffer.buffer.slice(0));
+
+              if (DEBUG) console.log('[voiceService] Progressive generation complete', {
+                duration: audioBuffer.duration.toFixed(1) + 's',
+                totalBytes
+              });
+
+              resolve({ audioBuffer, base64 });
+            } catch (error) {
+              reject(error);
+            }
+          },
+
+          onError: (error) => {
+            reject(error);
+          }
+        },
+        isPresetVoice ? voice.elevenLabsVoiceId : undefined
+      );
+    });
+  },
+
+  /**
    * Generic audio decoder for base64 audio data
    * Supports MP3, WAV, and other formats
    *

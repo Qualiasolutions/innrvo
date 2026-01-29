@@ -427,6 +427,22 @@ async function callEdgeFunction<T>(
 // ============================================================================
 
 /**
+ * Callback for progressive audio buffering
+ * Called as audio chunks arrive, enabling early playback
+ */
+export interface StreamingProgressCallback {
+  onChunk: (chunk: Uint8Array, totalBytes: number, estimatedDuration: number) => void;
+  onComplete: (totalBytes: number, totalDuration: number) => void;
+  onError: (error: Error) => void;
+}
+
+/**
+ * MP3 bitrate for duration estimation
+ * Using 128kbps = 16000 bytes per second
+ */
+const MP3_BYTES_PER_SECOND = 16000;
+
+/**
  * Generate speech using ElevenLabs TTS Edge Function (streaming mode)
  * Returns audio as ArrayBuffer instead of base64 - prevents timeout issues
  *
@@ -500,6 +516,147 @@ export async function generateSpeechStreaming(
       throw timeoutError;
     }
 
+    throw error;
+  }
+}
+
+/**
+ * Generate speech with progressive buffering - enables early playback
+ * Streams audio chunks and calls back as data arrives
+ *
+ * @param voiceId - Voice profile ID (UUID) for user clones
+ * @param text - Text to synthesize
+ * @param callbacks - Progress callbacks for chunk arrival and completion
+ * @param elevenLabsVoiceId - Direct ElevenLabs voice ID (for preset voices)
+ * @returns Promise that resolves with the complete ArrayBuffer when done
+ */
+export async function generateSpeechWithProgressiveBuffering(
+  voiceId: string | undefined,
+  text: string,
+  callbacks: StreamingProgressCallback,
+  elevenLabsVoiceId?: string
+): Promise<ArrayBuffer> {
+  const token = await getAuthToken();
+  const requestId = generateRequestId();
+
+  if (!token) {
+    const authError = new Error('Your session has expired. Please sign in again to continue.') as EdgeFunctionError;
+    authError.requestId = requestId;
+    authError.status = 401;
+    callbacks.onError(authError);
+    throw authError;
+  }
+
+  const url = `${SUPABASE_URL}/functions/v1/generate-speech`;
+
+  // Streaming request - longer timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minute timeout
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'X-Request-ID': requestId,
+      },
+      body: JSON.stringify({
+        voiceId,
+        text,
+        elevenLabsVoiceId,
+        stream: true, // Enable streaming mode
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    // Check for error responses (JSON)
+    const contentType = response.headers.get('Content-Type') || '';
+    if (!response.ok || contentType.includes('application/json')) {
+      const data = await response.json();
+      const error = new Error(data.error || `Edge function error: ${response.status}`) as EdgeFunctionError;
+      error.requestId = requestId;
+      error.status = response.status;
+      error.needsReclone = data.needsReclone;
+      callbacks.onError(error);
+      throw error;
+    }
+
+    // Read the stream progressively
+    const reader = response.body?.getReader();
+    if (!reader) {
+      const error = new Error('No response body available for streaming') as EdgeFunctionError;
+      error.requestId = requestId;
+      callbacks.onError(error);
+      throw error;
+    }
+
+    const chunks: Uint8Array[] = [];
+    let totalBytes = 0;
+
+    if (DEBUG) console.log('[edgeFunctions] Starting progressive audio buffering');
+
+    // Read chunks as they arrive
+    while (true) {
+      const { done, value } = await reader.read();
+
+      if (done) {
+        break;
+      }
+
+      if (value) {
+        chunks.push(value);
+        totalBytes += value.length;
+
+        // Estimate duration based on MP3 bitrate (128kbps = 16KB/sec)
+        const estimatedDuration = totalBytes / MP3_BYTES_PER_SECOND;
+
+        if (DEBUG && totalBytes % 50000 < value.length) {
+          console.log('[edgeFunctions] Buffering progress', {
+            totalBytes,
+            estimatedDuration: estimatedDuration.toFixed(1) + 's',
+            chunks: chunks.length
+          });
+        }
+
+        // Notify callback of new chunk
+        callbacks.onChunk(value, totalBytes, estimatedDuration);
+      }
+    }
+
+    // Combine all chunks into a single ArrayBuffer
+    const combinedBuffer = new Uint8Array(totalBytes);
+    let offset = 0;
+    for (const chunk of chunks) {
+      combinedBuffer.set(chunk, offset);
+      offset += chunk.length;
+    }
+
+    const finalDuration = totalBytes / MP3_BYTES_PER_SECOND;
+
+    if (DEBUG) console.log('[edgeFunctions] Progressive buffering complete', {
+      totalBytes,
+      estimatedDuration: finalDuration.toFixed(1) + 's'
+    });
+
+    callbacks.onComplete(totalBytes, finalDuration);
+
+    return combinedBuffer.buffer;
+  } catch (error) {
+    clearTimeout(timeoutId);
+
+    if (error instanceof Error && error.name === 'AbortError') {
+      const timeoutError = new Error('Request timeout - please try a shorter meditation.') as EdgeFunctionError;
+      timeoutError.requestId = requestId;
+      callbacks.onError(timeoutError);
+      throw timeoutError;
+    }
+
+    if (error instanceof Error) {
+      callbacks.onError(error);
+    }
     throw error;
   }
 }

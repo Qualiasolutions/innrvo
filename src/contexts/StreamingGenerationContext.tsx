@@ -10,7 +10,7 @@ import { BackgroundTrack } from '../../constants';
  * the editor page (starts generation) and player page (receives audio).
  */
 
-export type GenerationPhase = 'idle' | 'preparing' | 'generating' | 'decoding' | 'ready' | 'error';
+export type GenerationPhase = 'idle' | 'preparing' | 'generating' | 'buffering' | 'decoding' | 'ready' | 'error';
 
 interface GenerationMetadata {
   script: string;
@@ -24,6 +24,16 @@ interface GenerationResult {
   audioBuffer: AudioBuffer;
   base64: string;
   duration: number;
+}
+
+/**
+ * Partial result for progressive playback
+ * Used when enough audio is buffered but generation is still in progress
+ */
+interface PartialGenerationResult {
+  audioBuffer: AudioBuffer;
+  estimatedTotalDuration: number;
+  bufferedSeconds: number;
 }
 
 interface StreamingGenerationContextType {
@@ -43,6 +53,10 @@ interface StreamingGenerationContextType {
   result: GenerationResult | null;
   setResult: (result: GenerationResult | null) => void;
 
+  // Partial result for progressive playback (populated during buffering phase)
+  partialResult: PartialGenerationResult | null;
+  setPartialResult: (result: PartialGenerationResult | null) => void;
+
   // Promise ref for async coordination
   generationPromiseRef: RefObject<Promise<GenerationResult> | null>;
 
@@ -55,6 +69,7 @@ interface StreamingGenerationContextType {
   isGenerating: boolean;
   isReady: boolean;
   hasError: boolean;
+  isBufferingForPlayback: boolean;
 }
 
 const StreamingGenerationContext = createContext<StreamingGenerationContextType | undefined>(undefined);
@@ -76,6 +91,7 @@ export const StreamingGenerationProvider: React.FC<StreamingGenerationProviderPr
   const [metadata, setMetadata] = useState<GenerationMetadata | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<GenerationResult | null>(null);
+  const [partialResult, setPartialResult] = useState<PartialGenerationResult | null>(null);
 
   const generationPromiseRef = useRef<Promise<GenerationResult> | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -138,12 +154,14 @@ export const StreamingGenerationProvider: React.FC<StreamingGenerationProviderPr
     setMetadata(null);
     setError(null);
     setResult(null);
+    setPartialResult(null);
   }, [cancelGeneration]);
 
   // Derived state
-  const isGenerating = phase === 'preparing' || phase === 'generating' || phase === 'decoding';
+  const isGenerating = phase === 'preparing' || phase === 'generating' || phase === 'buffering' || phase === 'decoding';
   const isReady = phase === 'ready' && result !== null;
   const hasError = phase === 'error' && error !== null;
+  const isBufferingForPlayback = phase === 'buffering' && partialResult !== null;
 
   const value = useMemo<StreamingGenerationContextType>(() => ({
     phase,
@@ -154,6 +172,8 @@ export const StreamingGenerationProvider: React.FC<StreamingGenerationProviderPr
     setError,
     result,
     setResult,
+    partialResult,
+    setPartialResult,
     generationPromiseRef,
     startGeneration,
     cancelGeneration,
@@ -161,10 +181,11 @@ export const StreamingGenerationProvider: React.FC<StreamingGenerationProviderPr
     isGenerating,
     isReady,
     hasError,
+    isBufferingForPlayback,
   }), [
-    phase, metadata, error, result,
+    phase, metadata, error, result, partialResult,
     startGeneration, cancelGeneration, resetGeneration,
-    isGenerating, isReady, hasError,
+    isGenerating, isReady, hasError, isBufferingForPlayback,
   ]);
 
   return (

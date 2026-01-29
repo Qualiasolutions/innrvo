@@ -2740,7 +2740,7 @@ const App: React.FC = () => {
             <Suspense fallback={<div className="fixed inset-0 z-[100] bg-[#0f172a] flex items-center justify-center"><div className="w-8 h-8 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" /></div>}>
               <MeditationPlayer
                 isPlaying={isPlaying}
-                isBuffering={generationPhase === 'preparing' || generationPhase === 'generating' || generationPhase === 'decoding'}
+                isBuffering={generationPhase === 'preparing' || generationPhase === 'generating'}
                 currentTime={currentTime}
                 duration={duration}
                 onPlayPause={handleInlineTogglePlayback}
