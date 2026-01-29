@@ -199,6 +199,8 @@ const App: React.FC = () => {
     metadata: generationMetadata,
     error: generationError,
     setPhase,
+    setPartialResult,
+    partialResult,
     resetGeneration,
   } = useStreamingGeneration();
 
@@ -383,11 +385,62 @@ const App: React.FC = () => {
     };
   }, []);
 
+  // Ref to track if we've already started early playback (progressive buffering)
+  const earlyPlaybackStartedRef = useRef(false);
+
   // Handle streaming generation completion - set up playback when audio is ready
   useEffect(() => {
     if (generationPhase === 'ready' && generationResult && generationMetadata) {
       const { audioBuffer, base64, duration: audioDuration } = generationResult;
       const { script: meditationScript, voice, backgroundTrack, audioTags } = generationMetadata;
+
+      // Check if early playback was already started (progressive buffering mode)
+      const wasPlayingEarly = earlyPlaybackStartedRef.current;
+
+      if (wasPlayingEarly) {
+        // Early playback was active - just update the buffer and duration, don't restart
+        console.log('[App] Generation complete, updating with full audio:', audioDuration.toFixed(1), 's');
+
+        // Update buffer and duration with complete audio
+        audioBufferRef.current = audioBuffer;
+        setDuration(audioDuration);
+
+        // Update timing map with actual duration
+        const map = buildTimingMap(meditationScript, audioDuration);
+        setTimingMap(map);
+
+        // Deduct credits if cloned voice
+        if (voice.isCloned && user?.id) {
+          creditService.deductCredits(
+            creditService.calculateTTSCost(meditationScript),
+            'TTS_GENERATE',
+            voice.id,
+            user.id
+          ).catch(err => console.warn('Failed to deduct credits:', err));
+        }
+
+        // Store pending meditation for save-on-exit flow
+        setPendingMeditation({
+          prompt: meditationScript.substring(0, 100),
+          script: meditationScript,
+          voiceId: voice.id,
+          voiceName: voice.name,
+          backgroundTrackId: backgroundTrack?.id,
+          backgroundTrackName: backgroundTrack?.name,
+          natureSoundId: selectedNatureSound?.id !== 'none' ? selectedNatureSound?.id : undefined,
+          natureSoundName: selectedNatureSound?.id !== 'none' ? selectedNatureSound?.name : undefined,
+          durationSeconds: Math.round(audioDuration),
+          audioTags: audioTags.length > 0 ? audioTags : undefined,
+          base64Audio: base64,
+        });
+
+        // Reset generation state
+        resetGeneration();
+        return;
+      }
+
+      // No early playback - start from scratch (fallback for short meditations)
+      console.log('[App] Starting playback with complete audio:', audioDuration.toFixed(1), 's');
 
       // Stop any existing playback
       if (audioSourceRef.current) {
@@ -485,6 +538,91 @@ const App: React.FC = () => {
     // Note: startBackgroundMusic is intentionally omitted - it's a stable function defined later
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [generationPhase, generationResult, generationMetadata, voiceVolume, playbackRate, user?.id, resetGeneration]);
+
+  // Handle early playback during buffering phase (progressive buffering)
+  // This effect starts playback as soon as 20 seconds of audio is buffered
+  useEffect(() => {
+    if (generationPhase === 'buffering' && partialResult && generationMetadata) {
+      const { audioBuffer: partialAudioBuffer, estimatedTotalDuration } = partialResult;
+      const { script: meditationScript, backgroundTrack } = generationMetadata;
+
+      // Check if playback is already started (avoid duplicate setup)
+      if (earlyPlaybackStartedRef.current || isPlaying || audioSourceRef.current) {
+        return;
+      }
+      earlyPlaybackStartedRef.current = true;
+
+      console.log('[App] Starting early playback with', partialAudioBuffer.duration.toFixed(1), 's buffered');
+
+      // Store the partial audio buffer
+      audioBufferRef.current = partialAudioBuffer;
+      setDuration(estimatedTotalDuration); // Use estimated total, will update when complete
+      setCurrentTime(0);
+      lastWordIndexRef.current = 0;
+      setCurrentWordIndex(0);
+      pauseOffsetRef.current = 0;
+
+      // Ensure audio context exists
+      if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
+        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+
+      // iOS: Use async IIFE to properly await AudioContext resume before playback
+      (async () => {
+        await ensureAudioContextResumed(audioContextRef.current);
+
+        // Create gain node for voice volume control
+        if (!gainNodeRef.current) {
+          gainNodeRef.current = audioContextRef.current!.createGain();
+          gainNodeRef.current.connect(audioContextRef.current!.destination);
+        }
+        gainNodeRef.current.gain.value = voiceVolume;
+
+        // Start playback with playback rate
+        const source = audioContextRef.current!.createBufferSource();
+        source.buffer = partialAudioBuffer;
+        source.playbackRate.value = playbackRate;
+        playbackRateRef.current = playbackRate;
+        source.connect(gainNodeRef.current);
+        source.start();
+        audioSourceRef.current = source;
+        playbackStartTimeRef.current = audioContextRef.current!.currentTime;
+
+        // Update state
+        setIsPlaying(true);
+        setIsGenerating(false);
+        setGenerationStage('idle');
+
+        // Build timing map with estimated duration
+        const map = buildTimingMap(meditationScript, estimatedTotalDuration);
+        setTimingMap(map);
+
+        // Start background music
+        if (backgroundTrack) {
+          startBackgroundMusic(backgroundTrack);
+        }
+
+        // Note: We'll store pending meditation and deduct credits when generation completes
+        // Not doing it here since we don't have the full base64 yet
+
+        source.onended = () => {
+          // When partial audio ends, check if complete audio is ready
+          // If not, the 'ready' phase handler will continue playback
+          console.log('[App] Partial audio ended');
+          setIsPlaying(false);
+          if (animationFrameRef.current) {
+            cancelAnimationFrame(animationFrameRef.current);
+          }
+        };
+      })();
+    }
+
+    // Reset early playback flag when generation resets
+    if (generationPhase === 'idle' || generationPhase === 'preparing') {
+      earlyPlaybackStartedRef.current = false;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [generationPhase, partialResult, generationMetadata, voiceVolume, playbackRate]);
 
   // Handle generation errors
   useEffect(() => {
@@ -1672,28 +1810,33 @@ const App: React.FC = () => {
   }, [isPlaying, isInlineMode, currentView, updateProgress]);
 
   // Pause playback for inline player
+  // Note: Removed isPlaying guard to handle race conditions where state might be stale
   const handleInlinePause = useCallback(() => {
-    if (!audioContextRef.current || !audioSourceRef.current || !isPlaying) return;
-
-    // Calculate current position (account for playback rate)
-    const elapsed = (audioContextRef.current.currentTime - playbackStartTimeRef.current) * playbackRateRef.current;
-    pauseOffsetRef.current = Math.min(pauseOffsetRef.current + elapsed, duration);
-
-    // Stop the source
-    try {
-      audioSourceRef.current.stop();
-    } catch (e) {
-      // Already stopped
+    // Calculate current position if we have valid audio context (account for playback rate)
+    if (audioContextRef.current && audioSourceRef.current) {
+      const elapsed = (audioContextRef.current.currentTime - playbackStartTimeRef.current) * playbackRateRef.current;
+      pauseOffsetRef.current = Math.min(pauseOffsetRef.current + elapsed, duration);
     }
-    audioSourceRef.current = null;
+
+    // Stop and disconnect the source - disconnect ensures audio stops on all browsers including iOS
+    if (audioSourceRef.current) {
+      try {
+        audioSourceRef.current.disconnect();
+        audioSourceRef.current.stop();
+      } catch (e) {
+        // Already stopped or disconnected
+      }
+      audioSourceRef.current = null;
+    }
 
     // Cancel animation frame
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
     }
 
     setIsPlaying(false);
-  }, [isPlaying, duration]);
+  }, [duration]);
 
   // Resume playback for inline player
   const handleInlinePlay = useCallback(async () => {
@@ -2507,6 +2650,7 @@ const App: React.FC = () => {
                         setCurrentView(View.PLAYER);
 
                         // Start generation via streaming context for cross-page state
+                        // Uses progressive buffering for early playback (starts after 20s buffered)
                         startGeneration(
                           {
                             script: meditationScript,
@@ -2518,17 +2662,29 @@ const App: React.FC = () => {
                           async () => {
                             setPhase('generating');
 
-                            // Generate speech
-                            const { audioBuffer, base64, needsReclone } = await voiceService.generateSpeech(
+                            // Generate speech with progressive buffering
+                            // This enables early playback after 20 seconds of audio is buffered
+                            const { audioBuffer, base64 } = await voiceService.generateWithProgressivePlayback(
                               meditationScript,
                               voice,
-                              audioContext
+                              audioContext,
+                              {
+                                minBufferSeconds: 20,
+                                onBufferReady: (partialAudioBuffer, estimatedTotal) => {
+                                  // Switch to buffering phase and provide partial audio for early playback
+                                  setPhase('buffering');
+                                  setPartialResult({
+                                    audioBuffer: partialAudioBuffer,
+                                    estimatedTotalDuration: estimatedTotal,
+                                    bufferedSeconds: partialAudioBuffer.duration,
+                                  });
+                                },
+                                onProgress: (bufferedSeconds, estimatedTotal) => {
+                                  // Progress updates could be used for UI if needed
+                                  console.log(`[App] Buffering: ${bufferedSeconds.toFixed(1)}s / ~${estimatedTotal.toFixed(0)}s`);
+                                },
+                              }
                             );
-
-                            // Check if voice needs to be re-cloned (legacy Fish Audio/Chatterbox voice)
-                            if (needsReclone) {
-                              throw new Error('This voice needs to be re-cloned. Please go to Voice Settings and re-clone your voice.');
-                            }
 
                             if (!audioBuffer) {
                               throw new Error('Failed to generate audio buffer. Please try again.');

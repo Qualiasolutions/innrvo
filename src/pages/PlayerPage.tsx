@@ -91,19 +91,22 @@ const PlayerPage: React.FC = () => {
     if (!audioContextRef.current || !audioBufferRef.current) return;
 
     if (isPlaying) {
-      // Pause voice
+      // Pause voice - disconnect and stop to ensure audio stops on all browsers including iOS
       if (audioSourceRef.current) {
         try {
+          audioSourceRef.current.disconnect();
           audioSourceRef.current.stop();
         } catch {
           // AudioBufferSourceNode.stop() throws if already stopped - safe to ignore
         }
+        audioSourceRef.current = null;
       }
       pauseOffsetRef.current = currentTime;
       setIsPlaying(false);
       trackAudio.playbackStopped(currentTime * 1000, duration * 1000);
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
       }
 
       // Also pause background music
@@ -217,13 +220,15 @@ const PlayerPage: React.FC = () => {
 
   // Stop all audio playback (shared by close, save, and discard)
   const stopAllAudio = useCallback(() => {
-    // Stop voice playback
+    // Stop voice playback - disconnect and stop for robust stopping on all browsers
     if (audioSourceRef.current) {
       try {
+        audioSourceRef.current.disconnect();
         audioSourceRef.current.stop();
       } catch {
         // AudioBufferSourceNode.stop() throws if already stopped - safe to ignore
       }
+      audioSourceRef.current = null;
     }
     setIsPlaying(false);
 
