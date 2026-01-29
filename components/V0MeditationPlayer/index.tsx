@@ -1,6 +1,6 @@
 import React, { useCallback, memo, useState, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Play, Pause, RotateCcw, RotateCw, ChevronUp, Music, Mic } from 'lucide-react';
+import { Save, Play, Pause, RotateCcw, RotateCw, ChevronUp, Music, Mic } from 'lucide-react';
 import { ICONS } from '../../constants';
 
 /**
@@ -384,16 +384,16 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
       <div className="relative z-10 h-full overflow-y-auto overscroll-contain">
         <div className="min-h-full flex flex-col px-3 xs:px-4 sm:px-6 py-4 safe-top safe-bottom">
 
-          {/* Close button - fixed position feel */}
+          {/* Save button - fixed position feel */}
           <motion.button
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             whileTap={{ scale: 0.95 }}
             onClick={onClose}
             className="flex-shrink-0 self-start h-10 w-10 sm:h-11 sm:w-11 flex items-center justify-center rounded-full bg-white/5 text-white/60 backdrop-blur-sm transition-colors hover:bg-white/10 hover:text-white/80 mt-2"
-            aria-label="Close player"
+            aria-label="Save meditation"
           >
-            <X className="h-5 w-5" />
+            <Save className="h-5 w-5" />
           </motion.button>
 
           {/* Center section - orb + time (centered in available space) */}
