@@ -1,4 +1,4 @@
-import React, { useCallback, memo, useState, useMemo, useRef } from 'react';
+import React, { useCallback, memo, useState, useMemo, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Play, Pause, RotateCcw, RotateCw, ChevronUp, Music, Mic } from 'lucide-react';
 import { ICONS } from '../../constants';
@@ -355,6 +355,15 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
 }) => {
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
   const [showControls, setShowControls] = useState(false);
+  const [showSaveHint, setShowSaveHint] = useState(true);
+
+  // Auto-hide save hint after 5 seconds
+  useEffect(() => {
+    if (showSaveHint) {
+      const timer = setTimeout(() => setShowSaveHint(false), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [showSaveHint]);
 
   const formatTime = useCallback((seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -384,17 +393,64 @@ const V0MeditationPlayer: React.FC<MeditationPlayerProps> = memo(({
       <div className="relative z-10 h-full overflow-y-auto overscroll-contain">
         <div className="min-h-full flex flex-col px-3 xs:px-4 sm:px-6 py-4 safe-top safe-bottom">
 
-          {/* Close button - fixed position feel */}
-          <motion.button
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={onClose}
-            className="flex-shrink-0 self-start h-10 w-10 sm:h-11 sm:w-11 flex items-center justify-center rounded-full bg-white/5 text-white/60 backdrop-blur-sm transition-colors hover:bg-white/10 hover:text-white/80 mt-2"
-            aria-label="Close player"
-          >
-            <X className="h-5 w-5" />
-          </motion.button>
+          {/* Close/Save button with onboarding tooltip */}
+          <div className="flex-shrink-0 self-start mt-2 relative">
+            <motion.button
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => {
+                setShowSaveHint(false);
+                onClose();
+              }}
+              className="relative h-11 w-11 sm:h-12 sm:w-12 flex items-center justify-center rounded-full bg-gradient-to-br from-white/10 to-white/5 text-white/70 backdrop-blur-md border border-white/10 shadow-lg shadow-black/20 transition-all duration-300 hover:from-white/15 hover:to-white/10 hover:text-white hover:border-white/20 hover:shadow-cyan-500/10"
+              aria-label="Save & close"
+            >
+              <X className="h-5 w-5 sm:h-6 sm:w-6" />
+              {/* Subtle glow ring */}
+              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-cyan-500/10 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300" />
+            </motion.button>
+
+            {/* Save hint tooltip with arrow */}
+            <AnimatePresence>
+              {showSaveHint && (
+                <motion.div
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -10 }}
+                  transition={{ duration: 0.3, delay: 0.5 }}
+                  className="absolute left-14 sm:left-16 top-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-none"
+                >
+                  {/* Animated arrow pointing to button */}
+                  <motion.div
+                    animate={{ x: [0, -6, 0] }}
+                    transition={{ duration: 1, repeat: Infinity, ease: 'easeInOut' }}
+                    className="text-cyan-400"
+                  >
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="rotate-180">
+                      <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </motion.div>
+
+                  {/* Tooltip text */}
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.7 }}
+                    className="px-4 py-2.5 rounded-xl bg-gradient-to-br from-slate-800/95 to-slate-900/95 backdrop-blur-xl border border-white/10 shadow-xl shadow-black/30"
+                  >
+                    <p className="text-sm sm:text-base text-white font-medium whitespace-nowrap">
+                      Tap here to <span className="text-cyan-400">save</span> your meditation
+                    </p>
+                    <p className="text-xs text-white/50 mt-0.5">
+                      Your session will be saved to your library
+                    </p>
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
 
           {/* Center section - orb + time (centered in available space) */}
           <div className="flex-1 flex flex-col items-center justify-center min-h-0">

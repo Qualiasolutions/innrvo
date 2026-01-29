@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Innrvo Influencer Prospects | 5K-20K Followers</title>
+    <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --accent: #38bdf8;
+            --accent-hover: #7dd3fc;
+            --success: #4ade80;
+            --border: rgba(56, 189, 248, 0.2);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding: 2rem;
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+            border-radius: 1rem;
+            border: 1px solid var(--border);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, var(--accent) 0%, #a78bfa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-top: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .stat {
+            background: var(--bg-card);
+            padding: 1rem 2rem;
+            border-radius: 0.5rem;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .filters {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 0.5rem 1rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 2rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .filter-btn:hover, .filter-btn.active {
+            background: var(--accent);
+            color: var(--bg-primary);
+            border-color: var(--accent);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .card {
+            background: var(--bg-secondary);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            border: 1px solid var(--border);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(56, 189, 248, 0.15);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .influencer-name {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .followers {
+            background: linear-gradient(135deg, var(--accent) 0%, #a78bfa 100%);
+            padding: 0.25rem 0.75rem;
+            border-radius: 2rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--bg-primary);
+        }
+
+        .handle {
+            color: var(--accent);
+            font-size: 0.9rem;
+            margin-bottom: 0.75rem;
+            display: block;
+        }
+
+        .handle a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .handle a:hover {
+            text-decoration: underline;
+        }
+
+        .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .tag {
+            background: var(--bg-card);
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .tag.meditation { background: rgba(139, 92, 246, 0.2); color: #a78bfa; }
+        .tag.yoga { background: rgba(74, 222, 128, 0.2); color: #4ade80; }
+        .tag.breathwork { background: rgba(56, 189, 248, 0.2); color: #38bdf8; }
+        .tag.mindfulness { background: rgba(251, 191, 36, 0.2); color: #fbbf24; }
+        .tag.mental-health { background: rgba(244, 114, 182, 0.2); color: #f472b6; }
+        .tag.wellness { background: rgba(45, 212, 191, 0.2); color: #2dd4bf; }
+
+        .content-focus {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            line-height: 1.5;
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+            font-size: 0.85rem;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-secondary);
+        }
+
+        .meta-item svg {
+            width: 16px;
+            height: 16px;
+            fill: currentColor;
+        }
+
+        .meta-item a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .meta-item a:hover {
+            text-decoration: underline;
+        }
+
+        .priority {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            width: 24px;
+            height: 24px;
+            background: var(--success);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--bg-primary);
+        }
+
+        .card.high-priority {
+            position: relative;
+            border-color: var(--success);
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 3rem;
+            padding: 2rem;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .outreach-notes {
+            background: var(--bg-secondary);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-top: 3rem;
+            border: 1px solid var(--border);
+        }
+
+        .outreach-notes h2 {
+            color: var(--accent);
+            margin-bottom: 1rem;
+        }
+
+        .outreach-notes ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .outreach-notes li {
+            padding: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+
+        .outreach-notes li::before {
+            content: ">";
+            position: absolute;
+            left: 0;
+            color: var(--accent);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            h1 {
+                font-size: 1.75rem;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats {
+                gap: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Innrvo Influencer Prospects</h1>
+            <p class="subtitle">Meditation & Wellness Micro-Influencers (5K-20K Followers)</p>
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-value">20</div>
+                    <div class="stat-label">Total Prospects</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">8</div>
+                    <div class="stat-label">High Priority</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">5K-20K</div>
+                    <div class="stat-label">Follower Range</div>
+                </div>
+            </div>
+        </header>
+
+        <div class="filters">
+            <button class="filter-btn active" data-filter="all">All</button>
+            <button class="filter-btn" data-filter="meditation">Meditation</button>
+            <button class="filter-btn" data-filter="yoga">Yoga</button>
+            <button class="filter-btn" data-filter="breathwork">Breathwork</button>
+            <button class="filter-btn" data-filter="mindfulness">Mindfulness</button>
+            <button class="filter-btn" data-filter="mental-health">Mental Health</button>
+        </div>
+
+        <div class="grid">
+            <!-- High Priority Prospects -->
+            <div class="card high-priority" data-niche="meditation yoga mindfulness">
+                <div class="priority">1</div>
+                <div class="card-header">
+                    <div class="influencer-name">Amanda Gloria Valdes</div>
+                    <span class="followers">15.6K</span>
+                </div>
+                <span class="handle"><a href="https://instagram.com/amandagloriayoga" target="_blank">@amandagloriayoga</a></span>
+                <div class="tags">
+                    <span class="tag meditation">Meditation</span>
+                    <span class="tag yoga">Yoga</span>
+                </div>
+                <p class="content-focus">Meditation, yoga, pilates, and sound healing education. Perfect fit for Innrvo's guided meditation and voice synthesis features.</p>
+                <div class="meta">
+                    <span class="meta-item">
+                        <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                        USA
+                    </span>
+                </div>
+            </div>
+
+            <div class="card high-priority" data-niche="mindfulness yoga">
+                <div class="priority">2</div>
+                <div class="card-header">
+                    <div class="influencer-name">Giuseppe Jay Moschella</div>
+                    <span class="followers">19.4K</span>
+                </div>
+                <span class="handle"><a href="https://instagram.com/thathappyitalian" target="_blank">@thathappyitalian</a></span>
+                <div class="tags">
+                    <span class="tag mindfulness">Mindfulness</span>
+                    <span class="tag yoga">Yoga</span>
+                </div>
+                <p class="content-focus">Finding happiness through NLP coaching, yoga, and mindfulness practices. Engaged community focused on mental wellness.</p>
+            </div>
+
+            <div class="card high-priority" data-niche="mindfulness manifestation">
+                <div class="priority">3</div>
+                <div class="card-header">
+                    <div class="influencer-name">Lindsay Rose</div>
+                    <span class="followers">18K</span>
+                </div>
+                <span class="handle">@lindsayrose (search on IG)</span>
+                <div class="tags">
+                    <span class="tag mindfulness">Mindfulness</span>
+                    <span class="tag wellness">Manifestation</span>
+                </div>
+                <p class="content-focus">Manifestation coaching, self-awareness, and mindfulness practices. Great audience overlap with meditation app users.</p>
+            </div>
+
+            <div class="card high-priority" data-niche="yoga mindfulness">
+                <div class="priority">4</div>
+                <div class="card-header">
+                    <div class="influencer-name">Mandy Flannery</div>
+                    <span class="followers">16.2K</span>
+                </div>
+                <span class="handle"><a href="https://instagram.com/thetealyogistudio" target="_blank">@thetealyogistudio</a></span>
+                <div class="tags">
+                    <span class="tag yoga">Yoga</span>
+                    <span class="tag mindfulness">Mindfulness</span>
+                </div>
+                <p class="content-focus">Healing after trauma, empowerment through yoga and mindfulness practices. Strong engagement with wellness-focused community.</p>
+                <div class="meta">
+                    <span class="meta-item">
+                        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+                        <a href="https://thetealyogi.com" target="_blank">thetealyogi.com</a>
+                    </span>
+                </div>
+            </div>
+
+            <div class="card high-priority" data-niche="wellness yoga">
+                <div class="priority">5</div>
+                <div class="card-header">
+                    <div class="influencer-name">Andrea T Ferretti</div>
+                    <span class="followers">15.7K</span>
+                </div>
+                <span class="handle"><a href="https://instagram.com/andreaferretti" target="_blank">@andreaferretti</a></span>
+                <div class="tags">
+                    <span class="tag wellness">Wellness</span>
+                    <span class="tag yoga">Yoga</span>
+                </div>
+                <p class="content-focus">Wellness podcast hosting, neurodiversity advocacy, and yoga instruction. Podcast audience could be converted to app users.</p>
+                <div class="meta">
+                    <span class="meta-item">
+                        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+                        <a href="https://jasonyoga.com/blog" target="_blank">jasonyoga.com/blog</a>
+                    </span>
+                </div>
+            </div>
+
+            <div class="card high-priority" data-niche="mindfulness yoga">
+                <div class="priority">6</div>
+                <div class="card-header">
+                    <div class="influencer-name">Martina</div>
+                    <span class="followers">12.8K</span>
+                </div>
+                <span class="handle"><a href="https://instagram.com/martina1qigong1yoga" target="_blank">@martina1qigong1yoga</a></span>
+                <div class="tags">
+                    <span class="tag mindfulness">Mindfulness</span>
+                    <span class="tag yoga">Qigong</span>
+                </div>
+                <p class="content-focus">Qigong, yoga, and Reiki master. Teaches mindfulness techniques and energy work - aligns well with meditation app use cases.</p>
+            </div>
+
+            <div class="card high-priority" data-niche="yoga mindfulness">
+                <div class="priority">7</div>
+                <div class="card-header">
+                    <div class="influencer-name">Taylor White</div>
+                    <span class="followers">12.6K</span>
+                </div>
+                <span class="handle"><a href="https://instagram.com/yogini.taylor" target="_blank">@yogini.taylor</a></span>
+                <div class="tags">
+                    <span class="tag yoga">Yoga</span>
+                    <span class="tag mindfulness">Mindfulness</span>
+                </div>
+                <p class="content-focus">Yoga practice, motherhood, and mindfulness techniques. Engaged mom community - potential for sleep/stress meditation content.</p>
+                <div class="meta">
+                    <span class="meta-item">
+                        <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                        Vancouver, BC
+                    </span>
+                </div>
+            </div>
+
+            <div class="card high-priority" data-niche="breathwork wellness">
+                <div class="priority">8</div>
+                <div class="card-header">
+                    <div class="influencer-name">Alexandra Fratella Thurston</div>
+                    <span class="followers">12.2K</span>
+                </div>
+                <span class="handle"><a href="https://instagram.com/alexandrafratella" target="_blank">@alexandrafratella</a></span>
+                <div class="tags">
+                    <span class="tag breathwork">Breathwork</span>
+                    <span class="tag wellness">Wellness</span>
+                </div>
+                <p class="content-focus">Empowerment through movement and breath, wellness lifestyle. Breathwork focus aligns perfectly with Innrvo's breathing meditation features.</p>
+            </div>
+
+            <!-- Standard Priority Prospects -->
+            <div class="card" data-niche="mental-health yoga">
+                <div class="card-header">
+                    <div class="influencer-name">Silvia Mordini</div>
+                    <span class="followers">11.7K</span>
+                </div>
+                <span class="handle"><a href="https://instagram.com/inspiredyogagal" target="_blank">@inspiredyogagal</a></span>
+                <div class="tags">
+                    <span class="tag mental-health">Mental Health</span>
+                    <span class="tag yoga">Yoga</span>
+                </div>
+                <p class="content-focus">Mental health therapy, yoga teacher training, and mindfulness retreats. Professional background adds credibility.</p>
+                <div class="meta">
+                    <span class="meta-item">
+                        <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                        Tuscany, Bali, USA
+                    </span>
+                    <span class="meta-item">
+                        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+                        <a href="https://silviamordini.com" target="_blank">silviamordini.com</a>
+                    </span>
+                </div>
+            </div>
+
+            <div class="card" data-niche="mindfulness yoga">
+                <div class="card-header">
+                    <div class="influencer-name">Gabriela Bozic</div>
+                    <span class="followers">10.7K</span>
+                </div>
+                <span class="handle"><a href="https://instagram.com/gabriela.bozic" target="_blank">@gabriela.bozic</a></span>
+                <div class="tags">
+                    <span class="tag yoga">Yoga</span>
+                    <span class="tag mindfulness">Mindfulness</span>
+                </div>
+                <p class="content-focus">Yoga instruction, self-regulation, and mindfulness teacher training. Trains other teachers - could multiply reach.</p>
+                <div class="meta">
+                    <span class="meta-item">
+                        <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                        Mallorca
+                    </span>
+                    <span class="meta-item">
+                        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+                        <a href="https://gabrielabozic.com" target="_blank">gabrielabozic.com</a>
+                    </span>
+                </div>
+            </div>
+
+            <div class="card" data-niche="mindfulness yoga">
+                <div class="card-header">
+                    <div class="influencer-name">Amina Agerman</div>
+                    <span class="followers">10.5K</span>
+                </div>
+                <span class="handle"><a href="https://instagram.com/ellenaminayoga" target="_blank">@ellenaminayoga</a></span>
+                <div class="tags">
+                    <span class="tag mindfulness">Mindfulness</span>
+                    <span class="tag yoga">Yoga</span>
+                </div>
+                <p class="content-focus">Mindful movement, mindful living, and finding flow in life. Content style matches Innrvo's calm, centered brand voice.</p>
+            </div>
+
+            <div class="card" data-niche="yoga">
+                <div class="card-header">
+                    <div class="influencer-name">April Denning</div>
+                    <span class="followers">9.2K</span>
+                </div>
+                <span class="handle">@aprildenning (search on IG)</span>
+                <div class="tags">
+                    <span class="tag yoga">Yoga</span>
+                </div>
+                <p class="content-focus">Yoga instruction and mindful movement. Clean content style, professional presentation.</p>
+            </div>
+
+            <div class="card" data-niche="mindfulness wellness">
+                <div class="card-header">
+                    <div class="influencer-name">The Good Body</div>
+                    <span class="followers">8.7K</span>
+                </div>
+                <span class="handle"><a href="https://instagram.com/thegoodbodydotcom" target="_blank">@thegoodbodydotcom</a></span>
+                <div class="tags">
+                    <span class="tag mindfulness">Mindfulness</span>
+                    <span class="tag wellness">Wellness</span>
+                </div>
+                <p class="content-focus">Mindfulness research, yoga poses for stress and anxiety, meditation practices. Content-focused account with educational angle.</p>
+                <div class="meta">
+                    <span class="meta-item">
+                        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+                        <a href="https://thegoodbody.com" target="_blank">thegoodbody.com</a>
+                    </span>
+                    <span class="meta-item">
+                        <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+                        <a href="mailto:contact@thegoodbody.com">contact@thegoodbody.com</a>
+                    </span>
+                </div>
+            </div>
+
+            <div class="card" data-niche="mental-health wellness">
+                <div class="card-header">
+                    <div class="influencer-name">Nicole Nelson</div>
+                    <span class="followers">7K</span>
+                </div>
+                <span class="handle">@nicolenelson (search on IG)</span>
+                <div class="tags">
+                    <span class="tag mental-health">Mental Health</span>
+                    <span class="tag wellness">Wellness</span>
+                </div>
+                <p class="content-focus">Health coaching, plant-based nutrition, mental wellness management. Holistic health approach complements meditation practice.</p>
+                <div class="meta">
+                    <span class="meta-item">
+                        <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                        USA
+                    </span>
+                </div>
+            </div>
+
+            <div class="card" data-niche="meditation yoga">
+                <div class="card-header">
+                    <div class="influencer-name">Alex Dawson</div>
+                    <span class="followers">6.4K</span>
+                </div>
+                <span class="handle"><a href="https://instagram.com/alexdawsonyoga" target="_blank">@alexdawsonyoga</a></span>
+                <div class="tags">
+                    <span class="tag meditation">Meditation</span>
+                    <span class="tag yoga">Yoga</span>
+                </div>
+                <p class="content-focus">Yoga and meditation teaching with 20+ years experience. Credibility and experience make for authentic partnership potential.</p>
+            </div>
+
+            <div class="card" data-niche="mindfulness mental-health">
+                <div class="card-header">
+                    <div class="influencer-name">Zach Morris</div>
+                    <span class="followers">6K</span>
+                </div>
+                <span class="handle">@zachmorris (search on IG)</span>
+                <div class="tags">
+                    <span class="tag mindfulness">Mindfulness</span>
+                    <span class="tag mental-health">Mental Health</span>
+                </div>
+                <p class="content-focus">Mindful athlete practices, mentality coaching, spirituality and movement. Appeals to fitness-focused meditation audience.</p>
+                <div class="meta">
+                    <span class="meta-item">
+                        <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                        USA
+                    </span>
+                </div>
+            </div>
+
+            <div class="card" data-niche="mindfulness mental-health">
+                <div class="card-header">
+                    <div class="influencer-name">Jorden Jones</div>
+                    <span class="followers">5K+</span>
+                </div>
+                <span class="handle"><a href="https://instagram.com/reallyjayyoh" target="_blank">@reallyjayyoh</a></span>
+                <div class="tags">
+                    <span class="tag mindfulness">Mindfulness</span>
+                    <span class="tag mental-health">Mental Health</span>
+                </div>
+                <p class="content-focus">Prioritizing peace, self-awareness, mental wellness practices. Authentic voice resonates with younger meditation audience.</p>
+                <div class="meta">
+                    <span class="meta-item">
+                        <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                        New York, USA
+                    </span>
+                </div>
+            </div>
+
+            <div class="card" data-niche="mindfulness">
+                <div class="card-header">
+                    <div class="influencer-name">Dalis Freixa</div>
+                    <span class="followers">5K+</span>
+                </div>
+                <span class="handle"><a href="https://instagram.com/realdalisg" target="_blank">@realdalisg</a></span>
+                <div class="tags">
+                    <span class="tag mindfulness">Mindfulness</span>
+                    <span class="tag wellness">Spirituality</span>
+                </div>
+                <p class="content-focus">Spiritual mentoring, grounding practices, daily self-improvement. Good for guided journey and hypnosis content promotion.</p>
+                <div class="meta">
+                    <span class="meta-item">
+                        <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                        Florida, USA
+                    </span>
+                </div>
+            </div>
+
+            <div class="card" data-niche="mindfulness">
+                <div class="card-header">
+                    <div class="influencer-name">Josie Castillo</div>
+                    <span class="followers">5K+</span>
+                </div>
+                <span class="handle">@josiecastillo (search on IG)</span>
+                <div class="tags">
+                    <span class="tag mindfulness">Mindfulness</span>
+                    <span class="tag wellness">Spirituality</span>
+                </div>
+                <p class="content-focus">Spirituality practices, positivity, encouragement and mindfulness. Uplifting content style aligns with Innrvo brand.</p>
+            </div>
+
+            <div class="card" data-niche="mental-health">
+                <div class="card-header">
+                    <div class="influencer-name">Lily Rae Harper</div>
+                    <span class="followers">5K+</span>
+                </div>
+                <span class="handle">@lilyrae (search on IG)</span>
+                <div class="tags">
+                    <span class="tag mental-health">Mental Health</span>
+                    <span class="tag wellness">Self-Care</span>
+                </div>
+                <p class="content-focus">Mental health reminders, self-care practices, empowering messages. Perfect for affirmation content partnerships.</p>
+            </div>
+        </div>
+
+        <div class="outreach-notes">
+            <h2>Outreach Strategy for Innrvo</h2>
+            <ul>
+                <li><strong>Pitch Angle:</strong> "Create personalized guided meditations with YOUR voice" - unique AI voice cloning feature</li>
+                <li><strong>Offer:</strong> Free premium account + affiliate commission (15-20%) on referrals</li>
+                <li><strong>Content Ideas:</strong> "Creating my own meditation with AI" reels, voice cloning demo, before/after stress relief</li>
+                <li><strong>Best Matches:</strong> Breathwork creators (Alexandra, Giuseppe), Sound healing (Amanda), Mental health (Silvia, Nicole)</li>
+                <li><strong>Avoid:</strong> Influencers with heavy product sponsorships - look for authentic wellness content</li>
+                <li><strong>Timing:</strong> January-March is peak "new year wellness" season - act fast</li>
+                <li><strong>DM Template:</strong> Keep it short, mention you saw specific content, offer value first (free account), no pressure</li>
+            </ul>
+        </div>
+
+        <footer>
+            <p>Generated for Innrvo | innrvo.com | January 2026</p>
+            <p style="margin-top: 0.5rem; font-size: 0.8rem;">Prospect data gathered via web research. Verify follower counts before outreach.</p>
+        </footer>
+    </div>
+
+    <script>
+        // Filter functionality
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                const filter = btn.dataset.filter;
+                document.querySelectorAll('.card').forEach(card => {
+                    if (filter === 'all' || card.dataset.niche.includes(filter)) {
+                        card.style.display = 'block';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

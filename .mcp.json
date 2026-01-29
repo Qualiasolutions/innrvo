@@ -11,6 +11,16 @@
         "@modelcontextprotocol/server-filesystem",
         "/home/qualiasolutions/Desktop/Projects/voice/inrvo"
       ]
+    },
+    "firecrawl": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "firecrawl-mcp"
+      ],
+      "env": {
+        "FIRECRAWL_API_KEY": "fc-3b78f0e2ffc440f5aa9adfafba17884a"
+      }
     }
   }
 }
