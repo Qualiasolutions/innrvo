@@ -16,6 +16,11 @@ import {
   Zap,
   BookOpen,
   Newspaper,
+  Quote,
+  Lightbulb,
+  CheckCircle,
+  AlertTriangle,
+  Share2,
 } from 'lucide-react';
 import AppLayout from '../layouts/AppLayout';
 import {
@@ -83,6 +88,160 @@ const CATEGORY_STYLES: Record<string, { gradient: string; border: string; text: 
   },
 };
 
+// Enhanced markdown content renderer
+const ContentRenderer: React.FC<{ content: string }> = ({ content }) => {
+  const elements: React.ReactNode[] = [];
+  const lines = content.split('\n');
+  let listItems: string[] = [];
+  let inList = false;
+
+  const flushList = () => {
+    if (listItems.length > 0) {
+      elements.push(
+        <ul key={`list-${elements.length}`} className="my-6 space-y-3">
+          {listItems.map((item, idx) => (
+            <li key={idx} className="flex items-start gap-3 text-slate-300">
+              <span className="flex-shrink-0 w-1.5 h-1.5 mt-2.5 rounded-full bg-sky-500" />
+              <span className="leading-relaxed">{item}</span>
+            </li>
+          ))}
+        </ul>
+      );
+      listItems = [];
+    }
+    inList = false;
+  };
+
+  lines.forEach((line, index) => {
+    const trimmedLine = line.trim();
+
+    // Empty line - flush list if any
+    if (!trimmedLine) {
+      flushList();
+      return;
+    }
+
+    // Headers
+    if (trimmedLine.startsWith('### ')) {
+      flushList();
+      elements.push(
+        <h3 key={index} className="text-xl font-semibold text-white mt-10 mb-4 flex items-center gap-2">
+          <span className="w-1 h-6 bg-gradient-to-b from-sky-500 to-violet-500 rounded-full" />
+          {trimmedLine.slice(4)}
+        </h3>
+      );
+      return;
+    }
+
+    if (trimmedLine.startsWith('## ')) {
+      flushList();
+      elements.push(
+        <h2 key={index} className="text-2xl md:text-3xl font-bold text-white mt-12 mb-6 pb-3 border-b border-white/10">
+          {trimmedLine.slice(3)}
+        </h2>
+      );
+      return;
+    }
+
+    if (trimmedLine.startsWith('# ')) {
+      flushList();
+      elements.push(
+        <h1 key={index} className="text-3xl md:text-4xl font-bold text-white mt-12 mb-6">
+          {trimmedLine.slice(2)}
+        </h1>
+      );
+      return;
+    }
+
+    // Bold text sections (like **Traditional app experience:**)
+    if (trimmedLine.startsWith('**') && trimmedLine.includes(':**')) {
+      flushList();
+      const match = trimmedLine.match(/^\*\*(.+?):\*\*\s*(.*)$/);
+      if (match) {
+        const [, label, rest] = match;
+        elements.push(
+          <div key={index} className="my-6 p-5 rounded-xl bg-white/[0.02] border border-white/10">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 p-2 rounded-lg bg-sky-500/10 text-sky-400">
+                <Lightbulb className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="font-semibold text-white mb-2">{label}</h4>
+                <p className="text-slate-300 leading-relaxed">{rest}</p>
+              </div>
+            </div>
+          </div>
+        );
+        return;
+      }
+    }
+
+    // Inline bold text
+    if (trimmedLine.startsWith('**') && trimmedLine.endsWith('**') && !trimmedLine.includes(':**')) {
+      flushList();
+      const boldText = trimmedLine.slice(2, -2);
+      elements.push(
+        <p key={index} className="text-lg font-semibold text-white my-4">{boldText}</p>
+      );
+      return;
+    }
+
+    // List items
+    if (trimmedLine.startsWith('- ') || trimmedLine.startsWith('* ')) {
+      inList = true;
+      listItems.push(trimmedLine.slice(2));
+      return;
+    }
+
+    // Quote blocks (lines starting with >)
+    if (trimmedLine.startsWith('>')) {
+      flushList();
+      elements.push(
+        <blockquote key={index} className="my-6 pl-4 border-l-4 border-sky-500/50 bg-sky-500/5 py-4 pr-4 rounded-r-xl">
+          <div className="flex items-start gap-3">
+            <Quote className="w-5 h-5 text-sky-400 flex-shrink-0 mt-0.5" />
+            <p className="text-slate-200 italic leading-relaxed">{trimmedLine.slice(1).trim()}</p>
+          </div>
+        </blockquote>
+      );
+      return;
+    }
+
+    // Regular paragraph with inline formatting
+    flushList();
+    let formattedText = trimmedLine;
+
+    // Process inline bold
+    const boldRegex = /\*\*(.+?)\*\*/g;
+    const parts: React.ReactNode[] = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = boldRegex.exec(formattedText)) !== null) {
+      if (match.index > lastIndex) {
+        parts.push(formattedText.slice(lastIndex, match.index));
+      }
+      parts.push(<strong key={`bold-${match.index}`} className="font-semibold text-white">{match[1]}</strong>);
+      lastIndex = boldRegex.lastIndex;
+    }
+
+    if (lastIndex < formattedText.length) {
+      parts.push(formattedText.slice(lastIndex));
+    }
+
+    elements.push(
+      <p key={index} className="text-slate-300 leading-relaxed mb-4 text-base md:text-lg">
+        {parts.length > 0 ? parts : formattedText}
+      </p>
+    );
+  });
+
+  // Flush any remaining list
+  flushList();
+
+  return <div className="blog-content">{elements}</div>;
+};
+
 const BlogViewPage: React.FC = () => {
   const navigate = useNavigate();
   const { slug } = useParams<{ slug?: string }>();
@@ -147,42 +306,27 @@ const BlogViewPage: React.FC = () => {
     navigate('/blog');
   };
 
+  // Share post
+  const handleShare = async () => {
+    if (!selectedPost) return;
+    const url = window.location.href;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: selectedPost.title, url });
+      } catch (err) {
+        // User cancelled
+      }
+    } else {
+      navigator.clipboard.writeText(url);
+    }
+  };
+
   // Format date
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
-    });
-  };
-
-  // Render post content (simple markdown-like rendering)
-  const renderContent = (content: string) => {
-    return content.split('\n').map((paragraph, index) => {
-      if (!paragraph.trim()) return <br key={index} />;
-
-      // Headers
-      if (paragraph.startsWith('### ')) {
-        return <h3 key={index} className="text-lg font-semibold text-white mt-6 mb-3">{paragraph.slice(4)}</h3>;
-      }
-      if (paragraph.startsWith('## ')) {
-        return <h2 key={index} className="text-xl font-semibold text-white mt-8 mb-4">{paragraph.slice(3)}</h2>;
-      }
-      if (paragraph.startsWith('# ')) {
-        return <h1 key={index} className="text-2xl font-bold text-white mt-8 mb-4">{paragraph.slice(2)}</h1>;
-      }
-
-      // List items
-      if (paragraph.startsWith('- ') || paragraph.startsWith('* ')) {
-        return (
-          <li key={index} className="text-slate-300 ml-4 mb-2 list-disc">
-            {paragraph.slice(2)}
-          </li>
-        );
-      }
-
-      // Regular paragraph
-      return <p key={index} className="text-slate-300 leading-relaxed mb-4">{paragraph}</p>;
     });
   };
 
@@ -199,28 +343,39 @@ const BlogViewPage: React.FC = () => {
           {/* Header */}
           <div className="sticky top-0 z-40 bg-[#020617]/80 backdrop-blur-xl border-b border-white/5">
             <div className="max-w-5xl mx-auto px-4 py-4">
-              <div className="flex items-center gap-3">
-                {selectedPost && (
-                  <button
-                    onClick={handleBackToList}
-                    className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
-                  >
-                    <ArrowLeft className="w-5 h-5" />
-                  </button>
-                )}
-                <div className="flex items-center gap-2">
-                  <div className="p-2 rounded-xl bg-gradient-to-br from-sky-500/20 to-violet-500/20 border border-sky-500/20">
-                    <FileText className="w-5 h-5 text-sky-400" />
-                  </div>
-                  <div>
-                    <h1 className="text-xl font-semibold text-white">
-                      {selectedPost ? selectedPost.title : 'Wellness Blog'}
-                    </h1>
-                    {!selectedPost && (
-                      <p className="text-sm text-slate-400">Discover mindfulness, meditation & wellness tips</p>
-                    )}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  {selectedPost && (
+                    <button
+                      onClick={handleBackToList}
+                      className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+                    >
+                      <ArrowLeft className="w-5 h-5" />
+                    </button>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 rounded-xl bg-gradient-to-br from-sky-500/20 to-violet-500/20 border border-sky-500/20">
+                      <FileText className="w-5 h-5 text-sky-400" />
+                    </div>
+                    <div>
+                      <h1 className="text-lg md:text-xl font-semibold text-white line-clamp-1">
+                        {selectedPost ? 'Wellness Blog' : 'Wellness Blog'}
+                      </h1>
+                      {!selectedPost && (
+                        <p className="text-xs md:text-sm text-slate-400 hidden sm:block">Discover mindfulness, meditation & wellness tips</p>
+                      )}
+                    </div>
                   </div>
                 </div>
+                {selectedPost && (
+                  <button
+                    onClick={handleShare}
+                    className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+                    title="Share"
+                  >
+                    <Share2 className="w-5 h-5" />
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -237,27 +392,27 @@ const BlogViewPage: React.FC = () => {
                   className="max-w-3xl mx-auto"
                 >
                   {/* Post header */}
-                  <div className="mb-8">
+                  <header className="mb-8 md:mb-12">
                     {/* Category badge */}
                     <div className="flex items-center gap-2 mb-4">
-                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium ${CATEGORY_STYLES[selectedPost.category]?.bg} ${CATEGORY_STYLES[selectedPost.category]?.text} border ${CATEGORY_STYLES[selectedPost.category]?.border.split(' ')[0]}`}>
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium ${CATEGORY_STYLES[selectedPost.category]?.bg} ${CATEGORY_STYLES[selectedPost.category]?.text} border ${CATEGORY_STYLES[selectedPost.category]?.border.split(' ')[0]}`}>
                         {CATEGORY_ICONS[selectedPost.category]}
                         {selectedPost.category.charAt(0).toUpperCase() + selectedPost.category.slice(1)}
                       </span>
                     </div>
 
                     {/* Title */}
-                    <h1 className="text-3xl md:text-4xl font-bold text-white mb-4 leading-tight">
+                    <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-6 leading-tight">
                       {selectedPost.title}
                     </h1>
 
                     {/* Meta info */}
-                    <div className="flex flex-wrap items-center gap-4 text-sm text-slate-400">
-                      <span className="flex items-center gap-1.5">
+                    <div className="flex flex-wrap items-center gap-4 md:gap-6 text-sm text-slate-400 mb-6">
+                      <span className="flex items-center gap-2">
                         <Calendar className="w-4 h-4" />
                         {formatDate(selectedPost.published_at || selectedPost.created_at)}
                       </span>
-                      <span className="flex items-center gap-1.5">
+                      <span className="flex items-center gap-2">
                         <Clock className="w-4 h-4" />
                         {selectedPost.reading_time_minutes} min read
                       </span>
@@ -265,11 +420,11 @@ const BlogViewPage: React.FC = () => {
 
                     {/* Tags */}
                     {selectedPost.tags && selectedPost.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mt-4">
+                      <div className="flex flex-wrap gap-2">
                         {selectedPost.tags.map(tag => (
                           <span
                             key={tag}
-                            className="inline-flex items-center gap-1 px-2 py-1 bg-white/5 border border-white/10 rounded-full text-xs text-slate-400"
+                            className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/5 border border-white/10 rounded-full text-xs text-slate-400 hover:bg-white/10 transition-colors"
                           >
                             <Tag className="w-3 h-3" />
                             {tag}
@@ -277,11 +432,11 @@ const BlogViewPage: React.FC = () => {
                         ))}
                       </div>
                     )}
-                  </div>
+                  </header>
 
                   {/* Featured image */}
                   {selectedPost.featured_image_url && (
-                    <div className="mb-8 rounded-2xl overflow-hidden border border-white/10">
+                    <div className="mb-10 rounded-2xl overflow-hidden border border-white/10">
                       <img
                         src={selectedPost.featured_image_url}
                         alt={selectedPost.title}
@@ -292,26 +447,35 @@ const BlogViewPage: React.FC = () => {
 
                   {/* Excerpt */}
                   {selectedPost.excerpt && (
-                    <div className="mb-8 p-4 rounded-xl bg-gradient-to-r from-sky-500/10 to-violet-500/10 border border-sky-500/20">
-                      <p className="text-lg text-slate-200 italic">{selectedPost.excerpt}</p>
+                    <div className="mb-10 p-5 md:p-6 rounded-2xl bg-gradient-to-r from-sky-500/10 to-violet-500/10 border border-sky-500/20">
+                      <p className="text-lg md:text-xl text-slate-200 italic leading-relaxed">{selectedPost.excerpt}</p>
                     </div>
                   )}
 
                   {/* Content */}
-                  <div className="prose prose-invert max-w-none">
-                    {renderContent(selectedPost.content)}
+                  <div className="prose prose-lg prose-invert max-w-none">
+                    <ContentRenderer content={selectedPost.content} />
                   </div>
 
-                  {/* Back button */}
-                  <div className="mt-12 pt-8 border-t border-white/10">
-                    <button
-                      onClick={handleBackToList}
-                      className="inline-flex items-center gap-2 px-4 py-2 text-sky-400 hover:text-sky-300 transition-colors"
-                    >
-                      <ArrowLeft className="w-4 h-4" />
-                      Back to all posts
-                    </button>
-                  </div>
+                  {/* Footer */}
+                  <footer className="mt-12 pt-8 border-t border-white/10">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                      <button
+                        onClick={handleBackToList}
+                        className="inline-flex items-center gap-2 px-4 py-2 text-sky-400 hover:text-sky-300 transition-colors"
+                      >
+                        <ArrowLeft className="w-4 h-4" />
+                        Back to all posts
+                      </button>
+                      <button
+                        onClick={handleShare}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-slate-300 hover:bg-white/10 transition-colors"
+                      >
+                        <Share2 className="w-4 h-4" />
+                        Share article
+                      </button>
+                    </div>
+                  </footer>
                 </motion.article>
               ) : (
                 /* Posts List View */
@@ -321,23 +485,33 @@ const BlogViewPage: React.FC = () => {
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                 >
+                  {/* Hero section */}
+                  <div className="text-center mb-10">
+                    <h1 className="text-3xl md:text-4xl font-bold text-white mb-4">
+                      Wellness Insights
+                    </h1>
+                    <p className="text-slate-400 max-w-2xl mx-auto">
+                      Expert guidance on meditation, mindfulness, and mental wellness to support your journey to inner peace.
+                    </p>
+                  </div>
+
                   {/* Search and filters */}
                   <div className="flex flex-col sm:flex-row gap-4 mb-8">
                     {/* Search */}
                     <div className="relative flex-1">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                       <input
                         type="text"
                         placeholder="Search articles..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-sky-500/50 transition-colors"
+                        className="w-full pl-11 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-sky-500/50 transition-colors"
                       />
                     </div>
                   </div>
 
                   {/* Category filters */}
-                  <div className="flex flex-wrap gap-2 mb-8">
+                  <div className="flex flex-wrap gap-2 mb-8 pb-6 border-b border-white/5">
                     <button
                       onClick={() => setSelectedCategory(null)}
                       className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
@@ -362,7 +536,7 @@ const BlogViewPage: React.FC = () => {
                           }`}
                         >
                           {CATEGORY_ICONS[category.slug]}
-                          {category.name}
+                          <span className="hidden sm:inline">{category.name}</span>
                         </button>
                       );
                     })}
@@ -399,7 +573,7 @@ const BlogViewPage: React.FC = () => {
                             className={`group cursor-pointer rounded-2xl border ${styles.border} bg-gradient-to-br ${styles.gradient} backdrop-blur-sm overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-sky-500/10`}
                           >
                             {/* Featured image or gradient placeholder */}
-                            <div className="relative h-40 overflow-hidden">
+                            <div className="relative h-44 overflow-hidden">
                               {post.featured_image_url ? (
                                 <img
                                   src={post.featured_image_url}
@@ -415,7 +589,7 @@ const BlogViewPage: React.FC = () => {
                               )}
                               {/* Category badge overlay */}
                               <div className="absolute top-3 left-3">
-                                <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${styles.bg} ${styles.text} backdrop-blur-sm border ${styles.border.split(' ')[0]}`}>
+                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${styles.bg} ${styles.text} backdrop-blur-sm border ${styles.border.split(' ')[0]}`}>
                                   {CATEGORY_ICONS[post.category]}
                                   {post.category}
                                 </span>
@@ -423,31 +597,31 @@ const BlogViewPage: React.FC = () => {
                             </div>
 
                             {/* Content */}
-                            <div className="p-4">
-                              <h3 className="text-lg font-semibold text-white mb-2 line-clamp-2 group-hover:text-sky-300 transition-colors">
+                            <div className="p-5">
+                              <h3 className="text-lg font-semibold text-white mb-2 line-clamp-2 group-hover:text-sky-300 transition-colors leading-snug">
                                 {post.title}
                               </h3>
                               {post.excerpt && (
-                                <p className="text-sm text-slate-400 line-clamp-2 mb-4">
+                                <p className="text-sm text-slate-400 line-clamp-2 mb-4 leading-relaxed">
                                   {post.excerpt}
                                 </p>
                               )}
                               <div className="flex items-center justify-between text-xs text-slate-500">
-                                <span className="flex items-center gap-1">
-                                  <Clock className="w-3 h-3" />
+                                <span className="flex items-center gap-1.5">
+                                  <Clock className="w-3.5 h-3.5" />
                                   {post.reading_time_minutes} min
                                 </span>
-                                <span className="flex items-center gap-1">
-                                  <Calendar className="w-3 h-3" />
+                                <span className="flex items-center gap-1.5">
+                                  <Calendar className="w-3.5 h-3.5" />
                                   {formatDate(post.published_at || post.created_at)}
                                 </span>
                               </div>
                             </div>
 
                             {/* Read more indicator */}
-                            <div className="px-4 pb-4">
-                              <div className={`flex items-center gap-1 text-sm ${styles.text} group-hover:gap-2 transition-all`}>
-                                Read more
+                            <div className="px-5 pb-5">
+                              <div className={`flex items-center gap-1 text-sm font-medium ${styles.text} group-hover:gap-2 transition-all`}>
+                                Read article
                                 <ChevronRight className="w-4 h-4" />
                               </div>
                             </div>
