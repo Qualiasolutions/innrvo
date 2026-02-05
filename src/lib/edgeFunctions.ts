@@ -72,6 +72,8 @@ function updateCachedToken(token: string): void {
 }
 
 // Initialize auth listener to keep token cached
+// onAuthStateChange fires INITIAL_SESSION immediately on setup, so no separate getSession() needed
+// (calling getSession() redundantly can trigger token refresh storms under concurrent load)
 if (supabase) {
   supabase.auth.onAuthStateChange((_event, session) => {
     if (session?.access_token) {
@@ -79,13 +81,6 @@ if (supabase) {
     } else {
       cachedAuthToken = null;
       tokenExpiresAt = 0;
-    }
-  });
-
-  // Also get initial session
-  supabase.auth.getSession().then(({ data: { session } }) => {
-    if (session?.access_token) {
-      updateCachedToken(session.access_token);
     }
   });
 }

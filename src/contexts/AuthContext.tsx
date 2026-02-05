@@ -111,61 +111,41 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // Mark loading complete after INITIAL_SESSION or any auth event
       setIsLoading(false);
 
-      // Handle TOKEN_REFRESHED event - token is guaranteed available
-      if (event === 'TOKEN_REFRESHED' && session?.access_token) {
-        if (DEBUG) console.log('[AuthContext] Token refreshed, session ready');
+      // Session is ready when we have a valid access token
+      // Trust the token from the auth event directly - avoid calling getSession() in a loop
+      // which causes a refresh token storm (30+ concurrent refresh calls → rate limiting)
+      if (session?.access_token) {
+        if (DEBUG) console.log('[AuthContext] Session ready with access token from event:', event);
         setIsSessionReady(true);
         return;
       }
 
-      // Session is ready when we have a valid access token
-      // On page refresh, SIGNED_IN may fire before token is ready - use retry loop
-      const checkSessionReady = async () => {
-        if (checkingRef.current) return;
-        checkingRef.current = true;
-
-        try {
-          // If token is already available, we're good
-          if (session?.access_token) {
-            if (DEBUG) console.log('[AuthContext] Session ready with access token');
-            setIsSessionReady(true);
-            return;
-          }
-
-          if (session?.user) {
-            // User exists but no token yet - retry with increasing delays
-            if (DEBUG) console.log('[AuthContext] User exists but no token in event, verifying session with retries...');
-
-            for (let attempt = 0; attempt < 5; attempt++) {
-              // Wait with increasing delays: 100, 200, 300, 400, 500ms
-              await new Promise(resolve => setTimeout(resolve, 100 * (attempt + 1)));
-
+      if (session?.user) {
+        // Rare edge case: user exists in event but no token yet (page refresh race condition)
+        // Do a single delayed check instead of a 5-retry loop to avoid token refresh storms
+        if (!checkingRef.current) {
+          checkingRef.current = true;
+          setTimeout(async () => {
+            try {
               if (!supabase) return;
               const { data } = await supabase.auth.getSession();
-
               if (data.session?.access_token) {
-                if (DEBUG) console.log(`[AuthContext] Session verified with token (attempt ${attempt + 1})`);
-                // Update user if needed (sometimes event user is partial)
+                if (DEBUG) console.log('[AuthContext] Session verified with token after delay');
                 setUser(data.session.user);
                 setIsSessionReady(true);
-                return;
+              } else {
+                if (DEBUG) console.warn('[AuthContext] No token after delay, setting session ready anyway');
+                setIsSessionReady(true); // Let requests proceed - they'll get 401 and trigger re-auth
               }
-              if (DEBUG) console.log(`[AuthContext] Retry ${attempt + 1}/5 - no token yet`);
+            } finally {
+              checkingRef.current = false;
             }
-
-            // All retries exhausted - still try to work with what we have
-            if (DEBUG) console.warn('[AuthContext] Token not available after 5 retries, setting session ready anyway');
-            setIsSessionReady(true); // Let requests proceed - they'll get 401 and trigger re-auth
-          } else {
-            // No user - session not ready
-            setIsSessionReady(false);
-          }
-        } finally {
-          checkingRef.current = false;
+          }, 500);
         }
-      };
-
-      checkSessionReady();
+      } else {
+        // No user - session not ready
+        setIsSessionReady(false);
+      }
 
       // Clear voice profiles on logout
       if (!session?.user) {
