@@ -6,34 +6,36 @@ import { useInfluencers, usePartnerships } from '../../../hooks/useMarketingData
 import { suggestInfluencer, suggestPartnership } from '../../../lib/marketingSupabase';
 import type { MarketingInfluencer, InfluencerStatus } from '../../../types/marketing';
 
-// Influencer prospects data from research
+// Influencer prospects data - Meditation, Affirmations, Breathwork, Manifestation (no yoga)
 const influencerProspects = [
-  { name: 'Amanda Gloria Valdes', handle: 'amandagloriayoga', followers: '15.6K', tags: ['Meditation', 'Yoga'], focus: 'Meditation, yoga, pilates, and sound healing education. Perfect fit for Innrvo\'s guided meditation and voice synthesis features.', location: 'USA', priority: 1 },
-  { name: 'Giuseppe Jay Moschella', handle: 'thathappyitalian', followers: '19.4K', tags: ['Mindfulness', 'Yoga'], focus: 'Finding happiness through NLP coaching, yoga, and mindfulness practices. Engaged community focused on mental wellness.', priority: 2 },
-  { name: 'Lindsay Rose', handle: 'lindsayrose', followers: '18K', tags: ['Mindfulness', 'Manifestation'], focus: 'Manifestation coaching, self-awareness, and mindfulness practices. Great audience overlap with meditation app users.', priority: 3 },
-  { name: 'Mandy Flannery', handle: 'thetealyogistudio', followers: '16.2K', tags: ['Yoga', 'Mindfulness'], focus: 'Healing after trauma, empowerment through yoga and mindfulness practices. Strong engagement with wellness-focused community.', location: 'USA', website: 'thetealyogi.com', priority: 4 },
-  { name: 'Andrea T Ferretti', handle: 'andreaferretti', followers: '15.7K', tags: ['Wellness', 'Yoga'], focus: 'Wellness podcast hosting, neurodiversity advocacy, and yoga instruction. Podcast audience could be converted to app users.', website: 'jasonyoga.com/blog', priority: 5 },
-  { name: 'Martina', handle: 'martina1qigong1yoga', followers: '12.8K', tags: ['Mindfulness', 'Qigong'], focus: 'Qigong, yoga, and Reiki master. Teaches mindfulness techniques and energy work - aligns well with meditation app use cases.', priority: 6 },
-  { name: 'Taylor White', handle: 'yogini.taylor', followers: '12.6K', tags: ['Yoga', 'Mindfulness'], focus: 'Yoga practice, motherhood, and mindfulness techniques. Engaged mom community - potential for sleep/stress meditation content.', location: 'Vancouver, BC', priority: 7 },
-  { name: 'Alexandra Fratella Thurston', handle: 'alexandrafratella', followers: '12.2K', tags: ['Breathwork', 'Wellness'], focus: 'Empowerment through movement and breath, wellness lifestyle. Breathwork focus aligns perfectly with Innrvo\'s breathing meditation features.', priority: 8 },
-  { name: 'Silvia Mordini', handle: 'inspiredyogagal', followers: '11.7K', tags: ['Mental Health', 'Yoga'], focus: 'Mental health therapy, yoga teacher training, and mindfulness retreats. Professional background adds credibility.', location: 'Tuscany, Bali, USA', website: 'silviamordini.com' },
-  { name: 'Gabriela Bozic', handle: 'gabriela.bozic', followers: '10.7K', tags: ['Yoga', 'Mindfulness'], focus: 'Yoga instruction, self-regulation, and mindfulness teacher training. Trains other teachers - could multiply reach.', location: 'Mallorca', website: 'gabrielabozic.com' },
-  { name: 'Amina Agerman', handle: 'ellenaminayoga', followers: '10.5K', tags: ['Mindfulness', 'Yoga'], focus: 'Mindful movement, mindful living, and finding flow in life. Content style matches Innrvo\'s calm, centered brand voice.' },
-  { name: 'The Good Body', handle: 'thegoodbodydotcom', followers: '8.7K', tags: ['Mindfulness', 'Wellness'], focus: 'Mindfulness research, yoga poses for stress and anxiety, meditation practices. Content-focused account with educational angle.', website: 'thegoodbody.com', email: 'contact@thegoodbody.com' },
-  { name: 'Alex Dawson', handle: 'alexdawsonyoga', followers: '6.4K', tags: ['Meditation', 'Yoga'], focus: 'Yoga and meditation teaching with 20+ years experience. Credibility and experience make for authentic partnership potential.' },
+  { name: 'Lindsay Rose', handle: 'lindsayrose', followers: '18K', tags: ['Mindfulness', 'Manifestation'], focus: 'Manifestation coaching, self-awareness, and mindfulness practices. Great audience overlap with meditation app users.', priority: 1 },
+  { name: 'Kimberly T', handle: 'manifestingwithkimberly', followers: '16K', tags: ['Manifestation', 'Mindfulness'], focus: 'Manifestation & Mindset Coach. Also active on TikTok (43K followers, 1.1M likes) and YouTube. Huge cross-platform reach.', priority: 2 },
+  { name: 'Womanifest Coach', handle: 'womanifestationcoach', followers: '19.5K', tags: ['Manifestation', 'Meditation'], focus: '5+ years experience, 13,000+ success stories. Offers coaching, courses, and guided meditations. Perfect fit for Innrvo.', priority: 3 },
+  { name: 'Sophie Benbow', handle: 'sophiebenbow', followers: '13.8K', tags: ['Meditation', 'Mindfulness'], focus: 'Creates guided meditations and mindful living content. Reconnecting with food, body, and self. Direct meditation content creator.', priority: 4 },
+  { name: 'Audra Bear', handle: 'audrabear', followers: '16.2K', tags: ['Breathwork', 'Wellness'], focus: 'Creator of The Breathwork Training. Breathwork practitioner based in Mexico. Strong breathwork training brand.', priority: 5 },
+  { name: 'Christopher Germer PhD', handle: 'christophergermerphd', followers: '14.1K', tags: ['Mindfulness', 'Mental Health'], focus: 'PhD expert in Mindful Self-Compassion. Offers online courses and meditations. Academic credibility adds authority.', priority: 6 },
+  { name: 'Jackie Stewart', handle: '_jackiestewart_', followers: '12K', tags: ['Meditation', 'Breathwork'], focus: 'Teaching meditation and Buddhist Studies. Alomoves Instructor. New series "New To: Breathwork" on Alo Wellness Club.', priority: 7 },
+  { name: 'Alexandra Fratella Thurston', handle: 'alexandrafratella', followers: '12.2K', tags: ['Breathwork', 'Wellness'], focus: 'Empowerment through movement and breath. Breathwork focus aligns perfectly with Innrvo\'s breathing meditation features.', priority: 8 },
+  { name: 'Shannon Rose', handle: 'byshannonrose', followers: '12.6K', tags: ['Breathwork', 'Wellness'], focus: '8+ years guiding women in Breathwork & Business. Founder of hinehau.nz. Great for female-focused breathwork content.' },
+  { name: 'Dominique Perkowski', handle: 'dominiqueperkowski', followers: '11.8K', tags: ['Meditation', 'Mindfulness'], focus: 'Meditation and mindset for transformation. Making the esoteric practical. Based in NYC.', location: 'New York, USA' },
+  { name: 'Todd', handle: 'transformwithtodd', followers: '10.1K', tags: ['Breathwork', 'Mental Health'], focus: 'Psychologist and Breathwork Expert. Senior Trainer at Transformational Breath UK. Specialist in Trauma, Anxiety, Depression.' },
+  { name: 'Ben Smith', handle: 'bensmithreal_', followers: '10.6K', tags: ['Meditation', 'Mindfulness'], focus: 'Meditation guidance content creator. Growing micro-influencer in the meditation space.' },
+  { name: 'Kim Chestney', handle: 'kim.chestney', followers: '12K', tags: ['Meditation', 'Spirituality'], focus: 'Author of Radical Intuition. Founder of intuition.lab. Blends meditation with intuition development.' },
+  { name: 'George S Peterson', handle: 'georgespeterson_meditation', followers: '10K', tags: ['Meditation', 'Spirituality'], focus: 'Meditator since age 6. Shares meditation guidance and spiritual insights. Authentic long-term practitioner.' },
+  { name: 'The Good Body', handle: 'thegoodbodydotcom', followers: '8.7K', tags: ['Mindfulness', 'Wellness'], focus: 'Mindfulness research and meditation practices. Content-focused account with educational angle.', website: 'thegoodbody.com', email: 'contact@thegoodbody.com' },
+  { name: 'Manifesting Desire', handle: 'manifesting_desire', followers: '5.5K', tags: ['Manifestation', 'Meditation'], focus: 'Manifestation Expert & Life Coach. Creates Guided Meditations & Affirmations. Offers 1:1 coaching.' },
+  { name: 'Victoria Maskell', handle: 'victoria.maskell', followers: '5K', tags: ['Manifestation', 'Mindfulness'], focus: 'Manifest coaching and subconscious blocks removal. Highly engaged niche audience.' },
   { name: 'Jorden Jones', handle: 'reallyjayyoh', followers: '5K+', tags: ['Mindfulness', 'Mental Health'], focus: 'Prioritizing peace, self-awareness, mental wellness practices. Authentic voice resonates with younger meditation audience.', location: 'New York, USA' },
   { name: 'Dalis Freixa', handle: 'realdalisg', followers: '5K+', tags: ['Mindfulness', 'Spirituality'], focus: 'Spiritual mentoring, grounding practices, daily self-improvement. Good for guided journey and hypnosis content promotion.', location: 'Florida, USA' },
 ];
 
 const tagColors: Record<string, string> = {
   'Meditation': 'bg-violet-500/20 text-violet-300',
-  'Yoga': 'bg-emerald-500/20 text-emerald-300',
   'Breathwork': 'bg-sky-500/20 text-sky-300',
   'Mindfulness': 'bg-amber-500/20 text-amber-300',
   'Mental Health': 'bg-pink-500/20 text-pink-300',
   'Wellness': 'bg-teal-500/20 text-teal-300',
   'Manifestation': 'bg-purple-500/20 text-purple-300',
-  'Qigong': 'bg-indigo-500/20 text-indigo-300',
   'Spirituality': 'bg-rose-500/20 text-rose-300',
 };
 
@@ -285,7 +287,7 @@ const InfluencersView: React.FC = () => {
 
           {/* Filter Tabs */}
           <div className="flex flex-wrap gap-2 mb-6">
-            {['all', 'meditation', 'yoga', 'breathwork', 'mindfulness', 'mental health'].map(filter => (
+            {['all', 'meditation', 'breathwork', 'mindfulness', 'manifestation', 'mental health', 'spirituality'].map(filter => (
               <button
                 key={filter}
                 onClick={() => setActiveProspectFilter(filter)}
@@ -382,7 +384,7 @@ const InfluencersView: React.FC = () => {
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-sky-500 font-bold mt-0.5">-</span>
-                <span><strong className="text-white">Best Matches:</strong> Breathwork creators (Alexandra, Giuseppe), Sound healing (Amanda), Mental health (Silvia, Nicole)</span>
+                <span><strong className="text-white">Best Matches:</strong> Breathwork creators (Audra, Jackie, Alexandra), Manifestation coaches (Kimberly, Womanifest), Meditation guides (Sophie, Christopher)</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-sky-500 font-bold mt-0.5">-</span>
