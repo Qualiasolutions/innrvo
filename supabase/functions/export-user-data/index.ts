@@ -45,6 +45,25 @@ interface UserDataExport {
     messages: unknown;
     createdAt: string;
   }>;
+  audioGenerations: Array<{
+    id: string;
+    text: string;
+    modelId?: string;
+    createdAt: string;
+  }>;
+  credits: {
+    totalCredits: number;
+    creditsUsed: number;
+    creditsRemaining: number;
+  } | null;
+  voiceUsageLimits: Array<{
+    monthStart: string;
+    generationsUsed: number;
+    generationsLimit: number;
+  }>;
+  voiceCloningUsage: Array<{
+    createdAt: string;
+  }>;
   preferences: {
     audioTags?: {
       enabled: boolean;
@@ -110,6 +129,10 @@ serve(async (req) => {
       meditationHistoryResult,
       conversationsResult,
       userResult,
+      audioGenerationsResult,
+      creditsResult,
+      voiceUsageLimitsResult,
+      voiceCloningUsageResult,
     ] = await Promise.all([
       supabase
         .from('voice_profiles')
@@ -134,6 +157,30 @@ serve(async (req) => {
         .select('audio_tag_preferences, created_at')
         .eq('id', user.id)
         .single(),
+
+      supabase
+        .from('audio_generations')
+        .select('id, text, model_id, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false }),
+
+      supabase
+        .from('user_credits')
+        .select('total_credits, credits_used, credits_remaining')
+        .eq('user_id', user.id)
+        .single(),
+
+      supabase
+        .from('voice_usage_limits')
+        .select('month_start, generations_used, generations_limit')
+        .eq('user_id', user.id)
+        .order('month_start', { ascending: false }),
+
+      supabase
+        .from('voice_cloning_usage')
+        .select('created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false }),
     ]);
 
     // Build export data
@@ -168,6 +215,25 @@ serve(async (req) => {
         messages: c.messages,
         createdAt: c.created_at,
       })),
+      audioGenerations: (audioGenerationsResult.data || []).map(a => ({
+        id: a.id,
+        text: a.text,
+        modelId: a.model_id,
+        createdAt: a.created_at,
+      })),
+      credits: creditsResult.data ? {
+        totalCredits: creditsResult.data.total_credits,
+        creditsUsed: creditsResult.data.credits_used,
+        creditsRemaining: creditsResult.data.credits_remaining,
+      } : null,
+      voiceUsageLimits: (voiceUsageLimitsResult.data || []).map(v => ({
+        monthStart: v.month_start,
+        generationsUsed: v.generations_used,
+        generationsLimit: v.generations_limit,
+      })),
+      voiceCloningUsage: (voiceCloningUsageResult.data || []).map(v => ({
+        createdAt: v.created_at,
+      })),
       preferences: {
         audioTags: userResult.data?.audio_tag_preferences || undefined,
       },
@@ -178,6 +244,7 @@ serve(async (req) => {
       voiceProfiles: exportData.voiceProfiles.length,
       meditationHistory: exportData.meditationHistory.length,
       conversations: exportData.conversations.length,
+      audioGenerations: exportData.audioGenerations.length,
     });
 
     // Return as downloadable JSON

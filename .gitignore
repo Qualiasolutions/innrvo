@@ -23,6 +23,7 @@ dist-ssr
 *.sln
 *.sw?
 .vercel
+.env
 .env*.local
 
 # v0 generated reference folder (not part of main project)

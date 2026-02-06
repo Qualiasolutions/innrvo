@@ -48,6 +48,7 @@ interface DeletionResult {
     voiceProfiles: number;
     meditationHistory: number;
     conversations: number;
+    audioGenerations: number;
     storageFiles: number;
   };
 }
@@ -126,6 +127,7 @@ serve(async (req) => {
       voiceProfiles: 0,
       meditationHistory: 0,
       conversations: 0,
+      audioGenerations: 0,
       storageFiles: 0,
     };
 
@@ -237,31 +239,42 @@ serve(async (req) => {
       .delete()
       .eq('user_id', user.id);
 
-    // Delete audio tag preferences
+    // Delete audio generations
+    const { count: audioGenCount } = await supabase
+      .from('audio_generations')
+      .delete({ count: 'exact' })
+      .eq('user_id', user.id);
+
+    itemsDeleted.audioGenerations = audioGenCount || 0;
+
+    // Delete conversation memory (RAG)
     await supabase
-      .from('audio_tag_preferences')
+      .from('conversation_memory')
       .delete()
       .eq('user_id', user.id);
 
-    // Delete extended user profile
+    // Delete user meditation embeddings
+    await supabase
+      .from('user_meditation_embeddings')
+      .delete()
+      .eq('user_id', user.id);
+
+    // Delete extended user profile (includes audio_tag_preferences column)
     await supabase
       .from('users')
       .delete()
       .eq('id', user.id);
 
     // ========================================================================
-    // 3. Delete Auth User (optional - uncomment if admin access available)
+    // 3. Delete Auth User
     // ========================================================================
 
-    // Note: Deleting the auth user requires admin API access
-    // This is handled separately by Supabase's data retention policies
-    // or can be triggered via the Supabase dashboard
-
-    // Uncomment if you have admin access configured:
-    // const { error: authDeleteError } = await supabase.auth.admin.deleteUser(user.id);
-    // if (authDeleteError) {
-    //   log.warn('Failed to delete auth user', { error: authDeleteError.message });
-    // }
+    const { error: authDeleteError } = await supabase.auth.admin.deleteUser(user.id);
+    if (authDeleteError) {
+      log.warn('Failed to delete auth user', { error: authDeleteError.message });
+    } else {
+      log.info('Auth user deleted', { userId: user.id });
+    }
 
     log.info('GDPR deletion completed', {
       userId: user.id,
