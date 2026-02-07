@@ -65,20 +65,15 @@ const EditIcon = ({ className = 'w-4 h-4' }: { className?: string }) => (
 export const MeditationEditor = memo<MeditationEditorProps>(
   ({
     script,
-    meditationType,
     selectedVoice,
     selectedMusic,
-    selectedTags,
     availableMusic,
-    availableTags,
     onVoiceSelect,
     onMusicSelect,
-    onTagToggle,
     onGenerate,
     onClose,
     isGenerating,
     readOnly = false,
-    source,
   }) => {
     // Local state
     const [editedScript, setEditedScript] = useState(script);
@@ -114,6 +109,7 @@ export const MeditationEditor = memo<MeditationEditorProps>(
     const lastExternalScriptRef = useRef(script);
     const editingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const hasInitializedRef = useRef(false);
+    const pendingAIEditRef = useRef(false);
     const EDITING_DEBOUNCE_MS = 300; // Wait 300ms after last keystroke before syncing
 
     // Keyboard shortcuts
@@ -222,27 +218,6 @@ export const MeditationEditor = memo<MeditationEditorProps>(
       []
     );
 
-    // Handle tag insertion from control panel
-    const handleTagInsert = useCallback(
-      (tagLabel: string) => {
-        const newCursorPos = insertAtCursor(
-          tagLabel,
-          editedScript,
-          setEditedScript
-        );
-        setCursorPosition(newCursorPos);
-
-        // Restore focus and cursor position after state update
-        requestAnimationFrame(() => {
-          if (editorRef.current) {
-            editorRef.current.focus();
-            restoreCursorPosition(newCursorPos);
-          }
-        });
-      },
-      [editedScript, insertAtCursor, restoreCursorPosition]
-    );
-
     // Handle text selection changes for AI editing
     const handleSelectionChange = useCallback(() => {
       const selection = window.getSelection();
@@ -257,16 +232,19 @@ export const MeditationEditor = memo<MeditationEditorProps>(
     // Handle AI-powered script edits
     const handleApplyAIEdit = useCallback((newScript: string) => {
       setEditedScript(newScript);
-      // Apply to DOM on next frame
-      requestAnimationFrame(() => {
-        if (editorRef.current) {
-          editorRef.current.innerText = newScript;
-        }
-      });
+      pendingAIEditRef.current = true;
       toast.success('AI edit applied', {
         description: 'Your script has been updated',
       });
     }, []);
+
+    // Apply styled HTML after AI edit re-renders with new styledContentHtml
+    useEffect(() => {
+      if (pendingAIEditRef.current && editorRef.current) {
+        editorRef.current.innerHTML = styledContentHtml;
+        pendingAIEditRef.current = false;
+      }
+    }, [styledContentHtml]);
 
     // Listen for selection changes
     useEffect(() => {
@@ -568,10 +546,8 @@ export const MeditationEditor = memo<MeditationEditorProps>(
             selectedVoice={selectedVoice}
             selectedMusic={selectedMusic}
             availableMusic={availableMusic}
-            availableTags={availableTags}
             onVoiceSelect={onVoiceSelect}
             onMusicSelect={onMusicSelect}
-            onTagInsert={handleTagInsert}
             onHarmonize={handleHarmonize}
             isHarmonizing={isHarmonizing}
             voicePreviewUrl={voicePreviewUrl}

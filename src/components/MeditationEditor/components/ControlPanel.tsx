@@ -1,7 +1,7 @@
 /**
  * ControlPanel Component
  *
- * Bottom sheet controls with Voice/Music/Tags tabs.
+ * Bottom sheet controls with Voice/Music/AI Edit tabs.
  * Includes voice preview functionality for testing voices before generation.
  */
 
@@ -11,7 +11,7 @@ import AudioPreview from '../../../../components/ui/AudioPreview';
 import { AIEditPanel } from './AIEditPanel';
 import type { VoiceProfile } from '../../../../types';
 import type { BackgroundTrack } from '../../../../constants';
-import type { AudioTagCategory, ControlTab } from '../types';
+import type { ControlTab } from '../types';
 
 // ============================================================================
 // ICONS
@@ -60,20 +60,6 @@ const MusicIcon = ({ className = 'w-4 h-4' }: { className?: string }) => (
   </svg>
 );
 
-const TagIcon = ({ className = 'w-4 h-4' }: { className?: string }) => (
-  <svg
-    className={className}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-  >
-    <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" />
-    <circle cx="7" cy="7" r="1" fill="currentColor" />
-  </svg>
-);
-
 const AIIcon = ({ className = 'w-4 h-4' }: { className?: string }) => (
   <svg
     className={className}
@@ -96,10 +82,8 @@ interface ControlPanelProps {
   selectedVoice: VoiceProfile | null;
   selectedMusic: BackgroundTrack | null;
   availableMusic: BackgroundTrack[];
-  availableTags: AudioTagCategory[];
   onVoiceSelect: () => void;
   onMusicSelect: (track: BackgroundTrack) => void;
-  onTagInsert: (tagLabel: string) => void;
   onHarmonize?: () => void;
   isHarmonizing?: boolean;
   // Voice preview
@@ -116,15 +100,6 @@ interface ControlPanelProps {
   selectedText?: string;
   onApplyAIEdit?: (newScript: string) => void;
 }
-
-// Quick tags for easy insertion
-const QUICK_TAGS = [
-  { label: '[pause]', description: '2-3 second pause' },
-  { label: '[long pause]', description: '5-6 second pause' },
-  { label: '[deep breath]', description: 'Breathing cue' },
-  { label: '[exhale slowly]', description: 'Slow exhale cue' },
-  { label: '[silence]', description: '4-5 seconds silence' },
-];
 
 // ============================================================================
 // COMPONENT
@@ -172,10 +147,8 @@ export const ControlPanel = memo<ControlPanelProps>(
     selectedVoice,
     selectedMusic,
     availableMusic,
-    availableTags,
     onVoiceSelect,
     onMusicSelect,
-    onTagInsert,
     onHarmonize,
     isHarmonizing = false,
     voicePreviewUrl,
@@ -334,19 +307,6 @@ export const ControlPanel = memo<ControlPanelProps>(
                 >
                   <MusicIcon className="w-3.5 h-3.5" />
                   Music
-                </button>
-                <button
-                  onClick={() => setActiveTab('tags')}
-                  className={`flex-1 py-2.5 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-1.5
-                    ${
-                      activeTab === 'tags'
-                        ? 'bg-violet-500/30 text-violet-300'
-                        : 'text-white/50 hover:text-white/70 hover:bg-white/5'
-                    }`}
-                  aria-selected={activeTab === 'tags'}
-                >
-                  <TagIcon className="w-3.5 h-3.5" />
-                  Tags
                 </button>
                 {onApplyAIEdit && (
                   <button
@@ -571,56 +531,6 @@ export const ControlPanel = memo<ControlPanelProps>(
                     <p className="text-[10px] text-white/40 text-center">
                       Tap play to preview • Tap name to select
                     </p>
-                  </div>
-                )}
-
-                {/* Tags Tab */}
-                {activeTab === 'tags' && (
-                  <div className="space-y-3">
-                    {/* Quick Tags */}
-                    <div>
-                      <p className="text-xs text-white/40 mb-2">Quick Insert</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {QUICK_TAGS.map((tag) => (
-                          <button
-                            key={tag.label}
-                            onClick={() => onTagInsert(tag.label)}
-                            className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all
-                              bg-gradient-to-r from-violet-500/20 to-purple-500/20
-                              hover:from-violet-500/30 hover:to-purple-500/30
-                              border border-violet-500/30 hover:border-violet-400/50
-                              text-violet-200 active:scale-95"
-                            title={tag.description}
-                          >
-                            <span className="text-violet-400 mr-1">+</span>
-                            {tag.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* All Tags by Category */}
-                    {availableTags.map((category) => (
-                      <div key={category.id}>
-                        <p className="text-xs text-white/40 mb-2">
-                          {category.name}
-                        </p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {category.tags.map((tag) => (
-                            <button
-                              key={tag.id}
-                              onClick={() => onTagInsert(tag.label)}
-                              className="px-2.5 py-1 rounded-md text-xs transition-all
-                                bg-white/5 hover:bg-white/10
-                                border border-white/10 hover:border-white/20
-                                text-white/60 hover:text-white/80 active:scale-95"
-                            >
-                              {tag.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
                   </div>
                 )}
 
