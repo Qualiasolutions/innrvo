@@ -161,20 +161,18 @@ export const voiceService = {
       };
     }
 
-    // Prepare text for meditation-style delivery
-    const meditationText = prepareMeditationText(text);
-
     const provider = voice.provider || this.detectProvider(voice);
 
     // Route to appropriate provider
     switch (provider) {
       case 'browser':
-        return this.generateWithWebSpeech(meditationText, voice);
+        // Browser TTS needs frontend preprocessing (no Edge Function involved)
+        return this.generateWithWebSpeech(prepareMeditationText(text), voice);
 
       case 'elevenlabs':
       default:
-        // ElevenLabs is the primary provider
-        return this.generateWithElevenLabs(meditationText, voice, audioContext);
+        // Send raw text — Edge Function handles preprocessing + chunking
+        return this.generateWithElevenLabs(text, voice, audioContext);
     }
   },
 
@@ -319,13 +317,11 @@ export const voiceService = {
     const chunks: Uint8Array[] = [];
     let hasCalledBufferReady = false;
 
-    // Prepare text for meditation-style delivery
-    const meditationText = prepareMeditationText(text);
-
+    // Send raw text — Edge Function handles preprocessing + chunking
     return new Promise((resolve, reject) => {
       generateSpeechWithProgressiveBuffering(
         isPresetVoice ? undefined : voice.id,
-        meditationText,
+        text,
         {
           onChunk: async (chunk, totalBytes, estimatedDuration) => {
             chunks.push(chunk);
