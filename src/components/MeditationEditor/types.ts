@@ -66,4 +66,4 @@ export interface ScriptStats {
   tagCount: number;
 }
 
-export type ControlTab = 'voice' | 'music' | 'tags';
+export type ControlTab = 'voice' | 'music' | 'tags' | 'ai';

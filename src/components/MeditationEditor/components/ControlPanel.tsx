@@ -5,9 +5,10 @@
  * Includes voice preview functionality for testing voices before generation.
  */
 
-import React, { memo, useState, useCallback, useMemo, useEffect } from 'react';
+import { memo, useState, useCallback, useMemo, useEffect } from 'react';
 import { m, AnimatePresence } from 'framer-motion';
 import AudioPreview from '../../../../components/ui/AudioPreview';
+import { AIEditPanel } from './AIEditPanel';
 import type { VoiceProfile } from '../../../../types';
 import type { BackgroundTrack } from '../../../../constants';
 import type { AudioTagCategory, ControlTab } from '../types';
@@ -73,6 +74,20 @@ const TagIcon = ({ className = 'w-4 h-4' }: { className?: string }) => (
   </svg>
 );
 
+const AIIcon = ({ className = 'w-4 h-4' }: { className?: string }) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+  >
+    <path d="M12 3v1m0 16v1m-9-9h1m16 0h1m-2.636-6.364l-.707.707M6.343 17.657l-.707.707m0-12.728l.707.707m11.314 11.314l.707.707" />
+    <circle cx="12" cy="12" r="4" />
+  </svg>
+);
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -96,6 +111,10 @@ interface ControlPanelProps {
   previewingMusicId?: string | null;
   onMusicPreviewToggle?: (track: BackgroundTrack) => void;
   onStopMusicPreview?: () => void;
+  // AI Edit
+  script?: string;
+  selectedText?: string;
+  onApplyAIEdit?: (newScript: string) => void;
 }
 
 // Quick tags for easy insertion
@@ -166,6 +185,9 @@ export const ControlPanel = memo<ControlPanelProps>(
     previewingMusicId,
     onMusicPreviewToggle,
     onStopMusicPreview,
+    script,
+    selectedText,
+    onApplyAIEdit,
   }) => {
     const [expanded, setExpanded] = useState(false);
     const [activeTab, setActiveTab] = useState<ControlTab>('voice');
@@ -326,6 +348,21 @@ export const ControlPanel = memo<ControlPanelProps>(
                   <TagIcon className="w-3.5 h-3.5" />
                   Tags
                 </button>
+                {onApplyAIEdit && (
+                  <button
+                    onClick={() => setActiveTab('ai')}
+                    className={`flex-1 py-2.5 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-1.5
+                      ${
+                        activeTab === 'ai'
+                          ? 'bg-gradient-to-r from-sky-500/30 to-purple-500/30 text-sky-300'
+                          : 'text-white/50 hover:text-white/70 hover:bg-white/5'
+                      }`}
+                    aria-selected={activeTab === 'ai'}
+                  >
+                    <AIIcon className="w-3.5 h-3.5" />
+                    AI Edit
+                  </button>
+                )}
               </div>
 
               {/* Tab Content - taller on mobile for better visibility */}
@@ -585,6 +622,16 @@ export const ControlPanel = memo<ControlPanelProps>(
                       </div>
                     ))}
                   </div>
+                )}
+
+                {/* AI Edit Tab */}
+                {activeTab === 'ai' && onApplyAIEdit && (
+                  <AIEditPanel
+                    script={script || ''}
+                    selectedText={selectedText}
+                    onApplyEdit={onApplyAIEdit}
+                    isVisible={true}
+                  />
                 )}
               </div>
             </div>

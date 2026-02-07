@@ -87,6 +87,7 @@ export const MeditationEditor = memo<MeditationEditorProps>(
     const [voicePreviewUrl, setVoicePreviewUrl] = useState<string | null>(null);
     const [isGeneratingPreview, setIsGeneratingPreview] = useState(false);
     const [previewingMusicId, setPreviewingMusicId] = useState<string | null>(null);
+    const [selectedText, setSelectedText] = useState<string>('');
     const editorRef = useRef<HTMLDivElement>(null);
     const previewAudioRef = useRef<HTMLAudioElement | null>(null);
     const musicPreviewRef = useRef<HTMLAudioElement | null>(null);
@@ -241,6 +242,39 @@ export const MeditationEditor = memo<MeditationEditorProps>(
       },
       [editedScript, insertAtCursor, restoreCursorPosition]
     );
+
+    // Handle text selection changes for AI editing
+    const handleSelectionChange = useCallback(() => {
+      const selection = window.getSelection();
+      if (selection && selection.rangeCount > 0) {
+        const text = selection.toString().trim();
+        setSelectedText(text);
+      } else {
+        setSelectedText('');
+      }
+    }, []);
+
+    // Handle AI-powered script edits
+    const handleApplyAIEdit = useCallback((newScript: string) => {
+      setEditedScript(newScript);
+      // Apply to DOM on next frame
+      requestAnimationFrame(() => {
+        if (editorRef.current) {
+          editorRef.current.innerText = newScript;
+        }
+      });
+      toast.success('AI edit applied', {
+        description: 'Your script has been updated',
+      });
+    }, []);
+
+    // Listen for selection changes
+    useEffect(() => {
+      document.addEventListener('selectionchange', handleSelectionChange);
+      return () => {
+        document.removeEventListener('selectionchange', handleSelectionChange);
+      };
+    }, [handleSelectionChange]);
 
     // Handle harmonize - AI-powered audio tag insertion
     const handleHarmonize = useCallback(async () => {
@@ -547,6 +581,9 @@ export const MeditationEditor = memo<MeditationEditorProps>(
             onGenerateVoicePreview={handleGenerateVoicePreview}
             onStopVoicePreview={handleStopVoicePreview}
             onStopMusicPreview={handleStopMusicPreview}
+            script={editedScript}
+            selectedText={selectedText}
+            onApplyAIEdit={readOnly ? undefined : handleApplyAIEdit}
           />
 
           {/* Generate Button */}
