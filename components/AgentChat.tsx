@@ -503,7 +503,7 @@ const AgentChatComponent: React.FC<AgentChatProps> = ({
     <div data-onboarding="agent-chat" className={`flex flex-col h-full min-h-[100dvh] ${className}`}>
       {/* Messages Area - grows from bottom up, above the input */}
       {!showMeditationPanel && hasMessages && (
-        <div className="fixed left-0 right-0 bottom-32 top-20 overflow-y-auto px-4 md:px-6 z-40">
+        <div className="fixed left-0 right-0 bottom-[4.5rem] top-16 md:bottom-32 md:top-20 overflow-y-auto px-4 md:px-6 z-40">
           <div className="max-w-xl mx-auto h-full flex flex-col justify-end">
             {/* Message List */}
             <div className="space-y-1">
@@ -528,7 +528,7 @@ const AgentChatComponent: React.FC<AgentChatProps> = ({
           className={`fixed left-0 right-0 bottom-0 px-4 z-50 ${hasMessages
             ? 'bg-gradient-to-t from-[#020617] via-[#020617]/95 to-transparent'
             : ''}`}
-          style={{ paddingBottom: 'max(3.5rem, calc(env(safe-area-inset-bottom, 0px) + 1rem))' }}
+          style={{ paddingBottom: 'max(1rem, calc(env(safe-area-inset-bottom, 0px) + 0.5rem))' }}
         >
         <div className="max-w-3xl mx-auto w-full">
           <form onSubmit={handleSubmit}>

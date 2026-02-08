@@ -110,16 +110,16 @@ const MeditationCard: React.FC<MeditationCardProps> = memo(({
   return (
     <motion.div variants={cardVariants}>
       <GlassCard
-        className="!p-4 border transition-all duration-300 hover:shadow-[0_8px_32px_rgba(0,0,0,0.25)] border-white/5 hover:border-white/15 cursor-pointer"
+        className="!p-3 md:!p-4 border transition-all duration-300 hover:shadow-[0_8px_32px_rgba(0,0,0,0.25)] border-white/5 hover:border-white/15 cursor-pointer"
         hover={false}
         onClick={hasAudio && !isEditing ? onNavigateToPlayer : undefined}
       >
-        <div className="flex items-start gap-4">
+        <div className="flex items-start gap-3 md:gap-4">
           {/* Play Button */}
           <button
             onClick={handlePlay}
             disabled={!hasAudio}
-            className={`shrink-0 w-12 h-12 rounded-xl flex items-center justify-center transition-all ${
+            className={`shrink-0 w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center transition-all ${
               !hasAudio
                 ? 'bg-slate-500/10 text-slate-600 cursor-not-allowed'
                 : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20'
@@ -254,12 +254,12 @@ const EmptyState: React.FC = () => (
   <motion.div
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
-    className="text-center py-16"
+    className="text-center py-10 md:py-16"
   >
-    <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-emerald-500/20 to-sky-500/20 flex items-center justify-center">
-      <Music className="w-10 h-10 text-emerald-400" />
+    <div className="w-16 h-16 md:w-20 md:h-20 mx-auto mb-4 md:mb-6 rounded-full bg-gradient-to-br from-emerald-500/20 to-sky-500/20 flex items-center justify-center">
+      <Music className="w-8 h-8 md:w-10 md:h-10 text-emerald-400" />
     </div>
-    <h3 className="text-xl font-semibold text-white mb-2">
+    <h3 className="text-lg md:text-xl font-semibold text-white mb-2">
       No meditations yet
     </h3>
     <p className="text-slate-400 max-w-sm mx-auto">
@@ -390,9 +390,9 @@ const LibraryPage: React.FC = () => {
 
   return (
     <AppLayout showBackButton backTo="/" className="flex flex-col">
-      <div className="flex-1 w-full max-w-4xl mx-auto px-4 py-8 md:py-12">
+      <div className="flex-1 w-full max-w-4xl mx-auto px-4 py-4 md:py-12">
         {/* Header */}
-        <div className="text-center mb-10">
+        <div className="text-center mb-6 md:mb-10">
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -404,7 +404,7 @@ const LibraryPage: React.FC = () => {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="text-3xl md:text-4xl font-serif font-bold text-white mb-3"
+            className="text-2xl md:text-4xl font-serif font-bold text-white mb-2 md:mb-3"
           >
             Your Audio Library
           </motion.h1>
@@ -412,7 +412,7 @@ const LibraryPage: React.FC = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
-            className="text-slate-400 max-w-md mx-auto"
+            className="text-sm md:text-base text-slate-400 max-w-md mx-auto"
           >
             Listen to your saved meditations and audio generations
           </motion.p>

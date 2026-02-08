@@ -2501,8 +2501,8 @@ const App: React.FC = () => {
         <Starfield />
 
         {/* Simple Navigation - Mobile Optimized */}
-        <nav className="fixed top-0 left-0 right-0 z-50 p-3 md:p-6 flex justify-between items-center bg-gradient-to-b from-[#020617]/80 to-transparent">
-          <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">
+        <nav className="fixed top-0 left-0 right-0 z-50 px-2 py-2 md:p-6 flex justify-between items-center bg-gradient-to-b from-[#020617]/80 to-transparent">
+          <div className="flex items-center gap-1.5 md:gap-4 flex-shrink-0">
             {/* Sidebar Toggle Button - Only show when sidebar is closed */}
             {!showBurgerMenu && (
               <button
@@ -2521,9 +2521,9 @@ const App: React.FC = () => {
           </div>
 
           {/* Voice selector and user menu - compact on mobile */}
-          <div className="flex items-center gap-2 md:gap-4">
+          <div className="flex items-center gap-1.5 md:gap-4">
             {/* Voice selector - hidden on very small screens, compact on mobile */}
-            <div className="hidden xs:flex items-center gap-2">
+            <div className="hidden xs:flex items-center gap-1.5">
               {availableVoices.length > 0 ? (
                 <select
                   value={selectedVoice?.id || ''}
@@ -2569,8 +2569,8 @@ const App: React.FC = () => {
 
               {/* Tagline - always shown when not in inline mode */}
               {!isInlineMode && (
-                <div className="fixed top-24 md:top-32 left-0 right-0 text-center z-10 px-4 animate-in fade-in slide-in-from-top-4 duration-500">
-                  <p className="text-2xl md:text-4xl font-light tracking-wide text-white/70">
+                <div className="fixed top-16 md:top-32 left-0 right-0 text-center z-10 px-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                  <p className="text-xl md:text-4xl font-light tracking-wide text-white/70">
                     Speak it into <span className="bg-clip-text text-transparent bg-gradient-to-r from-sky-500 to-sky-500 font-semibold">existence.</span>
                   </p>
                 </div>

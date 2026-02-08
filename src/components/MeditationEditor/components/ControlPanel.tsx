@@ -180,7 +180,10 @@ export const ControlPanel = memo<ControlPanelProps>(
     const visibleMusic = useMemo(() => availableMusic.slice(0, 8), [availableMusic]);
 
     return (
-      <div className="flex-shrink-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent backdrop-blur-xl">
+      <div
+        className="flex-shrink-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent backdrop-blur-xl"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+      >
         {/* Glowing separator line */}
         <div className="relative h-px mx-4">
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-sky-500/60 to-transparent" />
@@ -325,8 +328,8 @@ export const ControlPanel = memo<ControlPanelProps>(
                 )}
               </div>
 
-              {/* Tab Content - taller on mobile for better visibility */}
-              <div className="max-h-64 sm:max-h-40 overflow-y-auto">
+              {/* Tab Content */}
+              <div className="max-h-44 sm:max-h-56 overflow-y-auto">
                 {/* Voice Tab */}
                 {activeTab === 'voice' && (
                   <div className="space-y-3">
