@@ -33,7 +33,7 @@ import { supabase } from '@/lib/supabase';
 - **Frontend**: React 19 + TypeScript + Vite
 - **Routing**: react-router-dom v7 (lazy-loaded pages in `src/router.tsx`)
 - **Styling**: Tailwind CSS v4 + Framer Motion
-- **State**: React Context pattern (10 contexts in `src/contexts/`)
+- **State**: React Context pattern (`src/contexts/` — 10 app contexts + 5 modal sub-contexts in `src/contexts/modals/`)
 - **Backend**: Supabase (Auth, PostgreSQL, Edge Functions, Storage)
 - **AI/TTS**: Google Gemini (scripts), ElevenLabs (primary TTS), Web Speech API (fallback)
 - **Monitoring**: Sentry + Vercel Analytics
@@ -50,12 +50,13 @@ import { supabase } from '@/lib/supabase';
 /                     # Root entry (index.tsx, App.tsx)
 ├── src/
 │   ├── router.tsx    # Route definitions with lazy loading + prefetching
-│   ├── pages/        # Page components
+│   ├── pages/        # Page components (lazy-loaded via lazyWithRetry in router.tsx)
 │   │   └── marketing/  # Marketing portal (admin dashboard)
-│   ├── contexts/     # React contexts (10 contexts, 8 re-exported from index.ts)
+│   ├── contexts/     # React contexts (10 app + 5 modal sub-contexts in modals/)
 │   ├── lib/          # Services and utilities
 │   │   ├── voiceService.ts    # TTS provider routing
 │   │   ├── edgeFunctions.ts   # Edge function API calls with retry/tracing
+│   │   ├── marketingSupabase.ts # Marketing portal data operations
 │   │   └── agent/             # Gemini-powered MeditationAgent (5 content types)
 │   └── hooks/        # Custom React hooks
 ├── lib/
@@ -120,6 +121,10 @@ Shared utilities in `supabase/functions/_shared/`:
 - `textChunking.ts` - Splits long text for streaming TTS
 - `voiceProfileCache.ts` - Caches voice profile lookups
 - `tracing.ts` - Distributed tracing utilities
+- `compression.ts` - Response compression
+- `contentTemplates.ts` - Content template helpers
+- `encoding.ts` - Encoding utilities
+- `validation.ts` - Input validation schemas
 
 ### Resilience Patterns
 
@@ -140,9 +145,19 @@ Shared utilities in `supabase/functions/_shared/`:
 ### Route Prefetching
 
 `src/router.tsx` implements route prefetching:
-- Pages are lazy-loaded with `React.lazy()`
+- Pages are lazy-loaded with `lazyWithRetry()` (wraps `React.lazy()` with chunk error recovery + auto-refresh on stale deploys)
 - Adjacent routes prefetched via `requestIdleCallback`
-- `prefetchMap` defines route adjacency (e.g., `/` prefetches `/library`, `/templates`)
+- `prefetchMap` defines route adjacency (e.g., `/` prefetches `/my-audios`, `/templates`)
+
+### Blog System
+
+Recent addition — CMS for wellness content:
+- **`/blog`** and **`/blog/:slug`** — Public blog views (`BlogViewPage`)
+- **`/blog-admin`** — Admin blog management (`BlogPage`)
+- Database: `blog_posts` table (title, slug, content, category, tags, status: draft/published/archived)
+- Categories: wellness, meditation, mindfulness, sleep, stress, guides, news
+- CRUD operations in `lib/supabase.ts`: `getBlogPosts`, `getBlogPost`, `createBlogPost`, `updateBlogPost`, `deleteBlogPost`
+- Content rendered with custom `ContentRenderer` component (structured HTML, no markdown library)
 
 ## Database
 
@@ -160,6 +175,8 @@ Core tables (all RLS-protected):
 - `audio_tag_presets` - Available audio tags (pauses, breaths, etc.)
 - `tts_response_cache` - Caches TTS responses for repeated requests
 - `audit_log` - Security audit trail
+- `blog_posts` - Blog content management (title, slug, content, category, tags, status)
+- `blog_categories` - Blog category definitions
 
 Marketing Portal tables (admin-only):
 - `marketing_deliverables`, `marketing_content_calendar`, `marketing_influencers`
@@ -220,7 +237,7 @@ Coverage thresholds in `vitest.config.ts`:
 ## Build Optimization
 
 Configured in `vite.config.ts`:
-- Manual chunks: `react-vendor`, `router-vendor`, `supabase-vendor`, `framer-motion-vendor`, `sentry-vendor`, `icons-vendor`
+- Manual chunks: `react-vendor`, `router-vendor`, `supabase-vendor`, `framer-motion-vendor`, `sentry-vendor`, `icons-vendor`, `toast-vendor`, `date-vendor`, `markdown-vendor`, `audio-vendor`
 - Target: `es2020` for modern browsers
 - CSS code splitting enabled
 - Source maps only in development

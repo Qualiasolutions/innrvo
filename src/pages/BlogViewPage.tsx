@@ -88,6 +88,59 @@ const CATEGORY_STYLES: Record<string, { gradient: string; border: string; text: 
   },
 };
 
+// Process inline formatting: bold, links, italic
+const processInlineFormatting = (text: string, keyPrefix: string = ''): React.ReactNode[] => {
+  const parts: React.ReactNode[] = [];
+  // Order matters: bold (**) before italic (*) to avoid conflicts
+  const regex = /\*\*(.+?)\*\*|\[([^\]]+)\]\(([^)]+)\)|\*([^*]+)\*/g;
+  let lastIndex = 0;
+  let match;
+
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(text.slice(lastIndex, match.index));
+    }
+
+    if (match[1] !== undefined) {
+      // Bold **text**
+      parts.push(
+        <strong key={`${keyPrefix}b-${match.index}`} className="font-semibold text-white">
+          {match[1]}
+        </strong>
+      );
+    } else if (match[2] !== undefined) {
+      // Link [text](url)
+      const url = match[3];
+      const isInternal = url.startsWith('/') || url.includes('innrvo.com');
+      parts.push(
+        <a
+          key={`${keyPrefix}l-${match.index}`}
+          href={url}
+          className="text-sky-400 hover:text-sky-300 underline underline-offset-2 decoration-sky-400/30 hover:decoration-sky-300/50 transition-colors"
+          {...(isInternal ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
+        >
+          {match[2]}
+        </a>
+      );
+    } else if (match[4] !== undefined) {
+      // Italic *text*
+      parts.push(
+        <em key={`${keyPrefix}i-${match.index}`} className="italic text-slate-400">
+          {match[4]}
+        </em>
+      );
+    }
+
+    lastIndex = regex.lastIndex;
+  }
+
+  if (lastIndex < text.length) {
+    parts.push(text.slice(lastIndex));
+  }
+
+  return parts.length > 0 ? parts : [text];
+};
+
 // Enhanced markdown content renderer
 const ContentRenderer: React.FC<{ content: string }> = ({ content }) => {
   const elements: React.ReactNode[] = [];
@@ -102,7 +155,7 @@ const ContentRenderer: React.FC<{ content: string }> = ({ content }) => {
           {listItems.map((item, idx) => (
             <li key={idx} className="flex items-start gap-3 text-slate-300">
               <span className="flex-shrink-0 w-1.5 h-1.5 mt-2.5 rounded-full bg-sky-500" />
-              <span className="leading-relaxed">{item}</span>
+              <span className="leading-relaxed">{processInlineFormatting(item, `li-${idx}-`)}</span>
             </li>
           ))}
         </ul>
@@ -200,7 +253,7 @@ const ContentRenderer: React.FC<{ content: string }> = ({ content }) => {
         <blockquote key={index} className="my-6 pl-4 border-l-4 border-sky-500/50 bg-sky-500/5 py-4 pr-4 rounded-r-xl">
           <div className="flex items-start gap-3">
             <Quote className="w-5 h-5 text-sky-400 flex-shrink-0 mt-0.5" />
-            <p className="text-slate-200 italic leading-relaxed">{trimmedLine.slice(1).trim()}</p>
+            <p className="text-slate-200 italic leading-relaxed">{processInlineFormatting(trimmedLine.slice(1).trim(), `q-${index}-`)}</p>
           </div>
         </blockquote>
       );
@@ -209,29 +262,9 @@ const ContentRenderer: React.FC<{ content: string }> = ({ content }) => {
 
     // Regular paragraph with inline formatting
     flushList();
-    let formattedText = trimmedLine;
-
-    // Process inline bold
-    const boldRegex = /\*\*(.+?)\*\*/g;
-    const parts: React.ReactNode[] = [];
-    let lastIndex = 0;
-    let match;
-
-    while ((match = boldRegex.exec(formattedText)) !== null) {
-      if (match.index > lastIndex) {
-        parts.push(formattedText.slice(lastIndex, match.index));
-      }
-      parts.push(<strong key={`bold-${match.index}`} className="font-semibold text-white">{match[1]}</strong>);
-      lastIndex = boldRegex.lastIndex;
-    }
-
-    if (lastIndex < formattedText.length) {
-      parts.push(formattedText.slice(lastIndex));
-    }
-
     elements.push(
       <p key={index} className="text-slate-300 leading-relaxed mb-4 text-base md:text-lg">
-        {parts.length > 0 ? parts : formattedText}
+        {processInlineFormatting(trimmedLine, `p-${index}-`)}
       </p>
     );
   });
@@ -282,6 +315,121 @@ const BlogViewPage: React.FC = () => {
 
     loadData();
   }, [slug]);
+
+  // SEO: Update document meta tags for blog posts
+  useEffect(() => {
+    if (!selectedPost) return;
+
+    const title = selectedPost.meta_title || `${selectedPost.title} | Innrvo`;
+    const description = selectedPost.meta_description || selectedPost.excerpt || '';
+    const url = `https://innrvo.com/blog/${selectedPost.slug}`;
+
+    document.title = title;
+
+    const setMeta = (selector: string, content: string) => {
+      const el = document.querySelector(selector);
+      if (el) el.setAttribute('content', content);
+    };
+
+    setMeta('meta[name="description"]', description);
+    setMeta('meta[property="og:title"]', title);
+    setMeta('meta[property="og:description"]', description);
+    setMeta('meta[property="og:url"]', url);
+    setMeta('meta[property="og:type"]', 'article');
+    setMeta('meta[name="twitter:title"]', title);
+    setMeta('meta[name="twitter:description"]', description);
+    setMeta('meta[name="twitter:url"]', url);
+    if (selectedPost.featured_image_url) {
+      setMeta('meta[property="og:image"]', selectedPost.featured_image_url);
+      setMeta('meta[name="twitter:image"]', selectedPost.featured_image_url);
+    }
+
+    // Article JSON-LD
+    let articleLd = document.getElementById('blog-article-ld');
+    if (!articleLd) {
+      articleLd = document.createElement('script');
+      articleLd.id = 'blog-article-ld';
+      articleLd.setAttribute('type', 'application/ld+json');
+      document.head.appendChild(articleLd);
+    }
+    articleLd.textContent = JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'Article',
+      headline: selectedPost.title,
+      description,
+      author: { '@type': 'Organization', name: 'Innrvo' },
+      publisher: { '@type': 'Organization', name: 'Innrvo', url: 'https://innrvo.com' },
+      datePublished: selectedPost.published_at || selectedPost.created_at,
+      dateModified: selectedPost.updated_at,
+      mainEntityOfPage: { '@type': 'WebPage', '@id': url },
+      ...(selectedPost.featured_image_url ? { image: selectedPost.featured_image_url } : {}),
+    });
+
+    // FAQPage JSON-LD: extract FAQ Q&A from content if present
+    const faqLdId = 'blog-faq-ld';
+    const existingFaqLd = document.getElementById(faqLdId);
+    const lines = selectedPost.content.split('\n');
+    const faqs: { question: string; answer: string }[] = [];
+    let inFAQ = false;
+    let curQ = '';
+    let curA = '';
+
+    for (const line of lines) {
+      const t = line.trim();
+      if (t.startsWith('## ') && t.toLowerCase().includes('faq')) { inFAQ = true; continue; }
+      if (inFAQ && t.startsWith('## ') && !t.toLowerCase().includes('faq')) {
+        if (curQ) faqs.push({ question: curQ, answer: curA.trim() });
+        break;
+      }
+      if (inFAQ && t.startsWith('### ')) {
+        if (curQ) faqs.push({ question: curQ, answer: curA.trim() });
+        curQ = t.slice(4);
+        curA = '';
+      } else if (inFAQ && curQ && t) {
+        // Strip markdown for plain text answer
+        const plain = t.replace(/\*\*(.+?)\*\*/g, '$1').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/\*([^*]+)\*/g, '$1');
+        curA += (curA ? ' ' : '') + plain;
+      }
+    }
+    if (curQ) faqs.push({ question: curQ, answer: curA.trim() });
+
+    if (faqs.length > 0) {
+      let faqLd = existingFaqLd;
+      if (!faqLd) {
+        faqLd = document.createElement('script');
+        faqLd.id = faqLdId;
+        faqLd.setAttribute('type', 'application/ld+json');
+        document.head.appendChild(faqLd);
+      }
+      faqLd.textContent = JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: faqs.map(faq => ({
+          '@type': 'Question',
+          name: faq.question,
+          acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+        })),
+      });
+    }
+
+    return () => {
+      document.title = 'Innrvo | AI-Powered Personalized Meditation';
+      setMeta('meta[name="description"]', 'Generate personalized meditation scripts with AI and listen in your own cloned voice. Innrvo creates intimate, tailored meditation experiences just for you.');
+      setMeta('meta[property="og:title"]', 'Innrvo | AI-Powered Personalized Meditation');
+      setMeta('meta[property="og:description"]', 'Generate personalized meditation scripts with AI and listen in your own cloned voice. Create intimate, tailored meditation experiences.');
+      setMeta('meta[property="og:url"]', 'https://innrvo.com/');
+      setMeta('meta[property="og:type"]', 'website');
+      setMeta('meta[property="og:image"]', 'https://innrvo.com/og-image.png');
+      setMeta('meta[name="twitter:title"]', 'Innrvo | AI-Powered Personalized Meditation');
+      setMeta('meta[name="twitter:description"]', 'Generate personalized meditation scripts with AI and listen in your own cloned voice.');
+      setMeta('meta[name="twitter:url"]', 'https://innrvo.com/');
+      setMeta('meta[name="twitter:image"]', 'https://innrvo.com/og-image.png');
+      const artEl = document.getElementById('blog-article-ld');
+      if (artEl) artEl.remove();
+      const faqEl = document.getElementById(faqLdId);
+      if (faqEl) faqEl.remove();
+    };
+  }, [selectedPost]);
 
   // Filter posts
   const filteredPosts = useMemo(() => {
