@@ -379,6 +379,7 @@ const BlogViewPage: React.FC = () => {
       if (t.startsWith('## ') && t.toLowerCase().includes('faq')) { inFAQ = true; continue; }
       if (inFAQ && t.startsWith('## ') && !t.toLowerCase().includes('faq')) {
         if (curQ) faqs.push({ question: curQ, answer: curA.trim() });
+        curQ = '';
         break;
       }
       if (inFAQ && t.startsWith('### ')) {
