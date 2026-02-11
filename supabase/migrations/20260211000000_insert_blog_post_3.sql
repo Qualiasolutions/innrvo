@@ -115,7 +115,7 @@ The difference isn't just comfort. It's effectiveness. When the meditation match
 
 This is also why so many people try meditation for anxiety and panic attacks, only to quit within weeks. The top meditation apps have reached over [300 million downloads](https://pmc.ncbi.nlm.nih.gov/articles/PMC12333550/), but 30 day retention rates average just 3 to 5%. People aren't leaving because meditation doesn't work. They're leaving because the wrong technique at the wrong time feels like it doesn't.
 
-## Frequently Asked Questions About Meditation for Anxiety
+## FAQ: Meditation for Anxiety
 
 ### Does meditation actually help anxiety?
 
