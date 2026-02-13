@@ -84,7 +84,6 @@ const AdminPage: React.FC = () => {
   const [templateCategories, setTemplateCategories] = useState<TemplateCategory[]>([]);
   const [templateSubgroups, setTemplateSubgroups] = useState<TemplateSubgroup[]>([]);
   const [templates, setTemplates] = useState<TemplateWithDetails[]>([]);
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
 
   // Rich dashboard data
@@ -123,9 +122,7 @@ const AdminPage: React.FC = () => {
 
   // Check admin access on mount
   useEffect(() => {
-    console.log('[AdminPage] Auth state:', { authLoading, hasUser: !!user, userId: user?.id });
     if (authLoading) {
-      console.log('[AdminPage] Still loading auth, waiting...');
       return;
     }
 
@@ -133,12 +130,9 @@ const AdminPage: React.FC = () => {
 
     const verifyAdmin = async () => {
       if (!user) {
-        console.log('[AdminPage] No user, redirecting to home');
         navigate('/', { replace: true });
         return;
       }
-
-      console.log('[AdminPage] Checking admin status for user:', user.id);
 
       // Add timeout to prevent infinite loading
       const timeoutPromise = new Promise<boolean>((_, reject) =>
@@ -147,17 +141,14 @@ const AdminPage: React.FC = () => {
 
       try {
         const adminStatus = await Promise.race([checkIsAdmin(user.id), timeoutPromise]);
-        console.log('[AdminPage] Admin status result:', adminStatus);
 
         if (!isMounted) return;
 
         if (!adminStatus) {
-          console.warn('[AdminPage] Access denied: User is not an admin');
           navigate('/', { replace: true });
           return;
         }
 
-        console.log('[AdminPage] Admin verified, showing panel');
         setIsAdmin(true);
         setIsLoading(false);
       } catch (err) {

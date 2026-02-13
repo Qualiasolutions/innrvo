@@ -62,18 +62,15 @@ export function useMarketingDashboard(): UseMarketingDashboardResult {
   const [error, setError] = useState<string | null>(null);
 
   const fetchDashboard = useCallback(async () => {
-    console.log('[useMarketingDashboard] fetchDashboard called');
     setIsLoading(true);
     setError(null);
 
     try {
-      console.log('[useMarketingDashboard] Starting Promise.all...');
       const [statsData, progressData] = await Promise.all([
         getMarketingDashboardStats(),
         getCategoryProgress(),
       ]);
 
-      console.log('[useMarketingDashboard] Data received:', { statsData, progressData });
       setStats(statsData);
       setCategoryProgress(progressData);
     } catch (err) {
@@ -81,13 +78,11 @@ export function useMarketingDashboard(): UseMarketingDashboardResult {
       console.error('[useMarketingDashboard] Error:', message, err);
       setError(message);
     } finally {
-      console.log('[useMarketingDashboard] Setting isLoading=false');
       setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    console.log('[useMarketingDashboard] useEffect triggered, calling fetchDashboard');
     fetchDashboard();
   }, [fetchDashboard]);
 
@@ -120,18 +115,15 @@ export function useDeliverables(category?: DeliverableCategory): UseDeliverables
   const [error, setError] = useState<string | null>(null);
 
   const fetchDeliverables = useCallback(async () => {
-    console.log('[useDeliverables] fetchDeliverables called, category:', category);
     setIsLoading(true);
     setError(null);
 
     try {
       if (category) {
         const data = await getDeliverables({ category });
-        console.log('[useDeliverables] Got data for category:', data?.length);
         setDeliverables(data);
       } else {
         const byCategory = await getDeliverablesByCategory();
-        console.log('[useDeliverables] Got all deliverables by category');
         setDeliverablesByCategory(byCategory);
         setDeliverables(Object.values(byCategory).flat());
       }
@@ -140,13 +132,11 @@ export function useDeliverables(category?: DeliverableCategory): UseDeliverables
       console.error('[useDeliverables] Error:', message, err);
       setError(message);
     } finally {
-      console.log('[useDeliverables] Setting isLoading=false');
       setIsLoading(false);
     }
   }, [category]);
 
   useEffect(() => {
-    console.log('[useDeliverables] useEffect triggered');
     fetchDeliverables();
   }, [fetchDeliverables]);
 

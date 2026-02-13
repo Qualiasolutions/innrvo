@@ -228,20 +228,6 @@ export interface VoiceProfile {
   updated_at: string;
 }
 
-export interface VoiceSample {
-  id: string;
-  profile_id: string;
-  filename: string;
-  file_size: number;
-  duration: number;
-  format: 'WAV' | 'MP3' | 'OGG' | 'FLAC';
-  sample_rate: number;
-  storage_path: string;
-  transcription?: string;
-  quality_score?: number;
-  created_at: string;
-}
-
 export interface AudioGeneration {
   id: string;
   profile_id: string;
@@ -737,7 +723,6 @@ async function deleteFishAudioModel(modelId: string): Promise<boolean> {
       return false;
     }
 
-    console.log('Fish Audio model deleted successfully:', modelId);
     return true;
   } catch (e) {
     console.warn('Error deleting Fish Audio model:', e);
@@ -1163,14 +1148,10 @@ export const getMeditationHistoryPaginated = async (
   page = 0,
   pageSize = 20
 ): Promise<PaginatedHistoryResult> => {
-  console.log('[getMeditationHistoryPaginated] Starting, page:', page);
   const user = await getCurrentUser();
   if (!user || !supabase) {
-    console.log('[getMeditationHistoryPaginated] No user or supabase client');
     return { data: [], hasMore: false, totalCount: 0 };
   }
-
-  console.log('[getMeditationHistoryPaginated] Fetching for user:', user.id);
 
   // Deduplicate concurrent requests for the same page
   return deduplicatedQuery(`meditation_history:${user.id}:${page}:${pageSize}`, () =>
@@ -1178,7 +1159,6 @@ export const getMeditationHistoryPaginated = async (
       const from = page * pageSize;
       const to = from + pageSize - 1;
 
-      console.log('[getMeditationHistoryPaginated] Executing query...');
       // Use 'estimated' count for better performance on large tables
       // 'exact' scans the entire table which is slow for 100k+ rows
       const { data, error, count } = await supabase
@@ -1195,8 +1175,6 @@ export const getMeditationHistoryPaginated = async (
 
       const totalCount = count || 0;
       const hasMore = (page + 1) * pageSize < totalCount;
-
-      console.log('[getMeditationHistoryPaginated] Success! Items:', data?.length, 'Total:', totalCount);
 
       return {
         data: data || [],

@@ -159,13 +159,6 @@ export interface MarketingDashboardStats {
   unreadMessages: number;
 }
 
-export interface DeliverablesByCategory {
-  strategy: MarketingDeliverable[];
-  social: MarketingDeliverable[];
-  influencer: MarketingDeliverable[];
-  analytics: MarketingDeliverable[];
-}
-
 export interface CategoryProgress {
   category: DeliverableCategory;
   total: number;
@@ -182,22 +175,6 @@ export interface DeliverableCardProps {
   onStatusChange?: (id: string, status: DeliverableStatus) => void;
   onFeedbackSubmit?: (id: string, feedback: string) => void;
   onApprove?: (id: string) => void;
-}
-
-export interface ContentCalendarProps {
-  items: MarketingContentCalendar[];
-  selectedMonth: Date;
-  onMonthChange: (date: Date) => void;
-  onItemClick?: (item: MarketingContentCalendar) => void;
-  onApprove?: (id: string) => void;
-}
-
-export interface KanbanBoardProps<T> {
-  items: T[];
-  columns: { id: string; title: string }[];
-  getItemColumn: (item: T) => string;
-  onItemMove?: (itemId: string, newColumn: string) => void;
-  renderItem: (item: T) => React.ReactNode;
 }
 
 export interface ProgressRingProps {
@@ -220,8 +197,3 @@ export interface StatusBadgeProps {
 
 export type MarketingTab = 'overview' | 'strategy' | 'social' | 'influencers' | 'analytics' | 'communication';
 
-export interface TabConfig {
-  id: MarketingTab;
-  label: string;
-  icon: React.ElementType;
-}

@@ -15,11 +15,6 @@ const sessionCache: {
 
 const CACHE_TTL = 1000 * 60 * 60; // 1 hour
 
-export interface CachedAudioTags {
-  data: AudioTagPreset[];
-  timestamp: number;
-}
-
 export function getCachedAudioTags(): AudioTagPreset[] | null {
   if (!sessionCache.data) return null;
 

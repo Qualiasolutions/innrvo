@@ -708,7 +708,6 @@ export async function deleteAudioTag(id: string): Promise<void> {
  * @param userId - User ID to check (required)
  */
 export async function checkIsAdmin(userId: string): Promise<boolean> {
-  console.log('[checkIsAdmin] Starting check, userId:', userId);
   if (!userId) return false;
 
   try {
@@ -725,7 +724,6 @@ export async function checkIsAdmin(userId: string): Promise<boolean> {
     const accessToken = await getAccessToken();
     const authToken = accessToken || supabaseKey;
 
-    console.log('[checkIsAdmin] Making direct fetch to RPC, hasAccessToken:', !!accessToken);
     const response = await fetch(`${supabaseUrl}/rest/v1/rpc/check_is_admin`, {
       method: 'POST',
       headers: {
@@ -736,8 +734,6 @@ export async function checkIsAdmin(userId: string): Promise<boolean> {
       body: JSON.stringify({ user_id: userId }),
     });
 
-    console.log('[checkIsAdmin] Fetch response status:', response.status);
-
     if (!response.ok) {
       const errorText = await response.text();
       console.error('[checkIsAdmin] Fetch error:', errorText);
@@ -745,7 +741,6 @@ export async function checkIsAdmin(userId: string): Promise<boolean> {
     }
 
     const data = await response.json();
-    console.log('[checkIsAdmin] Result:', data);
     return data === true;
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';

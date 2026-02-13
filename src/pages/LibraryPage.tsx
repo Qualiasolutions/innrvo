@@ -285,9 +285,7 @@ const LibraryPage: React.FC = () => {
 
   // Fetch meditations directly from Supabase
   const loadMeditations = useCallback(async (pageNum = 0, append = false) => {
-    console.log('[LibraryPage] loadMeditations called, user:', !!user, 'isSessionReady:', isSessionReady);
     if (!user || !isSessionReady) {
-      console.log('[LibraryPage] Skipping load - user:', !!user, 'isSessionReady:', isSessionReady);
       setLoading(false);
       return;
     }
@@ -300,9 +298,7 @@ const LibraryPage: React.FC = () => {
     setError(null);
 
     try {
-      console.log('[LibraryPage] Fetching meditations, page:', pageNum);
       const result = await getMeditationHistoryPaginated(pageNum, 20);
-      console.log('[LibraryPage] Got', result.data.length, 'meditations');
 
       if (append) {
         setMeditations(prev => [...prev, ...result.data]);

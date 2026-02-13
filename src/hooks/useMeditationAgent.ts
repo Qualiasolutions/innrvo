@@ -13,7 +13,6 @@ import { MeditationAgent, getRandomGreeting, SYSTEM_PROMPT, type AgentResponse, 
 import { conversationStore } from '../lib/agent/conversationStore';
 import * as agentTools from '../lib/agent/agentTools';
 import { geminiService } from '../../geminiService';
-import { voiceService } from '../lib/voiceService';
 import { trackMeditation } from '../lib/tracking';
 import type { VoiceProfile } from '../../types';
 import type { MeditationType } from '../lib/agent/knowledgeBase';

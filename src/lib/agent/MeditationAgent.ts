@@ -72,7 +72,7 @@ import { responseHandler } from './modules/ResponseHandler';
 import { promptBuilder } from './modules/PromptBuilder';
 
 // Import utilities
-import { debugLog, DEBUG } from './utils';
+import { debugLog } from './utils';
 
 // Re-export utilities for backwards compatibility
 export { GREETING_MESSAGES, getRandomGreeting, QUICK_PROMPTS } from './utils';

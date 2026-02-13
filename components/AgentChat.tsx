@@ -268,7 +268,6 @@ const AgentChatComponent: React.FC<AgentChatProps> = ({
     const isReady = currentMeditation?.readyForReview === true;
 
     if (hasScript && isReady) {
-      console.log('[AgentChat] Meditation ready, opening panel. Script length:', currentMeditation.script.length);
       // Use setTimeout to ensure state update isn't batched away on mobile
       setTimeout(() => {
         setShowMeditationPanel(true);
@@ -339,13 +338,11 @@ const AgentChatComponent: React.FC<AgentChatProps> = ({
     const startSilenceTimer = () => {
       resetSilenceTimer();
       silenceTimer = setTimeout(() => {
-        console.log('Silence detected, auto-stopping recognition');
         recognition.stop();
       }, SILENCE_TIMEOUT);
     };
 
     recognition.onstart = () => {
-      console.log('Speech recognition started');
       setIsRecording(true);
       setTranscribedText('');
       accumulatedTranscript = '';
@@ -385,7 +382,6 @@ const AgentChatComponent: React.FC<AgentChatProps> = ({
 
     // Additional signal for speech ending
     recognition.onspeechend = () => {
-      console.log('Speech ended (speechend event)');
       // Start timer if we have accumulated content
       if (accumulatedTranscript.trim()) {
         startSilenceTimer();
@@ -421,7 +417,6 @@ const AgentChatComponent: React.FC<AgentChatProps> = ({
     };
 
     recognition.onend = () => {
-      console.log('Speech recognition ended. Transcript:', accumulatedTranscript);
       resetSilenceTimer();
       setIsRecording(false);
 
@@ -436,7 +431,6 @@ const AgentChatComponent: React.FC<AgentChatProps> = ({
   }, [sendMessage]);
 
   const stopVoiceRecording = useCallback(() => {
-    console.log('Manually stopping voice recording');
     recognitionRef.current?.stop();
   }, []);
 

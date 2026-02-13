@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, RefObject } from 'react';
+import { useState, useCallback, RefObject } from 'react';
 import { VoiceProfile, ScriptTimingMap } from '../../types';
 import { AUDIO_TAG_CATEGORIES } from '../../constants';
 import { geminiService } from '../../geminiService';

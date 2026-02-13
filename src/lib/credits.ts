@@ -36,13 +36,6 @@ const COST_CONFIG = {
 const CREDIT_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 const creditCache = new Map<string, { credits: number; timestamp: number }>();
 
-export interface UserCredits {
-  total_credits: number;
-  credits_used: number;
-  credits_remaining: number;
-  last_updated: string;
-}
-
 export interface UsageLimits {
   credits_used: number;
   credits_limit: number;

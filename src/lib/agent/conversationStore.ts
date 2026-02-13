@@ -349,10 +349,7 @@ export class ConversationStore {
 
       if (!resolvedUserId) return [];
 
-      console.log('[conversationStore] Executing query for user:', resolvedUserId);
-      const startTime = Date.now();
       const data = await withRetry(async () => {
-        console.log('[conversationStore] withRetry attempt started...');
         const query = supabase!
           .from('agent_conversations')
           .select('id, summary, messages, session_state, created_at')
@@ -361,7 +358,6 @@ export class ConversationStore {
           .limit(limit);
 
         const { data, error } = await query;
-        console.log('[conversationStore] Query returned in', Date.now() - startTime, 'ms');
 
         if (error) {
           console.error('[conversationStore] Query error:', error);
@@ -369,7 +365,6 @@ export class ConversationStore {
         }
         return data;
       });
-      console.log('[conversationStore] withRetry finished, data length:', data?.length);
 
       return (data || []).map(item => ({
         id: item.id,

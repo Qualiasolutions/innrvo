@@ -7,7 +7,6 @@ import {
   getUserVoiceProfiles,
   VoiceProfile as DBVoiceProfile
 } from '../../lib/supabase';
-import { blobToBase64 } from '../../geminiService';
 import { convertToWAV, validateAudioForCloning } from '../lib/audioConverter';
 
 /**
