@@ -32,24 +32,24 @@ const AboutPage: React.FC = () => {
             </p>
 
             <p className="text-slate-400 leading-relaxed">
-              Our platform lets you generate personalized meditations and affirmations — then hear them in your own cloned voice. Because no voice carries more authority to your subconscious than your own.
+              Our platform lets you generate personalized meditations and affirmations, then hear them in your own cloned voice. Because no voice carries more authority to your subconscious than your own.
             </p>
 
             {/* Pull Quote */}
             <div className="py-4 px-6 border-l-2 border-sky-500/40 my-6">
               <p className="text-white font-light text-lg italic">
-                "When you hear yourself affirm your dreams, your worth, your goals — it lands deeper. It feels real. It becomes familiar."
+                "When you hear yourself affirm your dreams, your worth, your goals, it lands deeper. It feels real. It becomes familiar."
               </p>
             </div>
 
             <p className="text-slate-400 leading-relaxed">
-              And <span className="text-sky-400 font-medium">familiarity is powerful</span>. By repeatedly listening to your curated audios, you integrate your desired reality at a subconscious level. You don't just imagine it — you feel it, believe it, become it.
+              And <span className="text-sky-400 font-medium">familiarity is powerful</span>. By repeatedly listening to your curated audios, you integrate your desired reality at a subconscious level. You don't just imagine it. You feel it, believe it, become it.
             </p>
 
             <div className="py-4">
               <h3 className="text-lg font-semibold text-white mb-3">Creation happens through alignment.</h3>
               <p className="text-slate-400 leading-relaxed">
-                When your inner vibration matches what you desire, manifestation becomes natural. Innrvo exists to help you consciously claim your power — to move from wishing to embodying, from dreaming to being.
+                When your inner vibration matches what you desire, manifestation becomes natural. Innrvo exists to help you consciously claim your power. To move from wishing to embodying, from dreaming to being.
               </p>
             </div>
 
@@ -70,7 +70,7 @@ const AboutPage: React.FC = () => {
               </div>
               <div>
                 <h3 className="text-base font-semibold text-white">Founder's Perspective</h3>
-                <p className="text-xs text-slate-500">Fawzi — Founder of Innrvo</p>
+                <p className="text-xs text-slate-500">Fawzi, Founder of Innrvo</p>
               </div>
             </div>
 
@@ -79,7 +79,7 @@ const AboutPage: React.FC = () => {
             </p>
 
             <p className="text-slate-400 leading-relaxed">
-              It's not about having every step figured out. It's about trusting the process — questioning our beliefs, becoming aware of our patterns, and consciously choosing how we respond to life.
+              It's not about having every step figured out. It's about trusting the process. Questioning our beliefs, becoming aware of our patterns, and consciously choosing how we respond to life.
             </p>
 
             {/* Pull Quote */}
@@ -90,11 +90,11 @@ const AboutPage: React.FC = () => {
             </div>
 
             <p className="text-slate-400 leading-relaxed">
-              Many people begin this journey wanting to improve their finances or gain more freedom — completely natural. But as we go deeper, priorities evolve. We recognize our connection with others and understand that personal growth is also about contribution, empathy, and collective progress.
+              Many people begin this journey wanting to improve their finances or gain more freedom. Completely natural. But as we go deeper, priorities evolve. We recognize our connection with others and understand that personal growth is also about contribution, empathy, and collective progress.
             </p>
 
             <p className="text-slate-300 leading-relaxed">
-              Innrvo was created as a practical tool to support this process — helping people build awareness, strengthen intention, and develop a more conscious relationship with themselves and the world.
+              Innrvo was created as a practical tool to support this process. Helping people build awareness, strengthen intention, and develop a more conscious relationship with themselves and the world.
             </p>
           </div>
         </GlassCard>

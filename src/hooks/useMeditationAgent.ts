@@ -568,7 +568,7 @@ export function useMeditationAgent(options: UseMeditationAgentOptions = {}): Use
           const quoteMessage: ChatMessage = {
             id: generateMessageId(),
             role: 'assistant',
-            content: `"${quote.data.quote}"\n\n— ${quote.data.teacher}`,
+            content: `"${quote.data.quote}"\n\n${quote.data.teacher}`,
             timestamp: new Date(),
           };
           setMessages(prev => [...prev, quoteMessage]);

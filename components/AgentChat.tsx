@@ -134,7 +134,7 @@ const MessageBubble = memo<MessageBubbleProps>(({ message, isLast }) => {
           {message.quote && (
             <div className="mt-3 pt-3 border-t border-white/10">
               <p className="italic text-white/60 text-sm">"{message.quote.quote}"</p>
-              <p className="text-sky-500 text-xs mt-1.5">— {message.quote.teacher}</p>
+              <p className="text-sky-500 text-xs mt-1.5">{message.quote.teacher}</p>
             </div>
           )}
         </div>

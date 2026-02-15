@@ -10,22 +10,22 @@ const FEATURES = [
   {
     iconPath: 'M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z',
     title: 'Your Voice, Your Power',
-    description: 'Clone your voice in 60 seconds. Hear meditations and affirmations spoken by the one voice your subconscious trusts most — yours.',
+    description: 'Clone your voice in 60 seconds. Hear meditations and affirmations spoken by the one voice your subconscious trusts most. Yours.',
   },
   {
     iconPath: 'M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z',
     title: 'AI That Understands You',
-    description: 'Describe your mood, your goal, or just how you feel. Our AI crafts a meditation uniquely for this moment — no generic scripts.',
+    description: 'Describe your mood, your goal, or just how you feel. Our AI crafts a meditation uniquely for this moment. No generic scripts.',
   },
   {
     iconPath: 'M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z',
     title: '5 Dimensions of Wellness',
-    description: 'Guided meditations, affirmations, self-hypnosis, guided journeys, and children\'s stories — all personalized, all yours.',
+    description: 'Guided meditations, affirmations, self-hypnosis, guided journeys, and children\'s stories. All personalized, all yours.',
   },
 ] as const;
 
 const STEPS = [
-  { num: '01', title: 'Describe how you feel', description: 'Type or speak what you need — "calm my racing thoughts" or "help me believe in myself"' },
+  { num: '01', title: 'Describe how you feel', description: 'Type or speak what you need. "Calm my racing thoughts" or "help me believe in myself."' },
   { num: '02', title: 'Make it yours', description: 'Choose your cloned voice, pick background music, or start from a template' },
   { num: '03', title: 'Listen & transform', description: 'AI generates a full meditation script and speaks it in your chosen voice, instantly' },
 ] as const;
@@ -40,7 +40,7 @@ const CONTENT_TYPES = [
 
 const TESTIMONIALS = [
   {
-    quote: "Hearing affirmations in my own voice changed everything. It feels like I'm actually talking to myself — because I am.",
+    quote: "Hearing affirmations in my own voice changed everything. It feels like I'm actually talking to myself, because I am.",
     name: 'Sarah M.',
     role: 'Daily meditator',
   },
@@ -155,7 +155,7 @@ const LandingPage = () => {
               onClick={() => openAuthModal('signup')}
               className="px-8 py-3 rounded-full bg-gradient-to-r from-sky-500 to-cyan-400 text-white font-medium text-sm tracking-wide shadow-lg shadow-sky-500/25 hover:shadow-sky-500/40 hover:scale-[1.03] active:scale-[0.97] transition-all duration-300"
             >
-              Start Free — No Card Required
+              Start Free, No Card Required
             </button>
             <a
               href="#how-it-works"
@@ -383,7 +383,7 @@ const LandingPage = () => {
               <span className="text-sky-400">Your reality.</span>
             </h2>
             <p className="text-slate-400 text-base max-w-md mx-auto mb-10">
-              Start creating personalized meditations that actually resonate — because they're made by you, for you, in your voice.
+              Start creating personalized meditations that actually resonate. Because they're made by you, for you, in your voice.
             </p>
             <button
               onClick={() => openAuthModal('signup')}
