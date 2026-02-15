@@ -158,6 +158,6 @@ If that sounds like what you've been looking for, AI adapted meditation apps lik
   'Meditation for Anxiety: How AI Adapts to Your Stress | Innrvo',
   'Most meditation fails anxious minds because it can''t adapt to how you actually feel. Learn how AI-powered meditation adjusts in real time to your stress levels.',
   9,
-  '2026-02-25T00:00:00Z'
+  '2026-02-11T00:00:00Z'
 )
 ON CONFLICT (slug) DO NOTHING;
